@@ -2,7 +2,7 @@ import Link from "next/link";
 import { listProducts, bestSellerIds } from "@/lib/store";
 import ProductRow from "@/components/home/ProductRow";
 import ClubSignup from "@/components/home/ClubSignup";
-import { CardIcon, ChevronLeft, ShieldIcon, StarIcon, TagIcon, TruckIcon } from "@/components/Icons";
+import { CardIcon, ChevronLeft, StarIcon, TagIcon, TruckIcon } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +14,11 @@ const CATS = [
   { label: "נעלי עקב", sub: "לערב ולאירועים", href: "/shop?category=heels", img: stock("photo-1551489186-ccb95a1ea6a3", 900) },
   { label: "תיקים וארנקים", sub: "משלימים את הלוק", href: "/shop?category=bags", img: stock("photo-1624687943971-e86af76d57de", 900) },
   { label: "תכשיטים ואקססוריז", sub: "נגיעה של זהב", href: "/shop?category=jewelry", img: stock("photo-1617038220319-276d3cfab638", 900) },
+];
+
+const PROMOS = [
+  { title: "מבצע לזמן מוגבל", text: "עד 60% הנחה על מגפונים נבחרים", cta: "לכל המבצעים", href: "/shop?sort=discount", img: stock("photo-1605732440685-d0654d81aa30", 1400) },
+  { title: "קולקציית חורף", text: "מגפונים חמים ומעוצבים לימים הקרים", cta: "לקולקציה", href: "/shop?sort=new", img: stock("photo-1571489555750-c932b569ef5d", 1400) },
 ];
 
 export default async function Home() {
@@ -43,7 +48,6 @@ export default async function Home() {
     { title: "משלוח מהיר", sub: "חינם עד דלת הבית", Icon: TruckIcon },
     { title: "מחירים ללא תחרות", sub: `עד ${maxPct || 60}% הנחה על הקולקציה`, Icon: TagIcon },
     { title: "שירות אישי באיכות גבוהה", sub: "זמינים לך בוואטסאפ", Icon: StarIcon },
-    { title: "אתר מאובטח בתקן SSL", sub: "הפרטים שלך מוצפנים ומוגנים", Icon: ShieldIcon },
   ];
 
   return (
@@ -94,35 +98,29 @@ export default async function Home() {
       <ProductRow title="מה חדש" products={newest} href="/shop?sort=new" />
       <ProductRow title="הנמכרים ביותר" products={best} href="/shop" />
 
-      {/* Promo — full width */}
-      <section aria-label="מבצע" className="mt-10 md:mt-14 bg-night text-white">
-        <div className="flex flex-col lg:flex-row lg:min-h-[320px]">
-          <div className="lg:flex-1 px-5 py-10 md:px-14 lg:py-12 lg:pr-[max(32px,calc((100vw_-_1320px)/2_+_32px))] flex flex-col justify-center gap-3.5">
-            <span className="kicker text-gold">מבצע לזמן מוגבל</span>
-            <h2 className="font-display font-extrabold text-[34px] md:text-[52px] leading-[1.02]">
-              עד <span className="text-gold">{maxPct || 60}%</span> הנחה
-              <br />
-              על כל המגפונים
-            </h2>
-            <p className="text-soft font-light">מידות מוגבלות — חלק מהדגמים כבר במידה אחרונה.</p>
-            <Link href="/shop?sort=discount" className="btn btn-gold self-start mt-1.5">לכל המבצעים</Link>
-          </div>
-          <div className="lg:flex-[1.25] grid grid-cols-3 gap-[3px] h-[160px] md:h-[260px] lg:h-auto">
-            <img src={img("croc-square-toe")} alt="" className="w-full h-full object-cover" />
-            <img src={img("brown-gold-buckle")} alt="" className="w-full h-full object-cover" />
-            <img src={img("croc-gold-buckle")} alt="" className="w-full h-full object-cover" />
-          </div>
-        </div>
+      {/* Two promo banners — edge to edge, no gaps */}
+      <section aria-label="מבצעים" className="mt-10 md:mt-14 grid md:grid-cols-2">
+        {PROMOS.map((b) => (
+          <Link key={b.title} href={b.href} className="group relative block aspect-[4/3] md:aspect-[16/11] overflow-hidden bg-night hover:text-white">
+            <img src={b.img} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" aria-hidden="true" />
+            <div className="absolute bottom-0 inset-x-0 p-6 md:p-10 text-white flex flex-col gap-2 md:gap-3">
+              <h2 className="font-display font-extrabold text-[30px] md:text-[44px] leading-[1.05]">{b.title}</h2>
+              <p className="text-[15px] md:text-[17px] text-[#E8E4DA] font-light">{b.text}</p>
+              <span className="btn btn-gold self-start mt-1 h-11 md:h-12">{b.cta} <ChevronLeft size={16} strokeWidth={2.2} /></span>
+            </div>
+          </Link>
+        ))}
       </section>
 
-      {/* Perks */}
-      <section aria-label="למה לקנות אצלנו" className="container-site py-14 md:py-[72px]">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-y-9">
+      {/* Perks — one compact row */}
+      <section aria-label="למה לקנות אצלנו" className="container-site py-8 md:py-12">
+        <div className="grid grid-cols-4">
           {perks.map(({ title, sub, Icon }, i) => (
-            <div key={title} className={`flex flex-col items-center gap-3 text-center px-3 md:px-5 ${i < perks.length - 1 ? "lg:border-l lg:border-[#DDD9D0]" : ""} ${i === perks.length - 1 ? "col-span-2 md:col-span-1" : ""}`}>
-              <Icon size={42} stroke="#7A5A12" strokeWidth={1.1} />
-              <b className="text-[15px] md:text-[17px]">{title}</b>
-              <span className="text-[13px] md:text-[14px] text-muted leading-normal">{sub}</span>
+            <div key={title} className={`flex flex-col items-center gap-1.5 md:gap-2 text-center px-1.5 md:px-4 ${i < perks.length - 1 ? "border-l border-[#E6E3DC]" : ""}`}>
+              <Icon size={28} stroke="#7A5A12" strokeWidth={1.3} />
+              <b className="text-[11px] md:text-[15px] leading-tight">{title}</b>
+              <span className="hidden md:block text-[13px] text-muted leading-normal">{sub}</span>
             </div>
           ))}
         </div>
