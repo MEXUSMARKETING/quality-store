@@ -35,7 +35,7 @@ export default function Header() {
           <span className="text-gold px-2">✦</span> וואטסאפ <span dir="ltr">{STORE.phoneDisplay}</span>
         </span>
       </div>
-      <header className="sticky top-0 z-40 bg-cream/95 backdrop-blur border-b border-line">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-line">
         <div className="container-site flex items-center gap-4 md:gap-7 py-2.5 md:py-4">
           <button className="md:hidden w-11 h-11 flex items-center justify-center -ms-2" aria-label="תפריט" onClick={() => setOpen(true)}>
             <MenuIcon size={24} />
@@ -48,7 +48,7 @@ export default function Header() {
               </Link>
             ))}
           </nav>
-          <form action="/shop" className="hidden md:flex flex-1 items-center gap-2.5 h-[46px] px-4 bg-white border border-line rounded-full text-muted">
+          <form action="/shop" className="hidden md:flex flex-1 items-center gap-2.5 h-[46px] px-4 bg-panel border border-line rounded-full text-muted">
             <SearchIcon size={19} />
             <label className="sr-only" htmlFor="q">חיפוש</label>
             <input id="q" name="q" type="search" placeholder="חיפוש לפי צבע, עקב או דגם" className="flex-1 min-w-0 bg-transparent outline-none text-[15px] text-ink" />
@@ -73,14 +73,14 @@ export default function Header() {
       {open && (
         <div className="fixed inset-0 z-50 md:hidden">
           <button className="absolute inset-0 bg-black/40" aria-label="סגירת תפריט" onClick={() => setOpen(false)} />
-          <div className="absolute top-0 bottom-0 right-0 w-[84%] max-w-[340px] bg-cream p-5 flex flex-col gap-2 shadow-xl">
+          <div className="absolute top-0 bottom-0 right-0 w-[84%] max-w-[340px] bg-white p-5 flex flex-col gap-2 shadow-xl">
             <div className="flex items-center justify-between pb-3">
               <Logo className="text-[28px]" />
               <button className="w-11 h-11 flex items-center justify-center" aria-label="סגירה" onClick={() => setOpen(false)}>
                 <CloseIcon />
               </button>
             </div>
-            <form action="/shop" className="flex items-center gap-2 h-12 px-4 bg-white border border-line rounded-xl text-muted mb-2">
+            <form action="/shop" className="flex items-center gap-2 h-12 px-4 bg-panel border border-line rounded-xl text-muted mb-2">
               <SearchIcon size={19} />
               <input name="q" type="search" placeholder="חיפוש" aria-label="חיפוש" className="flex-1 min-w-0 bg-transparent outline-none text-[15px] text-ink" />
             </form>

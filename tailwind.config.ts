@@ -7,7 +7,8 @@ const config: Config = {
       colors: {
         ink: "#141414",
         night: "#0E0E0E",
-        cream: "#F5F4F0",
+        cream: "#FFFFFF",
+        panel: "#F6F5F2",
         sand: "#E9E3D6",
         gold: "#C9A24A",
         golddark: "#7A5A12",

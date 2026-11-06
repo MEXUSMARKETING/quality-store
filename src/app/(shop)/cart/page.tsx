@@ -56,7 +56,7 @@ export default function CartPage() {
         </div>
       </div>
 
-      <aside className="w-full lg:w-[380px] lg:sticky lg:top-24 p-5 md:p-6 rounded-[20px] bg-white flex flex-col gap-3 text-[15px]">
+      <aside className="w-full lg:w-[380px] lg:sticky lg:top-24 p-5 md:p-6 rounded-[20px] bg-panel flex flex-col gap-3 text-[15px]">
         <h2 className="font-display font-bold text-[22px]">סיכום</h2>
         <div className="flex justify-between"><span>סכום ביניים</span><span>{shekel(subtotal)}</span></div>
         <div className="flex justify-between"><span>משלוח</span><span>חינם</span></div>

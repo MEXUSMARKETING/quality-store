@@ -148,7 +148,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
-        <details className="lg:hidden w-full rounded-2xl bg-white border border-line">
+        <details className="lg:hidden w-full rounded-2xl bg-panel border border-line">
           <summary className="list-none cursor-pointer h-12 px-4 flex items-center justify-between font-bold">
             סינון {active.length ? `(${active.length})` : ""}
             <span aria-hidden="true">▾</span>
@@ -180,7 +180,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
               ))}
             </div>
           ) : (
-            <div className="p-10 md:p-12 rounded-[22px] bg-white text-center flex flex-col gap-3 items-center">
+            <div className="p-10 md:p-12 rounded-[22px] bg-panel text-center flex flex-col gap-3 items-center">
               <b className="text-lg">{category !== "boots" && !q ? "הקטגוריה תעלה בקרוב" : "אין דגמים בבחירה הזו"}</b>
               <Link href="/shop" className="btn btn-outline">לכל המגפונים</Link>
             </div>

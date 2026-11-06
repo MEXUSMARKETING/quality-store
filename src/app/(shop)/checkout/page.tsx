@@ -12,7 +12,7 @@ import { STORE, shekel } from "@/lib/config";
 function Radio({ name, value, current, onChange, title, sub, price }: { name: string; value: string; current: string; onChange: (v: string) => void; title: string; sub: string; price?: string }) {
   const on = current === value;
   return (
-    <label className={`min-h-[64px] rounded-[14px] border-[1.5px] px-3.5 py-3 flex items-center gap-3 cursor-pointer ${on ? "border-ink bg-cream" : "border-line bg-white"}`}>
+    <label className={`min-h-[64px] rounded-[14px] border-[1.5px] px-3.5 py-3 flex items-center gap-3 cursor-pointer ${on ? "border-ink bg-panel" : "border-line bg-white"}`}>
       <input type="radio" name={name} value={value} checked={on} onChange={() => onChange(value)} className="w-5 h-5 accent-ink" />
       <span className="flex-1 flex flex-col"><b className="text-[15px]">{title}</b><span className="text-[13px] text-muted">{sub}</span></span>
       {price && <b className="text-[15px]">{price}</b>}
@@ -75,7 +75,7 @@ export default function CheckoutPage() {
           <span className="flex items-center gap-1.5 text-sm text-[#2F5A26] font-bold"><LockIcon size={16} strokeWidth={2} /> מאובטח</span>
         </div>
 
-        <section className="p-5 md:p-6 rounded-[20px] bg-white flex flex-col gap-4">
+        <section className="p-5 md:p-6 rounded-[20px] bg-panel flex flex-col gap-4">
           <h2 className="font-display font-bold text-lg md:text-[22px]">1. הפרטים שלך</h2>
           <div className="grid sm:grid-cols-2 gap-3.5">
             <label className="field">שם מלא<input name="name" required autoComplete="name" className="input" /></label>
@@ -84,7 +84,7 @@ export default function CheckoutPage() {
           </div>
         </section>
 
-        <section className="p-5 md:p-6 rounded-[20px] bg-white flex flex-col gap-3">
+        <section className="p-5 md:p-6 rounded-[20px] bg-panel flex flex-col gap-3">
           <h2 className="font-display font-bold text-lg md:text-[22px]">2. איך לקבל את ההזמנה?</h2>
           <div className="grid sm:grid-cols-2 gap-2.5">
             <Radio name="shipping" value="home" current={shipping} onChange={setShipping} title="משלוח עד הבית" sub="השליח מתאם איתך מראש" price="חינם" />
@@ -100,7 +100,7 @@ export default function CheckoutPage() {
           <label className="field">הערות (לא חובה)<input name="notes" placeholder="קוד לבניין, שעות נוחות…" className="input" /></label>
         </section>
 
-        <section className="p-5 md:p-6 rounded-[20px] bg-white flex flex-col gap-3">
+        <section className="p-5 md:p-6 rounded-[20px] bg-panel flex flex-col gap-3">
           <h2 className="font-display font-bold text-lg md:text-[22px]">3. אמצעי תשלום</h2>
           <div className="grid sm:grid-cols-3 gap-2.5">
             <Radio name="payment" value="cash" current={payment} onChange={setPayment} title="מזומן בעת המסירה" sub="משלמים לשליח" />
@@ -110,7 +110,7 @@ export default function CheckoutPage() {
         </section>
       </div>
 
-      <aside className="w-full lg:w-[400px] lg:sticky lg:top-24 p-5 md:p-6 rounded-[20px] bg-white flex flex-col gap-4">
+      <aside className="w-full lg:w-[400px] lg:sticky lg:top-24 p-5 md:p-6 rounded-[20px] bg-panel flex flex-col gap-4">
         <h2 className="font-display font-bold text-[22px]">ההזמנה שלך</h2>
         {items.map((it) => (
           <div key={it.productId + it.size} className="flex gap-3 items-center pb-3 border-b border-[#EEECE6]">

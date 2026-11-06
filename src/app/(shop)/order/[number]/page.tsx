@@ -11,7 +11,7 @@ export default async function OrderPage({ params }: { params: { number: string }
 
   return (
     <div className="container-site py-12 md:py-16 max-w-[640px]">
-      <div className="p-6 md:p-8 rounded-[24px] bg-white flex flex-col gap-4">
+      <div className="p-6 md:p-8 rounded-[24px] bg-panel flex flex-col gap-4">
         <span className="w-14 h-14 rounded-full bg-[#E2EADF] flex items-center justify-center text-[#2F5A26] text-2xl" aria-hidden="true">✓</span>
         <h1 className="font-display font-extrabold text-[28px] md:text-[36px]">תודה, ההזמנה התקבלה!</h1>
         <p className="text-[#45443F]">

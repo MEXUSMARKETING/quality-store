@@ -59,7 +59,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {p.heel ? <span className="h-[38px] px-4 rounded-full bg-white border border-line flex items-center text-[15px]">עקב {p.heel} ס״מ</span> : null}
+            {p.heel ? <span className="h-[38px] px-4 rounded-full bg-panel border border-line flex items-center text-[15px]">עקב {p.heel} ס״מ</span> : null}
           </div>
 
           <BuyBox
