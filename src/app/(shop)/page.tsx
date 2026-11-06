@@ -107,7 +107,6 @@ export default async function Home() {
             <div className="absolute bottom-0 inset-x-0 p-6 md:p-10 text-white flex flex-col gap-2 md:gap-3">
               <h2 className="font-display font-extrabold text-[30px] md:text-[44px] leading-[1.05]">{b.title}</h2>
               <p className="text-[15px] md:text-[17px] text-[#E8E4DA] font-light">{b.text}</p>
-              <span className="btn btn-gold self-start mt-1 h-11 md:h-12">{b.cta} <ChevronLeft size={16} strokeWidth={2.2} /></span>
             </div>
           </Link>
         ))}
