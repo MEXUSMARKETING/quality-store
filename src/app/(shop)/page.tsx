@@ -1,32 +1,42 @@
 import Link from "next/link";
-import { listProducts } from "@/lib/store";
-import CategoryCarousel, { type Cat } from "@/components/home/CategoryCarousel";
-import Collection from "@/components/home/Collection";
+import { listProducts, bestSellerIds } from "@/lib/store";
+import ProductRow from "@/components/home/ProductRow";
 import ClubSignup from "@/components/home/ClubSignup";
 import { CardIcon, ChevronLeft, ShieldIcon, StarIcon, TagIcon, TruckIcon } from "@/components/Icons";
-import { waLink } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
 const img = (slug: string) => `/products/${slug}.jpg`;
+const stock = (id: string, w = 1200) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=80`;
+
+const CATS = [
+  { label: "מגפונים", sub: "הקולקציה החדשה", href: "/shop", img: stock("photo-1605733160314-4fc7dac4bb16", 900) },
+  { label: "נעלי עקב", sub: "לערב ולאירועים", href: "/shop?category=heels", img: stock("photo-1551489186-ccb95a1ea6a3", 900) },
+  { label: "תיקים וארנקים", sub: "משלימים את הלוק", href: "/shop?category=bags", img: stock("photo-1624687943971-e86af76d57de", 900) },
+  { label: "תכשיטים ואקססוריז", sub: "נגיעה של זהב", href: "/shop?category=jewelry", img: stock("photo-1617038220319-276d3cfab638", 900) },
+];
 
 export default async function Home() {
   const all = await listProducts();
   const boots = all.filter((p) => p.category === "boots");
-  const ordered = [...boots.filter((p) => p.featured), ...boots.filter((p) => !p.featured)];
   const minPrice = boots.length ? Math.min(...boots.map((p) => p.price)) : 140;
   const maxPct = boots.reduce((m, p) => (p.old_price && p.old_price > p.price ? Math.max(m, Math.round((1 - p.price / p.old_price) * 100)) : m), 0);
 
-  const cats: Cat[] = [
-    { label: "שחור קלאסי", href: "/shop?color=black", img: img("black-gold-stripe") },
-    { label: "חום וקוניאק", href: "/shop?color=brown", img: img("brown-gold-buckle") },
-    { label: "כחול כהה", href: "/shop?color=blue", img: img("navy-gold-heel") },
-    { label: "עקב נמוך", href: "/shop?heel=low", img: img("black-gold-heel") },
-    { label: "עקב 9 ס״מ", href: "/shop?heel=high", img: img("suede-high-heel") },
-    { label: "לק וקרוקו", href: "/shop?q=" + encodeURIComponent("קרוקו"), img: img("croc-square-toe") },
-    { label: "מנומר", href: "/shop?q=" + encodeURIComponent("מנומר"), img: img("leopard") },
-    { label: "אבזם קריסטל", href: "/shop?q=" + encodeURIComponent("קריסטל"), img: img("crystal-black") },
-  ];
+  // What's new: newest first (highest id), featured items lead when ids tie
+  const newest = [...all].sort((a, b) => b.id - a.id).slice(0, 10);
+
+  // Best sellers: by units sold; fall back to featured + biggest discount until there are orders
+  const soldIds = await bestSellerIds();
+  const byId = new Map(all.map((p) => [p.id, p]));
+  let best = soldIds.map((id) => byId.get(id)).filter(Boolean) as typeof all;
+  if (best.length < 4) {
+    const pct = (p: (typeof all)[number]) => (p.old_price && p.old_price > p.price ? 1 - p.price / p.old_price : 0);
+    const rest = all
+      .filter((p) => !best.includes(p))
+      .sort((a, b) => Number(b.featured) - Number(a.featured) || pct(b) - pct(a));
+    best = [...best, ...rest];
+  }
+  best = best.slice(0, 10);
 
   const perks = [
     { title: "תשלום מאובטח", sub: "אשראי, Bit או מזומן בעת המסירה", Icon: CardIcon },
@@ -38,73 +48,52 @@ export default async function Home() {
 
   return (
     <>
-      {/* Hero — full width */}
-      <section aria-label="באנר ראשי" className="bg-night text-white">
-        <div className="flex flex-col-reverse lg:flex-row lg:min-h-[600px]">
-          <div className="lg:flex-1 px-5 py-10 md:px-14 lg:py-[72px] lg:pr-[max(32px,calc((100vw_-_1320px)/2_+_32px))] flex flex-col justify-center gap-5 md:gap-[22px]">
-            <span dir="ltr" className="kicker text-gold self-end text-[12px] md:text-[13px] tracking-[5px]">NEW COLLECTION · 2026</span>
-            <h1 className="font-display font-extrabold text-[40px] md:text-[64px] lg:text-[72px] leading-[1.02] tracking-tight">
-              מגפוני חורף
-              <br />
-              <span className="text-gold">מ־₪{minPrice}</span> בלבד
-            </h1>
-            <p className="text-[16px] md:text-[19px] leading-relaxed text-soft font-light max-w-[440px]">
-              עד {maxPct || 60}% הנחה על הקולקציה החדשה. משלוח חינם עד הבית — ומשלמים רק כשהנעל אצלך.
-            </p>
-            <div className="flex flex-wrap gap-3 md:gap-3.5 mt-1 md:mt-2">
-              <Link href="/shop" className="btn btn-gold h-[52px] md:h-14 px-8">
-                לכל הקולקציה <ChevronLeft size={18} strokeWidth={2.2} />
-              </Link>
-              <a href={waLink("שלום, אשמח להזמין מגפון מהקולקציה")} target="_blank" rel="noopener" className="btn btn-outline-light h-[52px] md:h-14 font-medium">
-                הזמנה בוואטסאפ
-              </a>
-            </div>
-          </div>
-          <div className="lg:flex-[1.25] grid grid-cols-[1.2fr_1fr] grid-rows-2 gap-[3px] h-[360px] md:h-[480px] lg:h-auto">
-            <img src={img("leopard")} alt="מגפון מנומר" className="w-full h-full object-cover row-span-2" />
-            <img src={img("crystal-cognac")} alt="מגפון קריסטל קוניאק" className="w-full h-full object-cover" />
-            <img src={img("navy-gold-heel")} alt="מגפון כחול עקב זהב" className="w-full h-full object-cover" />
+      {/* Hero — big, full width */}
+      <section aria-label="באנר ראשי" className="relative bg-night text-white overflow-hidden">
+        <img
+          src={stock("photo-1574413230119-f302e1c9035d", 2000)}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-l from-black/70 via-black/35 to-black/10" aria-hidden="true" />
+        <div className="relative container-site min-h-[480px] md:min-h-[620px] lg:min-h-[680px] flex flex-col justify-center gap-5 py-14">
+          <span dir="ltr" className="kicker text-gold self-end text-[12px] md:text-[13px] tracking-[5px]">NEW COLLECTION · 2026</span>
+          <h1 className="font-display font-extrabold text-[42px] md:text-[68px] lg:text-[80px] leading-[1] tracking-tight max-w-[640px]">
+            מגפוני חורף
+            <br />
+            <span className="text-gold">מ־₪{minPrice}</span> בלבד
+          </h1>
+          <p className="text-[16px] md:text-[20px] leading-relaxed text-[#E8E4DA] font-light max-w-[460px]">
+            עד {maxPct || 60}% הנחה על הקולקציה החדשה. משלוח חינם עד הבית — ומשלמים רק כשהנעל אצלך.
+          </p>
+          <div className="flex flex-wrap gap-3 mt-2">
+            <Link href="/shop" className="btn btn-gold h-[52px] md:h-14 px-8">
+              לכל הקולקציה <ChevronLeft size={18} strokeWidth={2.2} />
+            </Link>
+            <Link href="/shop?sort=discount" className="btn btn-outline-light h-[52px] md:h-14 font-medium border-white/60">
+              למבצעים
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* Style carousel */}
-      <section aria-label="קנייה לפי סגנון" className="container-site pt-6 md:pt-8">
-        <CategoryCarousel cats={cats} />
+      {/* 4 categories — edge to edge, no gaps */}
+      <section aria-label="קטגוריות" className="grid grid-cols-2 lg:grid-cols-4">
+        {CATS.map((c) => (
+          <Link key={c.label} href={c.href} className="group relative block aspect-[3/4] lg:aspect-[4/5] overflow-hidden bg-panel hover:text-white">
+            <img src={c.img} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-transparent" aria-hidden="true" />
+            <div className="absolute bottom-0 inset-x-0 p-4 md:p-7 text-white flex flex-col gap-1">
+              <span className="text-[12px] md:text-[13px] text-[#E8E4DA]">{c.sub}</span>
+              <span className="font-display font-bold text-[20px] md:text-[28px] leading-tight">{c.label}</span>
+              <span className="hidden md:inline-flex items-center gap-1.5 text-[14px] font-bold mt-1 underline underline-offset-4">לקטגוריה <ChevronLeft size={14} strokeWidth={2.4} /></span>
+            </div>
+          </Link>
+        ))}
       </section>
 
-      {/* Collection */}
-      <Collection products={ordered} />
-
-      {/* Jewelry + bags */}
-      <section aria-label="קטגוריות נוספות" className="container-site pt-14 md:pt-20 grid md:grid-cols-2 gap-4 md:gap-[22px]">
-        <Link href="/shop?category=jewelry" className="group relative min-h-[300px] md:min-h-[380px] rounded-[24px] md:rounded-[28px] overflow-hidden bg-night text-white flex hover:text-white">
-          <div className="flex-[1.2] p-7 md:p-11 flex flex-col justify-end gap-3 z-10">
-            <span className="kicker text-gold">קטגוריה חדשה</span>
-            <h2 className="font-display font-extrabold text-[32px] md:text-[40px] leading-[1.05]">תכשיטים<br />ואקססוריז</h2>
-            <p className="text-soft font-light">הנגיעה שמשלימה את הלוק</p>
-            <span className="btn btn-gold self-start mt-2">לקולקציה <ChevronLeft size={16} strokeWidth={2.2} /></span>
-          </div>
-          <div className="flex-1 flex items-center justify-center border-r border-dashed border-[#3A3833]">
-            <svg width="150" height="150" viewBox="0 0 120 120" fill="none" stroke="#C9A24A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M24 22c4 30 18 48 36 48s32-18 36-48" /><path d="M30 22c4 24 16 40 30 40s26-16 30-40" /><path d="M60 70v8" /><path d="M60 78l-9 12 9 14 9-14z" /><path d="M51 90h18" />
-            </svg>
-          </div>
-        </Link>
-        <Link href="/shop?category=bags" className="group relative min-h-[300px] md:min-h-[380px] rounded-[24px] md:rounded-[28px] overflow-hidden bg-sand text-ink flex">
-          <div className="flex-[1.2] p-7 md:p-11 flex flex-col justify-end gap-3">
-            <span className="kicker text-golddark font-bold">קטגוריה חדשה</span>
-            <h2 className="font-display font-extrabold text-[32px] md:text-[40px] leading-[1.05]">תיקים<br />וארנקים</h2>
-            <p className="text-[#45443F]">תיק שמתאים למגפון — וליום שלך</p>
-            <span className="btn btn-dark self-start mt-2">לקולקציה <ChevronLeft size={16} strokeWidth={2.2} /></span>
-          </div>
-          <div className="flex-1 flex items-center justify-center border-r border-dashed border-[#C9C1AE]">
-            <svg width="150" height="150" viewBox="0 0 120 120" fill="none" stroke="#141414" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M22 48h76l-6 52H28z" /><path d="M42 48V38a18 18 0 0 1 36 0v10" /><path d="M22 62h76" /><rect x="54" y="58" width="12" height="9" rx="2" stroke="#7A5A12" />
-            </svg>
-          </div>
-        </Link>
-      </section>
+      <ProductRow kicker="חדש באתר" title="מה חדש" products={newest} href="/shop?sort=new" />
+      <ProductRow kicker="הכי אהובים" title="הנמכרים ביותר" products={best} href="/shop" />
 
       {/* Promo — full width */}
       <section aria-label="מבצע" className="mt-16 md:mt-[88px] bg-night text-white">

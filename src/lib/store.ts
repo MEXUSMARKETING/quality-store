@@ -159,6 +159,22 @@ export async function setOrderStatus(id: number, status: string) {
   await sql`update orders set status=${status} where id=${id}`;
 }
 
+/** Product ids ranked by units sold (empty when there is no database or no orders yet). */
+export async function bestSellerIds(): Promise<number[]> {
+  if (!hasDb()) return [];
+  try {
+    const sql = await db();
+    const r = await sql`
+      select (it->>'productId')::int as id, sum((it->>'qty')::int) as sold
+      from orders, jsonb_array_elements(items) as it
+      where status <> 'cancelled'
+      group by 1 order by sold desc limit 20`;
+    return r.map((x: any) => Number(x.id));
+  } catch {
+    return [];
+  }
+}
+
 /* ---------------- club ---------------- */
 
 export async function addClubMember(m: { name: string; phone: string; email: string }) {

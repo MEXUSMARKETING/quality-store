@@ -17,6 +17,7 @@ export const COLORS: Record<string, { label: string; hex: string }> = {
 
 export const CATEGORIES: Record<string, string> = {
   boots: "מגפונים",
+  heels: "נעלי עקב",
   jewelry: "תכשיטים ואקססוריז",
   bags: "תיקים וארנקים",
 };
