@@ -19,7 +19,7 @@ export default function ProductCard({ p, large = false }: { p: Product; large?: 
 
   return (
     <Link href={`/product/${p.slug}`} className="group flex flex-col gap-3">
-      <div className={`relative aspect-square overflow-hidden bg-ink ${large ? "rounded-3xl" : "rounded-2xl md:rounded-[22px]"}`}>
+      <div className={`relative aspect-square overflow-hidden bg-ink `}>
         {p.images[0] ? (
           <img src={p.images[0]} alt={p.name} loading="lazy" className={`w-full h-full object-contain transition-transform duration-500 group-hover:scale-[1.03] ${soldOut ? "opacity-60" : ""}`} />
         ) : (

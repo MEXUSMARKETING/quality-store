@@ -114,7 +114,7 @@ export default function CheckoutPage() {
         <h2 className="font-display font-bold text-[22px]">ההזמנה שלך</h2>
         {items.map((it) => (
           <div key={it.productId + it.size} className="flex gap-3 items-center pb-3 border-b border-[#EEECE6]">
-            <img src={it.image} alt="" className="w-16 h-16 rounded-xl object-cover bg-ink" />
+            <img src={it.image} alt="" className="w-16 h-16 object-cover bg-ink" />
             <span className="flex-1 text-sm"><b className="block text-[15px]">{it.name}</b>מידה {it.size} · ×{it.qty}</span>
             <b>{shekel(it.price * it.qty)}</b>
           </div>

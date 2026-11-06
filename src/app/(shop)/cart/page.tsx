@@ -32,7 +32,7 @@ export default function CartPage() {
           {items.map((it) => (
             <div key={it.productId + "-" + it.size} className="flex gap-3.5 md:gap-5 py-4 border-b border-line">
               <Link href={`/product/${it.slug}`} className="shrink-0">
-                <img src={it.image} alt={it.name} className="w-[96px] h-[96px] md:w-[120px] md:h-[120px] rounded-2xl object-cover bg-ink" />
+                <img src={it.image} alt={it.name} className="w-[96px] h-[96px] md:w-[120px] md:h-[120px] object-cover bg-ink" />
               </Link>
               <div className="flex-1 min-w-0 flex flex-col gap-1">
                 <div className="flex justify-between items-start gap-2">

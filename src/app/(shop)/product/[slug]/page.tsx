@@ -29,14 +29,14 @@ export default async function ProductPage({ params }: { params: { slug: string }
 
       <div className="flex flex-col lg:flex-row gap-7 lg:gap-12 items-start">
         <div className="w-full lg:flex-1 flex flex-col gap-3">
-          <div className="relative rounded-[24px] md:rounded-[28px] overflow-hidden bg-ink aspect-square">
+          <div className="relative overflow-hidden bg-ink aspect-square">
             {p.images[0] && <img src={p.images[0]} alt={p.name} className="w-full h-full object-contain" />}
             {pct && <span className="absolute top-4 right-4 text-sm font-bold px-3.5 py-1.5 rounded-full bg-gold">−{pct}%</span>}
           </div>
           {p.images.length > 1 && (
             <div className="grid grid-cols-4 gap-2.5">
               {p.images.slice(1, 5).map((src) => (
-                <img key={src} src={src} alt="" className="aspect-square rounded-2xl object-cover bg-ink" />
+                <img key={src} src={src} alt="" className="aspect-square object-cover bg-ink" />
               ))}
             </div>
           )}
