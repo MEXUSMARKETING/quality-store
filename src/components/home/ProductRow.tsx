@@ -35,12 +35,9 @@ export default function ProductRow({ title, kicker, products, href }: { title: s
   if (!list.length) return null;
 
   return (
-    <section className="container-site pt-14 md:pt-20">
-      <div className="flex items-end justify-between gap-4 pb-5 md:pb-7">
-        <div className="flex flex-col gap-1.5">
-          {kicker && <span className="kicker text-golddark font-bold">{kicker}</span>}
-          <h2 className="font-display font-bold text-[26px] md:text-[36px] tracking-tight">{title}</h2>
-        </div>
+    <section className="container-site pt-8 md:pt-12">
+      <div className="flex items-end justify-between gap-4 pb-4 md:pb-5">
+        <h2 className="font-display font-bold text-[24px] md:text-[32px] tracking-tight">{title}</h2>
         <div className="flex items-center gap-2 md:gap-3">
           <Link href={href} className="text-[14px] md:text-[15px] font-medium underline underline-offset-4">לכל המוצרים</Link>
           <button onClick={() => go(-1)} disabled={atStart} aria-label="הקודם" className="hidden md:flex w-11 h-11 rounded-full border border-line items-center justify-center disabled:opacity-30">

@@ -84,19 +84,18 @@ export default async function Home() {
             <img src={c.img} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-transparent" aria-hidden="true" />
             <div className="absolute bottom-0 inset-x-0 p-4 md:p-7 text-white flex flex-col gap-1">
-              <span className="text-[12px] md:text-[13px] text-[#E8E4DA]">{c.sub}</span>
-              <span className="font-display font-bold text-[20px] md:text-[28px] leading-tight">{c.label}</span>
+                            <span className="font-display font-bold text-[20px] md:text-[28px] leading-tight">{c.label}</span>
               <span className="hidden md:inline-flex items-center gap-1.5 text-[14px] font-bold mt-1 underline underline-offset-4">לקטגוריה <ChevronLeft size={14} strokeWidth={2.4} /></span>
             </div>
           </Link>
         ))}
       </section>
 
-      <ProductRow kicker="חדש באתר" title="מה חדש" products={newest} href="/shop?sort=new" />
-      <ProductRow kicker="הכי אהובים" title="הנמכרים ביותר" products={best} href="/shop" />
+      <ProductRow title="מה חדש" products={newest} href="/shop?sort=new" />
+      <ProductRow title="הנמכרים ביותר" products={best} href="/shop" />
 
       {/* Promo — full width */}
-      <section aria-label="מבצע" className="mt-16 md:mt-[88px] bg-night text-white">
+      <section aria-label="מבצע" className="mt-10 md:mt-14 bg-night text-white">
         <div className="flex flex-col lg:flex-row lg:min-h-[320px]">
           <div className="lg:flex-1 px-5 py-10 md:px-14 lg:py-12 lg:pr-[max(32px,calc((100vw_-_1320px)/2_+_32px))] flex flex-col justify-center gap-3.5">
             <span className="kicker text-gold">מבצע לזמן מוגבל</span>
