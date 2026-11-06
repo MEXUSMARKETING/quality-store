@@ -57,7 +57,7 @@ export default function ProductRow({ title, kicker, products, href }: { title: s
         className="flex gap-3 md:gap-5 overflow-x-auto no-scrollbar snap-x snap-mandatory"
       >
         {list.map((p) => (
-          <div key={p.id} className="snap-start shrink-0 w-[calc((100%_-_12px)/2)] md:w-[calc((100%_-_60px)/4)]">
+          <div key={p.id} className="snap-start shrink-0 w-[calc((100%_-_12px)/2)] md:w-[calc((100%_-_40px)/3)]">
             <ProductCard p={p} />
           </div>
         ))}
