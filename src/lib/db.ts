@@ -3,7 +3,12 @@ import { SEED_PRODUCTS } from "./seed";
 
 type Sql = ReturnType<typeof postgres>;
 
-const g = globalThis as unknown as { __qsql?: Sql; __qready?: Promise<void> | null };
+const g = globalThis as unknown as { __qsql?: Sql; __qready?: Promise<void> | null; __qlast?: number };
+
+/** Serverless instances are frozen between requests; sockets left open across a freeze can be
+ *  silently dead when the instance wakes, and a query on them hangs until the function times out.
+ *  So after a quiet period we drop the old client and open a fresh connection. */
+const STALE_MS = 10_000;
 
 export function dbUrl(): string | undefined {
   const raw = process.env.DATABASE_URL || process.env.POSTGRES_URL || undefined;
@@ -24,6 +29,13 @@ export function hasDb(): boolean {
 }
 
 function client(): Sql {
+  const now = Date.now();
+  if (g.__qsql && g.__qlast && now - g.__qlast > STALE_MS) {
+    const old = g.__qsql;
+    g.__qsql = undefined;
+    old.end({ timeout: 0 }).catch(() => {});
+  }
+  g.__qlast = now;
   if (!g.__qsql) {
     const url = dbUrl();
     if (!url) throw new Error("DATABASE_URL is not set");
@@ -31,8 +43,11 @@ function client(): Sql {
     g.__qsql = postgres(url, {
       ssl: local ? false : "require",
       max: 3,
-      idle_timeout: 20,
+      idle_timeout: 5,
+      max_lifetime: 60 * 5,
+      connect_timeout: 10,
       prepare: false,
+      onnotice: () => {},
     });
   }
   return g.__qsql;

@@ -7,6 +7,7 @@ import Shell, { type Alert } from "./_components/Shell";
 import { DbMissing } from "./_components/ui";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 export const metadata = { title: "ניהול", robots: { index: false, follow: false } };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
