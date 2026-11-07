@@ -191,6 +191,7 @@ export async function createOrder(
   } catch (e) {
     console.error("order side effects failed", e);
   }
+  await import("./automations").then((m) => m.runAutomationsSafe({ type: "order_created", orderId: id })).catch((e) => console.error("automations hook failed", e));
   return number;
 }
 

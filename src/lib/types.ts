@@ -70,6 +70,7 @@ export type Customer = {
   marketing_consent: boolean;
   archived: boolean;
   created_at: string;
+  birthday?: string | null; // YYYY-MM-DD
 };
 
 export type Coupon = {

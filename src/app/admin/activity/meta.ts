@@ -7,6 +7,9 @@ export const ENTITIES: Record<string, { label: string; db: string[] }> = {
   order: { label: "הזמנות", db: ["order"] },
   customer: { label: "לקוחות", db: ["customer"] },
   coupon: { label: "קופונים", db: ["coupon"] },
+  catalog: { label: "קטלוג", db: ["category", "attribute", "review"] },
+  content: { label: "תוכן", db: ["homepage", "page", "menu"] },
+  automation: { label: "אוטומציות", db: ["automation"] },
   system: { label: "מערכת", db: ["settings", "user"] },
 };
 
@@ -17,12 +20,20 @@ export const ENTITY_SINGLE: Record<string, string> = {
   coupon: "קופון",
   settings: "הגדרות",
   user: "משתמש",
+  category: "קטגוריה",
+  attribute: "מאפיין",
+  review: "ביקורת",
+  homepage: "דף הבית",
+  page: "דף",
+  menu: "תפריט",
+  automation: "אוטומציה",
 };
 
 export const ACTIONS: Record<string, { label: string; icon: keyof typeof ICONS; tone: Tone }> = {
   create: { label: "יצירה", icon: "plus", tone: "green" },
   update: { label: "עדכון", icon: "edit", tone: "blue" },
   delete: { label: "מחיקה", icon: "trash", tone: "red" },
+  permission: { label: "הרשאות", icon: "shield", tone: "purple" },
   status: { label: "סטטוס", icon: "check", tone: "purple" },
   price: { label: "מחיר", icon: "tag", tone: "amber" },
   stock: { label: "מלאי", icon: "box", tone: "amber" },

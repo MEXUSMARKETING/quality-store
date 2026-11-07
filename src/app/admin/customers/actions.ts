@@ -59,6 +59,8 @@ export async function updateCustomerAction(_: CustResult, fd: FormData): Promise
   const phone = normIsraeliMobile(str(fd.get("phone"), 30));
   const email = str(fd.get("email"), 160);
   const city = str(fd.get("city"), 80);
+  const bdRaw = str(fd.get("birthday"), 10);
+  const birthday = /^\d{4}-\d{2}-\d{2}$/.test(bdRaw) ? bdRaw : null;
   if (!name) return { error: "יש להזין שם" };
   if (!phone) return { error: "מספר נייד לא תקין – 10 ספרות שמתחילות ב־05" };
   if (!emailOk(email)) return { error: "כתובת המייל לא תקינה" };
@@ -67,7 +69,7 @@ export async function updateCustomerAction(_: CustResult, fd: FormData): Promise
     const dup = await sql`select id from customers where phone = ${phone} and id <> ${id} limit 1`;
     if (dup[0]) return { error: "המספר הזה כבר שייך ללקוח אחר" };
   }
-  await sql`update customers set name = ${name}, phone = ${phone}, email = ${email}, city = ${city}, updated_at = now() where id = ${id}`;
+  await sql`update customers set name = ${name}, phone = ${phone}, email = ${email}, city = ${city}, birthday = ${birthday}, updated_at = now() where id = ${id}`;
   await audit({
     action: "update",
     entity: "customer",

@@ -82,6 +82,7 @@ export function normCustomer(r: any): Customer {
     marketing_consent: !!r.marketing_consent,
     archived: !!r.archived,
     created_at: iso(r.created_at)!,
+    birthday: r.birthday ? new Date(r.birthday).toISOString().slice(0, 10) : null,
   };
 }
 
@@ -90,7 +91,7 @@ export async function upsertCustomer(c: { phone: string; name?: string; email?: 
   const key = phoneKey(c.phone);
   if (!key) return;
   const sql = await db();
-  await sql`
+  const res = await sql`
     insert into customers (phone, name, email, city, marketing_consent)
     values (${key}, ${c.name || ""}, ${c.email || ""}, ${c.city || ""}, ${!!c.consent})
     on conflict (phone) do update set
@@ -99,7 +100,9 @@ export async function upsertCustomer(c: { phone: string; name?: string; email?: 
       city = case when excluded.city <> '' then excluded.city else customers.city end,
       marketing_consent = customers.marketing_consent or excluded.marketing_consent,
       archived = false,
-      updated_at = now()`;
+      updated_at = now()
+    returning (xmax = 0) as inserted`;
+  if (res[0]?.inserted) await import("./automations").then((m) => m.runAutomationsSafe({ type: "customer_created", phone: key })).catch((e) => console.error("automations hook failed", e));
 }
 
 /* ---------------- coupons ---------------- */

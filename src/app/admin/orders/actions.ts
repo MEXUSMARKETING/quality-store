@@ -7,6 +7,7 @@ import { db, hasDb } from "@/lib/db";
 import { addOrderEvent, audit } from "@/lib/admin";
 import { createOrder, getProductById } from "@/lib/store";
 import { changeOrderStatus, normIsraeliMobile } from "@/lib/admin-orders";
+import { runAutomationsSafe } from "@/lib/automations";
 import { ORDER_STATUS, PAYMENT, PAYMENT_STATUS, SHIPPING } from "@/lib/config";
 import type { OrderItem } from "@/lib/types";
 
@@ -34,6 +35,7 @@ export async function setOrderStatusAction(fd: FormData) {
   const r = await changeOrderStatus(id, status, { labels: LABELS });
   if (r && r.before !== status) {
     await audit({ action: "status", entity: "order", entityId: id, summary: `סטטוס הזמנה #${id}: ${LABELS[r.before] || r.before} ← ${LABELS[status]}`, before: { status: r.before }, after: { status } });
+    await runAutomationsSafe({ type: "order_status_changed", orderId: id, status, before: r.before });
   }
   refresh(id);
 }
@@ -61,6 +63,7 @@ export async function updateOrderStatusAction(_: ActionResult, fd: FormData): Pr
       before: { status: r.before },
       after: { status, note: note || undefined, restocked: r.restocked || undefined },
     });
+    if (r.before !== status) await runAutomationsSafe({ type: "order_status_changed", orderId: id, status, before: r.before });
     refresh(id);
     return { ok: true, message: r.restocked ? `הסטטוס עודכן ו־${r.restocked} זוגות הוחזרו למלאי` : "הסטטוס עודכן" };
   } catch (e) {
@@ -100,6 +103,7 @@ export async function bulkOrderStatusAction(_: ActionResult, fd: FormData): Prom
       after: { status },
     });
   }
+  for (const c of changes) await runAutomationsSafe({ type: "order_status_changed", orderId: c.id, status, before: c.before }, 2000);
   refresh();
   return { ok: true, message: changed ? `${changed} הזמנות עודכנו ל"${LABELS[status]}"` : "כל ההזמנות שנבחרו כבר בסטטוס הזה" };
 }
@@ -119,6 +123,7 @@ export async function markShippedAction(_: ActionResult, fd: FormData): Promise<
   await sql`update orders set tracking = ${tracking}, updated_at = now() where id = ${id}`;
   if (r[0].status !== "shipped" && r[0].status !== "delivered") {
     await changeOrderStatus(id, "shipped", { labels: LABELS });
+    await runAutomationsSafe({ type: "order_status_changed", orderId: id, status: "shipped", before: r[0].status });
   }
   if (tracking && tracking !== r[0].tracking) await addOrderEvent(id, "shipping", `מספר מעקב: ${tracking}`);
   await audit({ action: "status", entity: "order", entityId: id, summary: `הזמנה ${r[0].number} סומנה כנשלחה${tracking ? ` (מעקב ${tracking})` : ""}`, before, after: { status: r[0].status === "delivered" ? "delivered" : "shipped", tracking } });

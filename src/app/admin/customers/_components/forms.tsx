@@ -41,6 +41,7 @@ export function EditCustomerForm({ c }: { c: Customer }) {
       <label className="a-field">טלפון נייד<input name="phone" defaultValue={c.phone} required inputMode="tel" dir="ltr" className="a-input text-left" /></label>
       <label className="a-field">מייל<input name="email" type="email" defaultValue={c.email} dir="ltr" maxLength={160} className="a-input text-left" /></label>
       <label className="a-field">עיר<input name="city" defaultValue={c.city} maxLength={80} className="a-input" /></label>
+      <label className="a-field">יום הולדת <span className="font-normal text-adm-muted">(לאוטומציית יום הולדת)</span><input name="birthday" type="date" defaultValue={c.birthday || ""} className="a-input" /></label>
       <div className="flex items-center gap-3 flex-wrap">
         <Submit className="a-btn a-btn-sm a-btn-primary">שמירת פרטים</Submit>
         <Result state={state} />
