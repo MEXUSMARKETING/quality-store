@@ -23,7 +23,7 @@ function refresh(id?: number) {
 }
 
 export async function createCustomerAction(_: CustResult, fd: FormData): Promise<CustResult> {
-  requireAdmin();
+  await requireAdmin("customers");
   if (!hasDb()) return { error: "מסד הנתונים לא מחובר" };
   const name = str(fd.get("name"), 120);
   const phone = normIsraeliMobile(str(fd.get("phone"), 30));
@@ -49,7 +49,7 @@ export async function createCustomerAction(_: CustResult, fd: FormData): Promise
 }
 
 export async function updateCustomerAction(_: CustResult, fd: FormData): Promise<CustResult> {
-  requireAdmin();
+  await requireAdmin("customers");
   if (!hasDb()) return { error: "מסד הנתונים לא מחובר" };
   const id = intId(fd.get("id"));
   if (!id) return { error: "לקוח לא תקין" };
@@ -81,7 +81,7 @@ export async function updateCustomerAction(_: CustResult, fd: FormData): Promise
 }
 
 export async function saveCustomerNotesAction(_: CustResult, fd: FormData): Promise<CustResult> {
-  requireAdmin();
+  await requireAdmin("customers");
   if (!hasDb()) return { error: "מסד הנתונים לא מחובר" };
   const id = intId(fd.get("id"));
   const notes = str(fd.get("notes"), 4000);
@@ -97,7 +97,7 @@ export async function saveCustomerNotesAction(_: CustResult, fd: FormData): Prom
 }
 
 export async function customerTagAction(fd: FormData) {
-  requireAdmin();
+  await requireAdmin("customers");
   if (!hasDb()) return;
   const id = intId(fd.get("id"));
   const op = str(fd.get("op"));
@@ -116,7 +116,7 @@ export async function customerTagAction(fd: FormData) {
 }
 
 export async function customerConsentAction(fd: FormData) {
-  requireAdmin();
+  await requireAdmin("customers");
   if (!hasDb()) return;
   const id = intId(fd.get("id"));
   const value = fd.get("value") === "1";
@@ -137,7 +137,7 @@ export async function customerConsentAction(fd: FormData) {
 }
 
 export async function customerArchiveAction(fd: FormData) {
-  requireAdmin();
+  await requireAdmin("customers");
   if (!hasDb()) return;
   const id = intId(fd.get("id"));
   const value = fd.get("value") === "1";

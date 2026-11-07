@@ -1,4 +1,4 @@
-import { isAdmin } from "@/lib/auth";
+import { hasPermission } from "@/lib/auth";
 import { SEGMENTS, filterCustomers, listCustomersAgg } from "@/lib/admin-orders";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ const esc = (v: unknown) => {
 /** Exports the current segment/search. The consent column is always included so marketing
     lists can be filtered to people who agreed (or use ?seg=consent to export only them). */
 export async function GET(req: Request) {
-  if (!isAdmin()) return new Response("Unauthorized", { status: 401 });
+  if (!(await hasPermission("customers", "view"))) return new Response("Unauthorized", { status: 401 });
   const sp = new URL(req.url).searchParams;
   const seg = SEGMENTS[sp.get("seg") || ""] ? sp.get("seg")! : "all";
   const list = filterCustomers(await listCustomersAgg(), { seg, q: sp.get("q") || "", sort: sp.get("sort") || "" });

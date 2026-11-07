@@ -27,7 +27,7 @@ function refresh(id?: number) {
 
 /** Legacy signature kept for any old form: id + status */
 export async function setOrderStatusAction(fd: FormData) {
-  requireAdmin();
+  await requireAdmin("orders");
   const id = intId(fd.get("id"));
   const status = str(fd.get("status"));
   if (!id || !ORDER_STATUS[status] || !hasDb()) return;
@@ -39,7 +39,7 @@ export async function setOrderStatusAction(fd: FormData) {
 }
 
 export async function updateOrderStatusAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
-  requireAdmin();
+  await requireAdmin("orders");
   if (!hasDb()) return { error: "מסד הנתונים לא מחובר" };
   const id = intId(fd.get("id"));
   const status = str(fd.get("status"));
@@ -70,7 +70,7 @@ export async function updateOrderStatusAction(_: ActionResult, fd: FormData): Pr
 }
 
 export async function bulkOrderStatusAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
-  requireAdmin();
+  await requireAdmin("orders");
   if (!hasDb()) return { error: "מסד הנתונים לא מחובר" };
   const status = str(fd.get("status"));
   const ids = Array.from(new Set(fd.getAll("ids").map((v) => intId(v)).filter((n): n is number => !!n))).slice(0, 200);
@@ -105,7 +105,7 @@ export async function bulkOrderStatusAction(_: ActionResult, fd: FormData): Prom
 }
 
 export async function markShippedAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
-  requireAdmin();
+  await requireAdmin("orders");
   if (!hasDb()) return { error: "מסד הנתונים לא מחובר" };
   const id = intId(fd.get("id"));
   const tracking = str(fd.get("tracking"), 80);
@@ -127,7 +127,7 @@ export async function markShippedAction(_: ActionResult, fd: FormData): Promise<
 }
 
 export async function setPaymentStatusAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
-  requireAdmin();
+  await requireAdmin("orders");
   if (!hasDb()) return { error: "מסד הנתונים לא מחובר" };
   const id = intId(fd.get("id"));
   const ps = str(fd.get("payment_status"));
@@ -145,7 +145,7 @@ export async function setPaymentStatusAction(_: ActionResult, fd: FormData): Pro
 }
 
 export async function addOrderNoteAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
-  requireAdmin();
+  await requireAdmin("orders");
   if (!hasDb()) return { error: "מסד הנתונים לא מחובר" };
   const id = intId(fd.get("id"));
   const note = str(fd.get("note"), 1000);
@@ -163,7 +163,7 @@ export async function addOrderNoteAction(_: ActionResult, fd: FormData): Promise
 /* ---------------- manual order ---------------- */
 
 export async function createManualOrderAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
-  requireAdmin();
+  await requireAdmin("orders");
   if (!hasDb()) return { error: "מסד הנתונים לא מחובר – לא ניתן ליצור הזמנה" };
 
   const name = str(fd.get("customer_name"), 120);

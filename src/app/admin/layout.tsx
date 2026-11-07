@@ -1,4 +1,6 @@
-import { adminPasswordSet, isAdmin } from "@/lib/auth";
+import { headers } from "next/headers";
+import { adminPasswordSet, currentAdmin } from "@/lib/auth";
+import { can, moduleForPath, ROLES } from "@/lib/permissions";
 import { hasDb } from "@/lib/db";
 import { listOrders, listProducts, totalStock } from "@/lib/store";
 import LoginForm from "./LoginForm";
@@ -11,7 +13,11 @@ export const maxDuration = 30;
 export const metadata = { title: "ניהול", robots: { index: false, follow: false } };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  if (!isAdmin()) return <LoginForm configured={adminPasswordSet()} />;
+  const me = await currentAdmin();
+  if (!me) return <LoginForm configured={adminPasswordSet()} />;
+  const path = headers().get("x-admin-path") || "/admin";
+  const mod = moduleForPath(path);
+  const allowed = !mod || can(me.perms, mod, "view");
 
   let newOrders = 0;
   const alerts: Alert[] = [];
@@ -31,9 +37,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <Shell newOrders={newOrders} alerts={alerts.slice(0, 8)} logoutAction={logout}>
+    <Shell newOrders={newOrders} alerts={can(me.perms, "orders") || can(me.perms, "products") ? alerts.slice(0, 8) : []} logoutAction={logout} perms={me.perms} userName={me.name} roleLabel={ROLES[me.role]?.label || me.role}>
       {!hasDb() && <DbMissing />}
-      {children}
+      {allowed ? (
+        children
+      ) : (
+        <div className="a-card text-center py-14 flex flex-col items-center gap-2">
+          <b className="text-[18px]">אין לך הרשאה לעמוד הזה</b>
+          <p className="text-[14px] text-adm-muted">אפשר לבקש מהמנהל הראשי להוסיף הרשאה בעמוד &quot;משתמשים והרשאות&quot;.</p>
+        </div>
+      )}
     </Shell>
   );
 }

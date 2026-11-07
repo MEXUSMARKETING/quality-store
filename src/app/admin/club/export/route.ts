@@ -1,4 +1,4 @@
-import { isAdmin } from "@/lib/auth";
+import { hasPermission } from "@/lib/auth";
 import { listClubMembers } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 const esc = (v: string) => `"${String(v ?? "").replace(/"/g, '""')}"`;
 
 export async function GET() {
-  if (!isAdmin()) return new Response("Unauthorized", { status: 401 });
+  if (!(await hasPermission("coupons", "view"))) return new Response("Unauthorized", { status: 401 });
   const rows = await listClubMembers();
   const csv =
     "﻿" +

@@ -1,4 +1,4 @@
-import { isAdmin } from "@/lib/auth";
+import { hasPermission } from "@/lib/auth";
 import { listProducts } from "@/lib/store";
 import { CATEGORIES, COLORS, SIZES } from "@/lib/config";
 import { stockTotal } from "../shared";
@@ -11,7 +11,7 @@ const esc = (v: unknown) => {
 };
 
 export async function GET() {
-  if (!isAdmin()) return new Response("Unauthorized", { status: 401 });
+  if (!(await hasPermission("products", "view"))) return new Response("Unauthorized", { status: 401 });
   const rows = await listProducts({ includeInactive: true });
   const header = ["id", "sku", "name", "category", "color", "price", "old_price", "cost", "total_stock", ...SIZES.map((s) => `size_${s}`), "active"];
   const lines = rows.map((p) =>

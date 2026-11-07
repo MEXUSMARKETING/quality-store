@@ -1,4 +1,4 @@
-import { isAdmin } from "@/lib/auth";
+import { hasPermission } from "@/lib/auth";
 import { itemsCount, listOrdersAdmin } from "@/lib/admin-orders";
 import { ORDER_STATUS, PAYMENT, PAYMENT_STATUS, SHIPPING } from "@/lib/config";
 import { parseOrdersSearch } from "../_lib";
@@ -13,7 +13,7 @@ const esc = (v: unknown) => {
 };
 
 export async function GET(req: Request) {
-  if (!isAdmin()) return new Response("Unauthorized", { status: 401 });
+  if (!(await hasPermission("orders", "view"))) return new Response("Unauthorized", { status: 401 });
   const sp = Object.fromEntries(new URL(req.url).searchParams.entries());
   const { filters } = parseOrdersSearch(sp);
   const { rows } = await listOrdersAdmin(filters, { all: true });

@@ -1,4 +1,5 @@
 import { db, hasDb } from "./db";
+import { currentAdmin } from "./auth";
 import type { AuditLog, Coupon, Customer, OrderEvent } from "./types";
 
 /* Shared server-side helpers for the admin system (v2).
@@ -11,8 +12,8 @@ const iso = (v: any) => (v ? new Date(v).toISOString() : null);
 /* ---------------- audit log ---------------- */
 
 export async function audit(entry: {
-  action: "create" | "update" | "delete" | "status" | "price" | "stock" | "login" | "settings" | "bulk";
-  entity: "product" | "order" | "customer" | "coupon" | "settings" | "user";
+  action: "create" | "update" | "delete" | "status" | "price" | "stock" | "login" | "settings" | "bulk" | "permission";
+  entity: "product" | "order" | "customer" | "coupon" | "settings" | "user" | "category" | "page" | "menu" | "homepage" | "review" | "automation" | "attribute";
   entityId?: string | number;
   summary: string;
   before?: Record<string, unknown> | null;
@@ -21,9 +22,11 @@ export async function audit(entry: {
   if (!hasDb()) return;
   try {
     const sql = await db();
+    const who = await currentAdmin().catch(() => null);
+    const actor = who?.name || "מנהל";
     await sql`
-      insert into audit_logs (action, entity, entity_id, summary, before, after)
-      values (${entry.action}, ${entry.entity}, ${String(entry.entityId ?? "")}, ${entry.summary},
+      insert into audit_logs (actor, action, entity, entity_id, summary, before, after)
+      values (${actor}, ${entry.action}, ${entry.entity}, ${String(entry.entityId ?? "")}, ${entry.summary},
               ${entry.before ? JSON.stringify(entry.before) : null}::jsonb,
               ${entry.after ? JSON.stringify(entry.after) : null}::jsonb)`;
   } catch (e) {

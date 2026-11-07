@@ -26,8 +26,12 @@ export default function LoginForm({ configured }: { configured: boolean }) {
         ) : (
           <>
             <label className="a-field">
+              אימייל <span className="font-normal text-adm-muted">(לחברי צוות בלבד, מנהל ראשי משאיר ריק)</span>
+              <input name="email" type="email" autoComplete="username" dir="ltr" className="a-input h-[48px]" />
+            </label>
+            <label className="a-field">
               סיסמה
-              <input name="password" type="password" required autoFocus className="a-input h-[48px]" />
+              <input name="password" type="password" required autoFocus autoComplete="current-password" className="a-input h-[48px]" />
             </label>
             {state?.error && <p role="alert" className="text-sm font-bold text-[#A13A0D]">{state.error}</p>}
             <Btn />

@@ -1,4 +1,4 @@
-import { isAdmin } from "@/lib/auth";
+import { hasPermission } from "@/lib/auth";
 import { listAudit } from "@/lib/admin";
 import { ACTIONS, ENTITIES, ENTITY_SINGLE, FIELD_LABELS, RANGES, fmtValue, sinceFor } from "../meta";
 
@@ -14,7 +14,7 @@ function changes(before: Record<string, unknown> | null, after: Record<string, u
 }
 
 export async function GET(req: Request) {
-  if (!isAdmin()) return new Response("Unauthorized", { status: 401 });
+  if (!(await hasPermission("activity", "view"))) return new Response("Unauthorized", { status: 401 });
   const u = new URL(req.url).searchParams;
   const entity = ENTITIES[u.get("entity") || ""] ? u.get("entity")! : "";
   const action = ACTIONS[u.get("action") || ""] ? u.get("action")! : "";

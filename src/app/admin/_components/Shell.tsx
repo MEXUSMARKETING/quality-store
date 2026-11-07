@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Icon, ICONS } from "./ui";
+import { can, type Module, type PermissionMap } from "@/lib/permissions";
 
-type NavItem = { href: string; label: string; icon: keyof typeof ICONS; badge?: number };
+type NavItem = { href: string; label: string; icon: keyof typeof ICONS; badge?: number; module: Module };
 type Group = { label: string; items: NavItem[] };
 export type Alert = { href: string; title: string; meta: string; tone: "blue" | "amber" | "red" };
 
@@ -14,7 +15,7 @@ function isActive(path: string, href: string) {
   return path === href || path.startsWith(href + "/");
 }
 
-export default function Shell({ newOrders, alerts, logoutAction, children }: { newOrders: number; alerts: Alert[]; logoutAction: () => Promise<void>; children: React.ReactNode }) {
+export default function Shell({ newOrders, alerts, logoutAction, perms, userName, roleLabel, children }: { newOrders: number; alerts: Alert[]; logoutAction: () => Promise<void>; perms: PermissionMap; userName: string; roleLabel: string; children: React.ReactNode }) {
   const path = usePathname() || "/admin";
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -23,19 +24,37 @@ export default function Shell({ newOrders, alerts, logoutAction, children }: { n
   const searchRef = useRef<HTMLInputElement>(null);
   const bellRef = useRef<HTMLDivElement>(null);
 
-  const groups: Group[] = [
+  const allGroups: Group[] = [
     { label: "", items: [
-      { href: "/admin", label: "סקירה כללית", icon: "home" },
-      { href: "/admin/orders", label: "הזמנות", icon: "bag", badge: newOrders || undefined },
-      { href: "/admin/products", label: "מוצרים ומלאי", icon: "box" },
-      { href: "/admin/customers", label: "לקוחות", icon: "users" },
+      { href: "/admin", label: "סקירה כללית", icon: "home", module: "dashboard" },
+      { href: "/admin/orders", label: "הזמנות", icon: "bag", badge: newOrders || undefined, module: "orders" },
+      { href: "/admin/products", label: "מוצרים ומלאי", icon: "box", module: "products" },
+      { href: "/admin/customers", label: "לקוחות", icon: "users", module: "customers" },
+    ] },
+    { label: "קטלוג", items: [
+      { href: "/admin/categories", label: "קטגוריות", icon: "grid", module: "categories" },
+      { href: "/admin/attributes", label: "מידות וצבעים", icon: "sliders", module: "attributes" },
+      { href: "/admin/reviews", label: "ביקורות ודירוגים", icon: "star", module: "reviews" },
     ] },
     { label: "שיווק", items: [
-      { href: "/admin/coupons", label: "קופונים", icon: "tag" },
-      { href: "/admin/club", label: "מועדון לקוחות", icon: "star" },
+      { href: "/admin/coupons", label: "קופונים", icon: "tag", module: "coupons" },
+      { href: "/admin/club", label: "מועדון לקוחות", icon: "heart", module: "coupons" },
+      { href: "/admin/automations", label: "אוטומציות", icon: "zap", module: "automations" },
+      { href: "/admin/reports", label: "דוחות ואנליטיקה", icon: "chart", module: "reports" },
     ] },
-    { label: "מערכת", items: [{ href: "/admin/activity", label: "יומן פעילות", icon: "clock" }] },
+    { label: "אתר ותוכן", items: [
+      { href: "/admin/homepage", label: "ניהול דף הבית", icon: "layout", module: "homepage" },
+      { href: "/admin/pages", label: "דפים ותוכן", icon: "file", module: "pages" },
+      { href: "/admin/menus", label: "ניהול תפריטים", icon: "list", module: "menus" },
+    ] },
+    { label: "מערכת", items: [
+      { href: "/admin/ai", label: "עוזר AI", icon: "sparkle", module: "ai" },
+      { href: "/admin/users", label: "משתמשים והרשאות", icon: "shield", module: "users" },
+      { href: "/admin/settings", label: "הגדרות מערכת", icon: "gear", module: "settings" },
+      { href: "/admin/activity", label: "יומן פעילות", icon: "clock", module: "activity" },
+    ] },
   ];
+  const groups = allGroups.map((g) => ({ ...g, items: g.items.filter((it) => can(perms, it.module, "view")) })).filter((g) => g.items.length);
 
   // close the mobile drawer on navigation
   useEffect(() => setOpen(false), [path]);
@@ -177,10 +196,10 @@ export default function Shell({ newOrders, alerts, logoutAction, children }: { n
               </div>
             )}
             <span className="hidden sm:flex items-center gap-2.5 ps-1">
-              <span className="w-9 h-9 rounded-full bg-adm-navy text-white flex items-center justify-center font-bold">מ</span>
+              <span className="w-9 h-9 rounded-full bg-adm-navy text-white flex items-center justify-center font-bold">{(userName || "מ").trim().charAt(0)}</span>
               <span className="flex flex-col leading-tight">
-                <span className="text-[14px] font-semibold">מנהל החנות</span>
-                <span className="text-[12px] text-adm-muted">Quality</span>
+                <span className="text-[14px] font-semibold">{userName}</span>
+                <span className="text-[12px] text-adm-muted">{roleLabel}</span>
               </span>
             </span>
           </div>

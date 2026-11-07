@@ -173,6 +173,122 @@ async function init(sql: Sql) {
     )`;
   await sql`create index if not exists audit_logs_created_idx on audit_logs(created_at desc)`;
 
+  // ---- Admin v3 (phase 2): every module's tables. Additive and idempotent. ----
+  await sql`alter table customers add column if not exists birthday date`;
+
+  await sql`
+    create table if not exists settings (
+      key text primary key,
+      value jsonb not null default '{}'::jsonb,
+      updated_at timestamptz not null default now()
+    )`;
+
+  await sql`
+    create table if not exists categories (
+      key text primary key,
+      name text not null,
+      parent text,
+      description text not null default '',
+      image text not null default '',
+      banner text not null default '',
+      sort integer not null default 100,
+      active boolean not null default true,
+      featured boolean not null default false,
+      seo_title text not null default '',
+      seo_description text not null default '',
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )`;
+
+  await sql`
+    create table if not exists pages (
+      id serial primary key,
+      slug text unique not null,
+      title text not null,
+      type text not null default 'page',
+      blocks jsonb not null default '[]'::jsonb,
+      status text not null default 'draft',
+      publish_at timestamptz,
+      seo_title text not null default '',
+      seo_description text not null default '',
+      share_image text not null default '',
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )`;
+
+  await sql`
+    create table if not exists reviews (
+      id serial primary key,
+      product_id integer not null references products(id) on delete cascade,
+      name text not null default '',
+      phone text not null default '',
+      rating integer not null default 5,
+      title text not null default '',
+      body text not null default '',
+      images jsonb not null default '[]'::jsonb,
+      verified boolean not null default false,
+      status text not null default 'pending',
+      reply text not null default '',
+      reply_at timestamptz,
+      reported boolean not null default false,
+      created_at timestamptz not null default now()
+    )`;
+  await sql`create index if not exists reviews_product_idx on reviews(product_id, status)`;
+
+  await sql`
+    create table if not exists automation_rules (
+      id serial primary key,
+      name text not null,
+      trigger text not null,
+      conditions jsonb not null default '[]'::jsonb,
+      actions jsonb not null default '[]'::jsonb,
+      delay_minutes integer not null default 0,
+      active boolean not null default false,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )`;
+  await sql`
+    create table if not exists automation_runs (
+      id serial primary key,
+      rule_id integer references automation_rules(id) on delete cascade,
+      event_key text not null,
+      customer_phone text not null default '',
+      status text not null,
+      detail text not null default '',
+      due_at timestamptz,
+      created_at timestamptz not null default now(),
+      unique (rule_id, event_key)
+    )`;
+
+  await sql`
+    create table if not exists admin_users (
+      id serial primary key,
+      email text unique not null,
+      name text not null default '',
+      password_hash text not null default '',
+      role text not null default 'store_manager',
+      permissions jsonb,
+      active boolean not null default true,
+      last_login timestamptz,
+      created_at timestamptz not null default now()
+    )`;
+  await sql`
+    create table if not exists login_history (
+      id serial primary key,
+      user_id integer,
+      email text not null default '',
+      ok boolean not null default false,
+      ip text not null default '',
+      user_agent text not null default '',
+      created_at timestamptz not null default now()
+    )`;
+
+  // Lock every table against Supabase's public API (the store talks to Postgres directly from its server).
+  for (const t of ["settings", "categories", "pages", "reviews", "automation_rules", "automation_runs", "admin_users", "login_history"]) {
+    await sql.unsafe(`alter table ${t} enable row level security`);
+    await sql.unsafe(`revoke all on table ${t} from anon, authenticated`).catch(() => {});
+  }
+
   // Backfill customers from existing orders and club members (only once: when the table is empty)
   const [{ c }] = await sql<{ c: string }[]>`select count(*)::text as c from customers`;
   if (Number(c) === 0) {

@@ -53,7 +53,7 @@ async function getCoupon(id: number): Promise<Coupon | null> {
 }
 
 export async function saveCouponAction(_: CouponFormState, fd: FormData): Promise<CouponFormState> {
-  requireAdmin();
+  await requireAdmin("coupons");
   if (!hasDb()) return { error: NO_DB };
 
   const id = int(fd.get("id")) || null;
@@ -143,7 +143,7 @@ export async function saveCouponAction(_: CouponFormState, fd: FormData): Promis
 }
 
 export async function toggleCouponAction(fd: FormData) {
-  requireAdmin();
+  await requireAdmin("coupons");
   if (!hasDb()) return;
   const id = Number(fd.get("id"));
   const c = await getCoupon(id);
@@ -162,7 +162,7 @@ export async function toggleCouponAction(fd: FormData) {
 }
 
 export async function deleteCouponAction(fd: FormData) {
-  requireAdmin();
+  await requireAdmin("coupons");
   if (!hasDb()) return;
   const id = Number(fd.get("id"));
   const c = await getCoupon(id);

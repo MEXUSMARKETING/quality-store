@@ -124,7 +124,7 @@ async function auditChanges(id: number, before: Product | null, after: ProductIn
 /* ---------------- save (create / update) ---------------- */
 
 export async function saveProductAction(_: SaveState, fd: FormData): Promise<SaveState> {
-  requireAdmin();
+  await requireAdmin("products");
   if (!hasDb()) return { error: NO_DB };
 
   const id = int(fd.get("id"));
@@ -222,7 +222,7 @@ export async function saveProductAction(_: SaveState, fd: FormData): Promise<Sav
 /* ---------------- delete / duplicate ---------------- */
 
 export async function deleteProductAction(fd: FormData) {
-  requireAdmin();
+  await requireAdmin("products");
   if (!hasDb()) redirect("/admin/products");
   const id = int(fd.get("id"));
   if (id && Number.isFinite(id)) {
@@ -237,7 +237,7 @@ export async function deleteProductAction(fd: FormData) {
 }
 
 export async function duplicateProductAction(fd: FormData) {
-  requireAdmin();
+  await requireAdmin("products");
   if (!hasDb()) redirect("/admin/products");
   const id = int(fd.get("id"));
   if (!id || !Number.isFinite(id)) redirect("/admin/products");
@@ -259,7 +259,7 @@ const BULK: Record<BulkProductOp, { past: string }> = {
 };
 
 export async function bulkProducts(ids: number[], op: string): Promise<{ ok?: string; error?: string }> {
-  requireAdmin();
+  await requireAdmin("products");
   if (!hasDb()) return { error: NO_DB };
   if (!(op in BULK)) return { error: "פעולה לא מוכרת" };
   if (!Array.isArray(ids) || !ids.length) return { error: "לא נבחרו מוצרים" };

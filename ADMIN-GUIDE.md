@@ -3,6 +3,16 @@
 Next.js 14 App Router, TypeScript, Tailwind, `postgres` (postgres.js) on Neon, Vercel Blob for images.
 The admin lives in `src/app/admin` and shares the database with the storefront (`src/app/(shop)`).
 
+## Phase 2 rules (read first)
+- **Permissions:** every server action / route handler starts with `await requireAdmin("<module>")` (edit) or `await requireAdmin("<module>", "view")` from `@/lib/auth`. ALWAYS `await` it. Module keys are in `src/lib/permissions.ts` (`MODULES`). Route handlers can use `await hasPermission(module, "view")`. Pages don't need their own guard: the admin layout blocks pages by URL → module (`moduleForPath`), so put your pages under the URL segment matching your module.
+- **Tables already exist** (created in `src/lib/db.ts` init): `settings`, `categories`, `pages`, `reviews`, `automation_rules`, `automation_runs`, `admin_users`, `login_history`, plus `customers.birthday`. Read their columns in db.ts. If you truly need a new column, add it with `alter table … add column if not exists` at the END of the phase-2 block in init() with a precise Edit (others edit nearby – keep your Edit tiny), and enable RLS on any new table (see the loop there).
+- **Settings:** `getSetting(key, fallback)` / `setSetting(key, value)` / `getStoreInfo()` in `src/lib/site.ts` (JSON per key, cached per request). Use your own keys (namespaced, e.g. `homepage`, `menus`, `attributes`, `tracking`, `seo`).
+- **The live storefront must never break.** Every storefront read of admin-managed data must fall back to today's hard-coded content when the DB/setting is empty or errors (wrap in try/catch). Keep the storefront's existing visual design and classes (ink/gold/night/panel/btn/container-site) – do NOT use the admin palette on the storefront.
+- **Audit:** `audit({ action, entity, entityId, summary, before?, after? })` from `@/lib/admin` – entity union already includes category/page/menu/homepage/review/automation/attribute/settings/user.
+- **No new npm packages** (none can be installed). Call external APIs with `fetch`.
+- Sidebar entries for all modules already exist in Shell.tsx – don't edit Shell.tsx.
+- Prototype screens for every module (design reference, interactions) were approved; match their intent with real data.
+
 ## Ground rules
 - Real data only: read/write through Postgres. No mock data, no fake integrations. If something needs a provider that is not connected (email, WhatsApp, payment), say so honestly in the UI.
 - Every write is a **server action** (`"use server"`) that starts with `requireAdmin()` (from `@/lib/auth`), validates input, writes, calls `audit({...})` from `@/lib/admin`, then `revalidatePath(...)`.
