@@ -100,18 +100,27 @@ export async function saveProduct(id: number | null, p: ProductInput): Promise<n
   const sql = await db();
   const images = JSON.stringify(p.images);
   const stock = JSON.stringify(p.stock);
+  const sku = (p.sku ?? "").trim();
+  const cost = p.cost === undefined ? null : p.cost;
+  const lowStock = Number.isFinite(p.low_stock as number) ? Math.max(0, Number(p.low_stock)) : 2;
+  const seoTitle = p.seo_title ?? "";
+  const seoDescription = p.seo_description ?? "";
   if (id) {
     await sql`
       update products set slug=${p.slug}, name=${p.name}, description=${p.description}, price=${p.price},
         old_price=${p.old_price}, heel=${p.heel}, color=${p.color}, category=${p.category},
-        images=${images}::jsonb, stock=${stock}::jsonb, featured=${p.featured}, active=${p.active}, sort=${p.sort}
+        images=${images}::jsonb, stock=${stock}::jsonb, featured=${p.featured}, active=${p.active}, sort=${p.sort},
+        sku=${sku}, cost=${cost}, low_stock=${lowStock}, seo_title=${seoTitle}, seo_description=${seoDescription},
+        updated_at=now()
       where id=${id}`;
     return id;
   }
   const r = await sql`
-    insert into products (slug, name, description, price, old_price, heel, color, category, images, stock, featured, active, sort)
+    insert into products (slug, name, description, price, old_price, heel, color, category, images, stock, featured, active, sort,
+                          sku, cost, low_stock, seo_title, seo_description, updated_at)
     values (${p.slug}, ${p.name}, ${p.description}, ${p.price}, ${p.old_price}, ${p.heel}, ${p.color}, ${p.category},
-            ${images}::jsonb, ${stock}::jsonb, ${p.featured}, ${p.active}, ${p.sort})
+            ${images}::jsonb, ${stock}::jsonb, ${p.featured}, ${p.active}, ${p.sort},
+            ${sku}, ${cost}, ${lowStock}, ${seoTitle}, ${seoDescription}, now())
     returning id`;
   return Number(r[0].id);
 }
@@ -119,6 +128,36 @@ export async function saveProduct(id: number | null, p: ProductInput): Promise<n
 export async function deleteProduct(id: number) {
   const sql = await db();
   await sql`delete from products where id=${id}`;
+}
+
+/** Copy a product as a hidden draft with a unique slug ("-copy", "-copy-2", …). Returns the new id. */
+export async function duplicateProduct(id: number): Promise<{ id: number; slug: string } | null> {
+  const src = await getProductById(id);
+  if (!src) return null;
+  const sql = await db();
+  const base = `${src.slug}-copy`;
+  const taken = await sql`select slug from products where slug = ${base} or slug like ${base + "-%"}`;
+  const set = new Set(taken.map((r: any) => String(r.slug)));
+  let slug = base;
+  for (let i = 2; set.has(slug); i++) slug = `${base}-${i}`;
+  const { id: _id, created_at: _c, updated_at: _u, ...rest } = src;
+  const newId = await saveProduct(null, { ...rest, slug, name: `${src.name} (עותק)`, active: false, featured: false, sku: src.sku ? `${src.sku}-COPY` : "" });
+  return { id: newId, slug };
+}
+
+export type BulkProductOp = "show" | "hide" | "feature" | "delete";
+
+/** Apply one bulk operation to many products. Returns the affected rows (before the change). */
+export async function bulkUpdateProducts(ids: number[], op: BulkProductOp): Promise<{ id: number; name: string }[]> {
+  const clean = Array.from(new Set(ids.map(Number).filter((n) => Number.isInteger(n) && n > 0)));
+  if (!clean.length) return [];
+  const sql = await db();
+  const rows = await sql`select id, name from products where id in ${sql(clean)}`;
+  if (op === "delete") await sql`delete from products where id in ${sql(clean)}`;
+  else if (op === "show") await sql`update products set active = true, updated_at = now() where id in ${sql(clean)}`;
+  else if (op === "hide") await sql`update products set active = false, updated_at = now() where id in ${sql(clean)}`;
+  else if (op === "feature") await sql`update products set featured = true, updated_at = now() where id in ${sql(clean)}`;
+  return rows.map((r: any) => ({ id: Number(r.id), name: String(r.name) }));
 }
 
 /* ---------------- orders ---------------- */

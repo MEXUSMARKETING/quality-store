@@ -1,51 +1,102 @@
 import Link from "next/link";
 import { isAdmin } from "@/lib/auth";
-import { listProducts, totalStock, availableSizes } from "@/lib/store";
-import { CATEGORIES, shekel } from "@/lib/config";
+import { hasDb } from "@/lib/db";
+import { listProducts } from "@/lib/store";
+import { CATEGORIES, COLORS } from "@/lib/config";
+import { Empty, Icon, LinkTabs, Notice, PageHeader } from "../_components/ui";
+import ProductsTable from "./ProductsTable";
+import { SORTS, TABS, applyFilters, filtersQuery, readFilters, stockLevel, type TabKey } from "./shared";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProductsAdmin({ searchParams }: { searchParams: { category?: string } }) {
+export default async function ProductsAdmin({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
   if (!isAdmin()) return null;
-  const cat = searchParams.category || "";
+  const f = readFilters(searchParams);
   const all = await listProducts({ includeInactive: true });
-  const list = cat ? all.filter((p) => p.category === cat) : all;
+  const { list, counts } = applyFilters(all, f);
+
+  const lowCount = all.filter((p) => stockLevel(p) === "low").length;
+  const outCount = all.filter((p) => stockLevel(p) === "out").length;
+  const filtered = !!(f.q || f.category || f.color);
+  const canEdit = hasDb();
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="font-display font-bold text-[28px]">מוצרים ומלאי <span className="text-muted text-lg">({list.length})</span></h1>
-        <Link href="/admin/products/new" className="btn btn-dark h-11">+ מוצר חדש</Link>
-      </div>
-      <div className="flex gap-2 flex-wrap">
-        <Link href="/admin/products" className={`h-9 px-4 rounded-full text-sm flex items-center ${!cat ? "bg-ink text-white hover:text-white" : "bg-white"}`}>הכל</Link>
-        {Object.entries(CATEGORIES).map(([k, v]) => (
-          <Link key={k} href={`/admin/products?category=${k}`} className={`h-9 px-4 rounded-full text-sm flex items-center ${cat === k ? "bg-ink text-white hover:text-white" : "bg-white"}`}>{v}</Link>
-        ))}
-      </div>
-      <div className="bg-white rounded-2xl overflow-x-auto">
-        <table className="admin-table w-full min-w-[720px]">
-          <thead>
-            <tr><th></th><th>מוצר</th><th>מחיר</th><th>מידות במלאי</th><th>סה״כ זוגות</th><th>סטטוס</th><th></th></tr>
-          </thead>
-          <tbody>
-            {list.map((p) => {
-              const t = totalStock(p);
-              return (
-                <tr key={p.id}>
-                  <td className="w-[64px]">{p.images[0] ? <img src={p.images[0]} alt="" className="w-12 h-12 rounded-lg object-cover bg-ink" /> : <span className="block w-12 h-12 rounded-lg bg-line" />}</td>
-                  <td><Link href={`/admin/products/${p.id}`} className="font-bold">{p.name}</Link><div className="text-xs text-muted">{CATEGORIES[p.category]}{p.heel ? ` · עקב ${p.heel}` : ""}</div></td>
-                  <td className="whitespace-nowrap"><b>{shekel(p.price)}</b>{p.old_price ? <span className="text-xs text-muted line-through ms-1.5">{shekel(p.old_price)}</span> : null}</td>
-                  <td className="text-sm">{availableSizes(p).join(", ") || "—"}</td>
-                  <td><span className={`font-bold ${t === 0 ? "text-[#A13A0D]" : t <= 2 ? "text-golddark" : ""}`}>{t}</span></td>
-                  <td>{p.active ? <span className="text-[#2F7A3A] text-sm font-bold">פעיל</span> : <span className="text-muted text-sm">מוסתר</span>}{p.featured && <span className="text-golddark text-xs ms-1.5">★ מומלץ</span>}</td>
-                  <td><Link href={`/admin/products/${p.id}`} className="text-sm underline">עריכה</Link></td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <>
+      <PageHeader
+        title="מוצרים ומלאי"
+        sub={`${all.length} מוצרים · ${lowCount} במלאי נמוך · ${outCount} אזלו`}
+      >
+        <a href="/admin/products/export" className="a-btn" download>
+          <Icon name="download" /> ייצוא CSV
+        </a>
+        <Link href="/admin/products/new" className="a-btn a-btn-primary">
+          <Icon name="plus" /> מוצר חדש
+        </Link>
+      </PageHeader>
+
+      {searchParams.deleted && <div role="status"><Notice tone="green">המוצר נמחק.</Notice></div>}
+
+      <LinkTabs
+        tabs={(Object.keys(TABS) as TabKey[]).map((k) => ({
+          href: `/admin/products${filtersQuery(f, { tab: k })}`,
+          label: TABS[k],
+          count: counts[k],
+          active: f.tab === k,
+        }))}
+      />
+
+      <form method="get" action="/admin/products" role="search" aria-label="סינון מוצרים" className="a-card !p-3.5 flex flex-wrap items-end gap-3">
+        {f.tab !== "all" && <input type="hidden" name="tab" value={f.tab} />}
+        <label className="a-field flex-1 min-w-[220px]">
+          חיפוש
+          <span className="relative">
+            <span className="absolute inset-y-0 start-3 flex items-center text-adm-muted pointer-events-none"><Icon name="search" size={16} /></span>
+            <input name="q" defaultValue={f.q} placeholder="שם, מק״ט או כתובת" className="a-input !ps-9" type="search" />
+          </span>
+        </label>
+        <label className="a-field w-[170px]">
+          קטגוריה
+          <select name="category" defaultValue={f.category} className="a-input">
+            <option value="">כל הקטגוריות</option>
+            {Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </label>
+        <label className="a-field w-[150px]">
+          צבע
+          <select name="color" defaultValue={f.color} className="a-input">
+            <option value="">כל הצבעים</option>
+            {Object.entries(COLORS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          </select>
+        </label>
+        <label className="a-field w-[150px]">
+          מיון
+          <select name="sort" defaultValue={f.sort} className="a-input">
+            {Object.entries(SORTS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </label>
+        <div className="flex gap-2">
+          <button className="a-btn a-btn-dark">סינון</button>
+          {(filtered || f.sort !== "sort") && (
+            <Link href={`/admin/products${filtersQuery({ tab: f.tab })}`} className="a-btn">ניקוי</Link>
+          )}
+        </div>
+      </form>
+
+      {list.length ? (
+        <ProductsTable products={list} canEdit={canEdit} />
+      ) : (
+        <div className="a-card">
+          {all.length === 0 ? (
+            <Empty title="עדיין אין מוצרים" text="הוסיפי את המוצר הראשון: שם, מחיר, תמונות ומלאי לפי מידה.">
+              <Link href="/admin/products/new" className="a-btn a-btn-primary"><Icon name="plus" /> מוצר חדש</Link>
+            </Empty>
+          ) : (
+            <Empty title="לא נמצאו מוצרים" text={filtered ? "אין מוצרים שמתאימים לחיפוש ולסינון שבחרת." : `אין מוצרים בלשונית "${TABS[f.tab]}".`}>
+              <Link href="/admin/products" className="a-btn">הצגת כל המוצרים</Link>
+            </Empty>
+          )}
+        </div>
+      )}
+    </>
   );
 }
