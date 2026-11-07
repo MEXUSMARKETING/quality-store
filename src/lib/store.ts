@@ -1,5 +1,6 @@
 import { db, hasDb } from "./db";
 import { SEED_WITH_IDS } from "./seed";
+import { addOrderEvent, markCouponUsed, upsertCustomer } from "./admin";
 import type { ClubMember, Order, Product } from "./types";
 
 function normProduct(r: any): Product {
@@ -21,6 +22,12 @@ function normProduct(r: any): Product {
     active: !!r.active,
     sort: Number(r.sort ?? 100),
     created_at: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
+    sku: r.sku || "",
+    cost: r.cost === null || r.cost === undefined ? null : Number(r.cost),
+    low_stock: r.low_stock === null || r.low_stock === undefined ? 2 : Number(r.low_stock),
+    seo_title: r.seo_title || "",
+    seo_description: r.seo_description || "",
+    updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : undefined,
   };
 }
 
@@ -33,6 +40,11 @@ function normOrder(r: any): Order {
     total: Number(r.total),
     items,
     created_at: new Date(r.created_at).toISOString(),
+    payment_status: r.payment_status || "pending",
+    tracking: r.tracking || "",
+    discount: Number(r.discount || 0),
+    coupon_code: r.coupon_code || "",
+    updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : undefined,
   };
 }
 
@@ -111,12 +123,16 @@ export async function deleteProduct(id: number) {
 
 /* ---------------- orders ---------------- */
 
-export async function createOrder(o: Omit<Order, "id" | "number" | "status" | "created_at">): Promise<string> {
+export async function createOrder(
+  o: Omit<Order, "id" | "number" | "status" | "created_at" | "payment_status" | "tracking">
+): Promise<string> {
   const sql = await db();
+  const discount = Math.max(0, Number(o.discount || 0));
+  const coupon = (o.coupon_code || "").toUpperCase();
   const r = await sql`
-    insert into orders (customer_name, phone, email, city, street, apt, notes, shipping_method, payment_method, items, subtotal, total)
+    insert into orders (customer_name, phone, email, city, street, apt, notes, shipping_method, payment_method, items, subtotal, total, discount, coupon_code)
     values (${o.customer_name}, ${o.phone}, ${o.email}, ${o.city}, ${o.street}, ${o.apt}, ${o.notes},
-            ${o.shipping_method}, ${o.payment_method}, ${JSON.stringify(o.items)}::jsonb, ${o.subtotal}, ${o.total})
+            ${o.shipping_method}, ${o.payment_method}, ${JSON.stringify(o.items)}::jsonb, ${o.subtotal}, ${o.total}, ${discount}, ${coupon})
     returning id`;
   const id = Number(r[0].id);
   const number = "Q" + (1000 + id);
@@ -127,6 +143,14 @@ export async function createOrder(o: Omit<Order, "id" | "number" | "status" | "c
       set stock = jsonb_set(stock, ARRAY[${it.size}]::text[],
         to_jsonb(greatest(coalesce((stock->>${it.size})::int, 0) - ${it.qty}, 0)))
       where id = ${it.productId}`;
+  }
+  // Admin v2 side effects: never let them break the order itself
+  try {
+    await addOrderEvent(id, "created", "ההזמנה התקבלה מהאתר", "לקוח");
+    await upsertCustomer({ phone: o.phone, name: o.customer_name, email: o.email, city: o.city });
+    if (coupon) await markCouponUsed(coupon);
+  } catch (e) {
+    console.error("order side effects failed", e);
   }
   return number;
 }
@@ -180,6 +204,11 @@ export async function bestSellerIds(): Promise<number[]> {
 export async function addClubMember(m: { name: string; phone: string; email: string }) {
   const sql = await db();
   await sql`insert into club_members (name, phone, email) values (${m.name}, ${m.phone}, ${m.email})`;
+  try {
+    await upsertCustomer({ phone: m.phone, name: m.name, email: m.email, consent: true });
+  } catch (e) {
+    console.error("customer upsert failed", e);
+  }
 }
 
 export async function listClubMembers(): Promise<ClubMember[]> {

@@ -14,6 +14,13 @@ export type Product = {
   active: boolean;
   sort: number;
   created_at: string;
+  // admin v2
+  sku?: string;
+  cost?: number | null;
+  low_stock?: number;
+  seo_title?: string;
+  seo_description?: string;
+  updated_at?: string;
 };
 
 export type OrderItem = {
@@ -42,6 +49,55 @@ export type Order = {
   subtotal: number;
   total: number;
   status: string;
+  created_at: string;
+  // admin v2
+  payment_status?: string;
+  tracking?: string;
+  discount?: number;
+  coupon_code?: string;
+};
+
+export type OrderEvent = { id: number; order_id: number; type: string; message: string; actor: string; created_at: string };
+
+export type Customer = {
+  id: number;
+  phone: string;
+  name: string;
+  email: string;
+  city: string;
+  tags: string[];
+  notes: string;
+  marketing_consent: boolean;
+  archived: boolean;
+  created_at: string;
+};
+
+export type Coupon = {
+  id: number;
+  code: string;
+  description: string;
+  type: "percent" | "fixed" | "shipping";
+  value: number;
+  min_total: number;
+  max_discount: number | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  usage_limit: number | null;
+  per_customer: number | null;
+  used: number;
+  active: boolean;
+  created_at: string;
+};
+
+export type AuditLog = {
+  id: number;
+  actor: string;
+  action: string;
+  entity: string;
+  entity_id: string;
+  summary: string;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
   created_at: string;
 };
 

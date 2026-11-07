@@ -23,11 +23,24 @@ export const CATEGORIES: Record<string, string> = {
 };
 
 export const ORDER_STATUS: Record<string, { label: string; color: string }> = {
-  new: { label: "חדשה", color: "#C9A24A" },
+  new: { label: "חדשה", color: "#1F5FD6" },
   confirmed: { label: "אושרה", color: "#2C6BB0" },
-  shipped: { label: "נשלחה", color: "#6B4FA0" },
-  delivered: { label: "נמסרה", color: "#2F7A3A" },
-  cancelled: { label: "בוטלה", color: "#A13A0D" },
+  packed: { label: "נארזה", color: "#5B3FC4" },
+  shipped: { label: "נשלחה", color: "#1B6A9A" },
+  delivered: { label: "נמסרה", color: "#0F7A57" },
+  cancelled: { label: "בוטלה", color: "#B03A3A" },
+  returned: { label: "הוחזרה", color: "#8A5A00" },
+};
+
+/** Order of statuses in the admin pipeline */
+export const ORDER_FLOW = ["new", "confirmed", "packed", "shipped", "delivered"];
+
+export const PAYMENT_STATUS: Record<string, { label: string; color: string }> = {
+  pending: { label: "ממתין לתשלום", color: "#8A5A00" },
+  paid: { label: "שולם", color: "#0F7A57" },
+  failed: { label: "נכשל", color: "#B03A3A" },
+  partially_refunded: { label: "הוחזר חלקית", color: "#5B3FC4" },
+  refunded: { label: "הוחזר", color: "#3B475C" },
 };
 
 export const SHIPPING: Record<string, string> = {

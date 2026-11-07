@@ -75,6 +75,96 @@ async function init(sql: Sql) {
       created_at timestamptz not null default now()
     )`;
 
+  // ---- Admin v2 (additive migrations: safe to run on a live database) ----
+  await sql`alter table products add column if not exists sku text not null default ''`;
+  await sql`alter table products add column if not exists cost integer`;
+  await sql`alter table products add column if not exists low_stock integer not null default 2`;
+  await sql`alter table products add column if not exists seo_title text not null default ''`;
+  await sql`alter table products add column if not exists seo_description text not null default ''`;
+  await sql`alter table products add column if not exists updated_at timestamptz not null default now()`;
+
+  await sql`alter table orders add column if not exists payment_status text not null default 'pending'`;
+  await sql`alter table orders add column if not exists tracking text not null default ''`;
+  await sql`alter table orders add column if not exists discount integer not null default 0`;
+  await sql`alter table orders add column if not exists coupon_code text not null default ''`;
+  await sql`alter table orders add column if not exists updated_at timestamptz not null default now()`;
+
+  await sql`
+    create table if not exists order_events (
+      id serial primary key,
+      order_id integer not null references orders(id) on delete cascade,
+      type text not null default 'note',
+      message text not null default '',
+      actor text not null default '',
+      created_at timestamptz not null default now()
+    )`;
+  await sql`create index if not exists order_events_order_idx on order_events(order_id)`;
+
+  await sql`
+    create table if not exists customers (
+      id serial primary key,
+      phone text unique not null,
+      name text not null default '',
+      email text not null default '',
+      city text not null default '',
+      tags jsonb not null default '[]'::jsonb,
+      notes text not null default '',
+      marketing_consent boolean not null default false,
+      archived boolean not null default false,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )`;
+
+  await sql`
+    create table if not exists coupons (
+      id serial primary key,
+      code text unique not null,
+      description text not null default '',
+      type text not null default 'percent',
+      value integer not null default 0,
+      min_total integer not null default 0,
+      max_discount integer,
+      starts_at timestamptz,
+      ends_at timestamptz,
+      usage_limit integer,
+      per_customer integer,
+      used integer not null default 0,
+      active boolean not null default true,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )`;
+
+  await sql`
+    create table if not exists audit_logs (
+      id serial primary key,
+      actor text not null default 'מנהל',
+      action text not null,
+      entity text not null,
+      entity_id text not null default '',
+      summary text not null default '',
+      before jsonb,
+      after jsonb,
+      created_at timestamptz not null default now()
+    )`;
+  await sql`create index if not exists audit_logs_created_idx on audit_logs(created_at desc)`;
+
+  // Backfill customers from existing orders and club members (only once: when the table is empty)
+  const [{ c }] = await sql<{ c: string }[]>`select count(*)::text as c from customers`;
+  if (Number(c) === 0) {
+    await sql`
+      insert into customers (phone, name, email, city, created_at)
+      select distinct on (k) k, customer_name, email, city, created_at
+      from (select regexp_replace(phone, '[^0-9]', '', 'g') as k, customer_name, email, city, created_at from orders) o
+      where k <> '' order by k, created_at asc
+      on conflict (phone) do nothing`;
+    await sql`
+      insert into customers (phone, name, email, marketing_consent, created_at)
+      select distinct on (k) k, name, email, true, created_at
+      from (select regexp_replace(phone, '[^0-9]', '', 'g') as k, name, email, created_at from club_members) m
+      where k <> '' order by k, created_at asc
+      on conflict (phone) do update set marketing_consent = true`;
+  }
+
   const [{ count }] = await sql<{ count: string }[]>`select count(*)::text as count from products`;
   if (Number(count) === 0) {
     for (const p of SEED_PRODUCTS) {

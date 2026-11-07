@@ -15,6 +15,19 @@ const config: Config = {
         line: "#E2DFD8",
         muted: "#5F5E5A",
         soft: "#BDB9AF",
+        // admin v2 palette
+        adm: {
+          navy: "#17243A",
+          navy2: "#22324D",
+          blue: "#3478F6",
+          link: "#2563D9",
+          bg: "#F5F7FB",
+          line: "#E5EAF2",
+          field: "#D5DCE8",
+          text: "#18263C",
+          mid: "#3B475C",
+          muted: "#5E6B80",
+        },
       },
       fontFamily: {
         sans: ["Heebo", "Arial", "sans-serif"],

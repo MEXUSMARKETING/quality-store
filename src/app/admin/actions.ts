@@ -6,11 +6,13 @@ import { put } from "@vercel/blob";
 import { checkPassword, endSession, requireAdmin, startSession } from "@/lib/auth";
 import { deleteProduct, saveProduct, setOrderStatus } from "@/lib/store";
 import { CATEGORIES, COLORS, ORDER_STATUS, SIZES } from "@/lib/config";
+import { audit } from "@/lib/admin";
 
 export async function login(_: { error?: string } | null, fd: FormData): Promise<{ error?: string }> {
   const pw = String(fd.get("password") || "");
   if (!checkPassword(pw)) return { error: "סיסמה שגויה" };
   startSession();
+  await audit({ action: "login", entity: "user", summary: "כניסה למערכת הניהול" });
   redirect("/admin");
 }
 
