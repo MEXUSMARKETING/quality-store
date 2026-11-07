@@ -1,52 +1,148 @@
 import Link from "next/link";
 import { isAdmin } from "@/lib/auth";
-import { listOrders } from "@/lib/store";
-import { ORDER_STATUS, PAYMENT, SHIPPING, shekel } from "@/lib/config";
-import StatusBadge from "../StatusBadge";
+import { hasDb } from "@/lib/db";
+import { ORDER_PAGE_SIZE, itemsCount, listOrdersAdmin } from "@/lib/admin-orders";
+import { PAYMENT, PAYMENT_STATUS, shekel } from "@/lib/config";
+import { Empty, Icon, LinkTabs, OrderStatusChip, PageHeader, PaymentStatusChip, fmtDateTime } from "../_components/ui";
+import BulkOrders from "./_components/BulkOrders";
+import { RANGES, SORTS, STATUS_TABS, ordersHref, parseOrdersSearch, type OrdersSearch } from "./_lib";
 
 export const dynamic = "force-dynamic";
 
-export default async function OrdersAdmin({ searchParams }: { searchParams: { status?: string } }) {
+export default async function OrdersPage({ searchParams }: { searchParams: OrdersSearch }) {
   if (!isAdmin()) return null;
-  const status = searchParams.status && ORDER_STATUS[searchParams.status] ? searchParams.status : "";
-  const all = await listOrders();
-  const list = status ? all.filter((o) => o.status === status) : all;
-  const count = (s: string) => all.filter((o) => o.status === s).length;
+  const { status, range, sort, pay, q, page, filters } = parseOrdersSearch(searchParams);
+  const { rows, total, counts } = await listOrdersAdmin(filters);
+  const pages = Math.max(1, Math.ceil(total / ORDER_PAGE_SIZE));
+  const cur = { status, q, pay, range, sort };
+  const filtered = !!(q || pay || range !== "all");
+
+  const tabCount = (statuses: string[]) =>
+    statuses.length ? statuses.reduce((a, s) => a + (counts[s] || 0), 0) : Object.values(counts).reduce((a, b) => a + b, 0);
+
+  const exportHref = ordersHref(cur, "/admin/orders/export");
 
   return (
-    <div className="flex flex-col gap-5">
-      <h1 className="font-display font-bold text-[28px]">הזמנות <span className="text-muted text-lg">({list.length})</span></h1>
-      <div className="flex gap-2 flex-wrap">
-        <Link href="/admin/orders" className={`h-9 px-4 rounded-full text-sm flex items-center ${!status ? "bg-ink text-white hover:text-white" : "bg-white"}`}>הכל ({all.length})</Link>
-        {Object.entries(ORDER_STATUS).map(([k, v]) => (
-          <Link key={k} href={`/admin/orders?status=${k}`} className={`h-9 px-4 rounded-full text-sm flex items-center ${status === k ? "bg-ink text-white hover:text-white" : "bg-white"}`}>
-            {v.label} ({count(k)})
-          </Link>
-        ))}
-      </div>
-      <div className="bg-white rounded-2xl overflow-x-auto">
-        {list.length ? (
-          <table className="admin-table w-full min-w-[820px]">
-            <thead><tr><th>מס׳</th><th>תאריך</th><th>לקוחה</th><th>טלפון</th><th>פריטים</th><th>סכום</th><th>משלוח / תשלום</th><th>סטטוס</th></tr></thead>
-            <tbody>
-              {list.map((o) => (
-                <tr key={o.id}>
-                  <td><Link href={`/admin/orders/${o.id}`} className="font-bold underline" dir="ltr">{o.number}</Link></td>
-                  <td className="whitespace-nowrap text-muted">{new Date(o.created_at).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}</td>
-                  <td>{o.customer_name}</td>
-                  <td dir="ltr" className="text-right whitespace-nowrap">{o.phone}</td>
-                  <td className="text-sm">{o.items.reduce((a, i) => a + i.qty, 0)}</td>
-                  <td className="font-bold">{shekel(o.total)}</td>
-                  <td className="text-xs text-muted">{SHIPPING[o.shipping_method]}<br />{PAYMENT[o.payment_method]}</td>
-                  <td><StatusBadge status={o.status} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <>
+      <PageHeader crumbs={[{ href: "/admin", label: "ראשי" }, { label: "הזמנות" }]} title="הזמנות" sub={hasDb() ? `${total.toLocaleString("he-IL")} הזמנות${filtered || status ? " תואמות לסינון" : ""}` : undefined}>
+        <a href={exportHref} className="a-btn" download>
+          <Icon name="download" /> ייצוא CSV
+        </a>
+        <Link href="/admin/orders/new" className="a-btn a-btn-primary">
+          <Icon name="plus" /> הזמנה ידנית
+        </Link>
+      </PageHeader>
+
+      <LinkTabs tabs={STATUS_TABS.map((t) => ({ href: ordersHref({ ...cur, status: t.key }), label: t.label, count: tabCount(t.statuses), active: (status === "cancelled" || status === "returned" ? "closed" : status) === t.key }))} />
+
+      <form method="get" action="/admin/orders" role="search" aria-label="סינון הזמנות" className="a-card !p-3.5 flex flex-wrap gap-3 items-end">
+        {status && <input type="hidden" name="status" value={status} />}
+        <label className="a-field flex-[2_1_220px]">
+          חיפוש
+          <input name="q" defaultValue={q} className="a-input" placeholder="מספר הזמנה, שם או טלפון" type="search" />
+        </label>
+        <label className="a-field flex-[1_1_150px]">
+          תשלום
+          <select name="pay" defaultValue={pay} className="a-input">
+            <option value="">כל הסטטוסים</option>
+            {Object.entries(PAYMENT_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          </select>
+        </label>
+        <label className="a-field flex-[1_1_150px]">
+          תקופה
+          <select name="range" defaultValue={range} className="a-input">
+            {Object.entries(RANGES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          </select>
+        </label>
+        <label className="a-field flex-[1_1_170px]">
+          מיון
+          <select name="sort" defaultValue={sort} className="a-input">
+            {Object.entries(SORTS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </label>
+        <div className="flex gap-2">
+          <button className="a-btn a-btn-dark h-[42px]">סינון</button>
+          {filtered && <Link href={ordersHref({ status })} className="a-btn h-[42px]">ניקוי</Link>}
+        </div>
+      </form>
+
+      <section className="a-card !p-0 overflow-hidden">
+        {rows.length ? (
+          <BulkOrders ids={rows.map((o) => o.id)}>
+            <div className="overflow-x-auto">
+              <table className="a-table min-w-[960px]">
+                <caption className="sr-only">רשימת הזמנות, עמוד {page} מתוך {pages}</caption>
+                <thead>
+                  <tr>
+                    <th className="w-10"><span className="sr-only">בחירה</span></th>
+                    <th>הזמנה</th>
+                    <th>לקוחה</th>
+                    <th>תאריך</th>
+                    <th>פריטים</th>
+                    <th>סכום</th>
+                    <th>אמצעי תשלום</th>
+                    <th>תשלום</th>
+                    <th>סטטוס</th>
+                    <th><span className="sr-only">פעולות</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((o) => (
+                    <tr key={o.id}>
+                      <td>
+                        <input type="checkbox" name="ids" value={o.id} className="w-[18px] h-[18px] accent-adm-blue align-middle" aria-label={`בחירת הזמנה ${o.number}`} />
+                      </td>
+                      <td><Link href={`/admin/orders/${o.id}`} className="font-bold text-adm-link" dir="ltr">{o.number}</Link></td>
+                      <td>
+                        <span className="flex flex-col">
+                          <span className="font-semibold">{o.customer_name}</span>
+                          <span className="text-[13px] text-adm-muted text-right" dir="ltr">{o.phone}</span>
+                        </span>
+                      </td>
+                      <td className="text-adm-muted whitespace-nowrap">{fmtDateTime(o.created_at)}</td>
+                      <td className="text-adm-muted whitespace-nowrap">{itemsCount(o)} זוגות</td>
+                      <td className="whitespace-nowrap">
+                        <span className="flex flex-col">
+                          <b>{shekel(o.total)}</b>
+                          {!!o.discount && <span className="text-[12px] text-[#0F7A57]">הנחה {shekel(o.discount)}{o.coupon_code ? <> · <span dir="ltr">{o.coupon_code}</span></> : null}</span>}
+                        </span>
+                      </td>
+                      <td className="text-[13px] text-adm-mid">{PAYMENT[o.payment_method] || o.payment_method}</td>
+                      <td><PaymentStatusChip status={o.payment_status} /></td>
+                      <td><OrderStatusChip status={o.status} /></td>
+                      <td>
+                        <Link href={`/admin/orders/${o.id}`} className="a-btn a-btn-sm" aria-label={`פתיחת הזמנה ${o.number}`}>
+                          פתיחה <Icon name="arrowLeft" size={16} />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </BulkOrders>
         ) : (
-          <p className="text-muted text-sm p-10 text-center">אין הזמנות להצגה</p>
+          <Empty
+            title={filtered || status ? "אין הזמנות שתואמות לסינון" : "עדיין אין הזמנות"}
+            text={filtered || status ? "נסו לשנות את החיפוש, התקופה או הלשונית." : "הזמנות מהאתר יופיעו כאן. אפשר גם ליצור הזמנה ידנית למכירה בטלפון או בוואטסאפ."}
+          >
+            {filtered || status ? <Link href="/admin/orders" className="a-btn">לכל ההזמנות</Link> : <Link href="/admin/orders/new" className="a-btn a-btn-primary"><Icon name="plus" /> הזמנה ידנית</Link>}
+          </Empty>
         )}
-      </div>
-    </div>
+      </section>
+
+      {pages > 1 && (
+        <nav aria-label="עימוד" className="flex items-center justify-between gap-3 flex-wrap">
+          <span className="text-[13px] text-adm-muted">
+            מציג {(page - 1) * ORDER_PAGE_SIZE + 1}–{Math.min(page * ORDER_PAGE_SIZE, total)} מתוך {total.toLocaleString("he-IL")}
+          </span>
+          <span className="flex gap-2">
+            {page > 1 ? <Link href={ordersHref({ ...cur, page: page - 1 })} className="a-btn a-btn-sm" rel="prev"><Icon name="arrowRight" size={16} /> הקודם</Link> : <span className="a-btn a-btn-sm opacity-55" aria-disabled="true"><Icon name="arrowRight" size={16} /> הקודם</span>}
+            <span className="a-btn a-btn-sm pointer-events-none" aria-current="page">עמוד {page} / {pages}</span>
+            {page < pages ? <Link href={ordersHref({ ...cur, page: page + 1 })} className="a-btn a-btn-sm" rel="next">הבא <Icon name="arrowLeft" size={16} /></Link> : <span className="a-btn a-btn-sm opacity-55" aria-disabled="true">הבא <Icon name="arrowLeft" size={16} /></span>}
+          </span>
+        </nav>
+      )}
+    </>
   );
 }
