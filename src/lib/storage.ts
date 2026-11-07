@@ -8,9 +8,14 @@ import { put } from "@vercel/blob";
 const BUCKET = "products";
 const MAX_BYTES = 8 * 1024 * 1024;
 
+/** Legacy service_role keys are JWTs (eyJ…) and go in both headers; new secret keys (sb_secret_…) go in `apikey` only. */
+function authHeaders(key: string): Record<string, string> {
+  return key.startsWith("eyJ") ? { apikey: key, Authorization: `Bearer ${key}` } : { apikey: key };
+}
+
 function supabaseEnv() {
   const url = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || "";
   return url && key ? { url, key } : null;
 }
 
@@ -22,7 +27,7 @@ let bucketChecked = false;
 
 async function ensureBucket(url: string, key: string) {
   if (bucketChecked) return;
-  const headers = { Authorization: `Bearer ${key}`, apikey: key, "Content-Type": "application/json" };
+  const headers = { ...authHeaders(key), "Content-Type": "application/json" };
   const r = await fetch(`${url}/storage/v1/bucket/${BUCKET}`, { headers, cache: "no-store" });
   if (!r.ok) {
     const c = await fetch(`${url}/storage/v1/bucket`, {
@@ -51,7 +56,7 @@ export async function uploadProductImage(f: File): Promise<string> {
     await ensureBucket(sb.url, sb.key);
     const r = await fetch(`${sb.url}/storage/v1/object/${BUCKET}/${path}`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${sb.key}`, apikey: sb.key, "Content-Type": f.type, "x-upsert": "false", "cache-control": "31536000" },
+      headers: { ...authHeaders(sb.key), "Content-Type": f.type, "x-upsert": "false", "cache-control": "31536000" },
       body: Buffer.from(await f.arrayBuffer()),
     });
     if (!r.ok) throw new Error(`Supabase upload failed: ${r.status} ${await r.text()}`);
