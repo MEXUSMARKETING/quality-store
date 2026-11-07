@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { put } from "@vercel/blob";
+import { imageStorageReady, uploadProductImage } from "@/lib/storage";
 import { requireAdmin } from "@/lib/auth";
 import { hasDb } from "@/lib/db";
 import { audit } from "@/lib/admin";
@@ -160,19 +160,18 @@ export async function saveProductAction(_: SaveState, fd: FormData): Promise<Sav
   const images = fd.getAll("image").map((v) => String(v).trim()).filter(Boolean);
   const files = fd.getAll("files").filter((f): f is File => typeof f === "object" && f !== null && "size" in f && (f as File).size > 0);
   if (files.length) {
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      return { error: "כדי להעלות תמונות יש לחבר Vercel Blob לפרויקט (Storage ← Blob). בינתיים אפשר להדביק קישור לתמונה.", tab: "images" };
+    if (!imageStorageReady()) {
+      return { error: "אחסון התמונות עדיין לא מחובר (Supabase Storage). בינתיים אפשר להדביק קישור לתמונה.", tab: "images" };
     }
-    try {
-      for (const f of files) {
-        if (!String(f.type || "").startsWith("image/")) return { error: `הקובץ ${f.name} אינו תמונה`, tab: "images" };
-        const safe = f.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-        const blob = await put(`products/${Date.now()}-${safe}`, f, { access: "public" });
-        images.push(blob.url);
+    for (const f of files) {
+      try {
+        images.push(await uploadProductImage(f));
+      } catch (e: any) {
+        console.error(e);
+        const msg = String(e?.message || "");
+        if (/^הקובץ/.test(msg)) return { error: msg, tab: "images" };
+        return { error: "העלאת התמונות נכשלה. נסי שוב, או הדביקי קישור לתמונה.", tab: "images" };
       }
-    } catch (e) {
-      console.error(e);
-      return { error: "העלאת התמונות נכשלה. נסי שוב, או הדביקי קישור לתמונה.", tab: "images" };
     }
   }
   const url = String(fd.get("imageUrl") || "").trim();

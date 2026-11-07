@@ -407,7 +407,7 @@ export default function ProductEditor({
                 </>
               ) : (
                 <Notice tone="amber">
-                  העלאת קבצים דורשת חיבור <b dir="ltr">Vercel Blob</b> לפרויקט (Vercel ← Storage ← Blob, ואז פריסה מחדש). עד אז אפשר להדביק קישור לתמונה.
+                  העלאת קבצים דורשת חיבור <b dir="ltr">Supabase</b> לפרויקט (מסד הנתונים ואחסון התמונות). עד אז אפשר להדביק קישור לתמונה.
                 </Notice>
               )}
             </Section>

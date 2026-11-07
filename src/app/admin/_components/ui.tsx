@@ -122,8 +122,8 @@ export function LinkTabs({ tabs }: { tabs: { href: string; label: string; count?
 export function DbMissing() {
   return (
     <Notice tone="amber">
-      <b>מסד הנתונים עדיין לא מחובר.</b> כדי לשמור הזמנות, לקוחות, קופונים ושינויים במוצרים: ב־Vercel ← Storage ← חיבור{" "}
-      <b dir="ltr">Neon Postgres</b> לפרויקט, ואז פריסה מחדש.
+      <b>מסד הנתונים עדיין לא מחובר.</b> כדי לשמור הזמנות, לקוחות, קופונים ושינויים במוצרים יש לחבר את פרויקט{" "}
+      <b dir="ltr">Supabase</b> של החנות ל־Vercel (משתני הסביבה DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY), ואז פריסה מחדש.
     </Notice>
   );
 }

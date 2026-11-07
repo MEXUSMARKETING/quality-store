@@ -2,7 +2,7 @@
 
 אתר חנות בעברית (RTL) למגפונים, עם מערכת ניהול: מוצרים ומלאי לפי מידה, הזמנות, ומועדון לקוחות.
 
-**טכנולוגיה:** Next.js 14 (App Router) · Tailwind CSS · Postgres (Neon) · Vercel Blob לתמונות.
+**טכנולוגיה:** Next.js 14 (App Router) · Tailwind CSS · Supabase (Postgres + Storage לתמונות) · מערכת ניהול ב־`/admin` (ראו ADMIN-GUIDE.md).
 
 ## עמודי האתר
 | נתיב | מה יש בו |
@@ -19,12 +19,12 @@
 2. ב־**Environment Variables** להוסיף:
    - `ADMIN_PASSWORD` — הסיסמה לכניסה ל־`/admin` (לבחור סיסמה חזקה).
 3. **Deploy.** האתר עולה מיד עם 11 המוצרים. בשלב הזה הזמנות נשלחות בוואטסאפ.
-4. חיבור מסד נתונים (כדי לשמור הזמנות ולערוך מוצרים):
-   **Storage → Create Database → Neon (Postgres)** → לחבר לפרויקט. Vercel מוסיף את `DATABASE_URL` לבד.
-   הטבלאות נוצרות אוטומטית בכניסה הראשונה, והמוצרים נטענים אליהן.
-5. חיבור אחסון תמונות (כדי להעלות תמונות ממערכת הניהול):
-   **Storage → Create → Blob** → לחבר לפרויקט. Vercel מוסיף את `BLOB_READ_WRITE_TOKEN` לבד.
-6. אחרי חיבור Storage: **Deployments → Redeploy**.
+4. חיבור Supabase (מסד נתונים + אחסון תמונות, באותו חשבון Supabase של שאר הפרויקטים):
+   - ב־Supabase: פרויקט חדש בשם `quality-store`, אזור Frankfurt (eu-central-1).
+   - ב־Vercel: **Integrations → Supabase** → לחבר את פרויקט Supabase לפרויקט `quality-store` (מוסיף את `POSTGRES_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` לבד),
+     או להוסיף ידנית `DATABASE_URL` (Transaction pooler, פורט 6543), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+   - הטבלאות נוצרות אוטומטית בכניסה הראשונה, והמוצרים נטענים אליהן. תיקיית התמונות `products` נוצרת אוטומטית בהעלאה הראשונה.
+5. אחרי החיבור: **Deployments → Redeploy**.
 
 ## פיתוח מקומי
 ```bash

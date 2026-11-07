@@ -1,3 +1,4 @@
+import { imageStorageReady } from "@/lib/storage";
 import { headers } from "next/headers";
 import { isAdmin } from "@/lib/auth";
 import { hasDb } from "@/lib/db";
@@ -16,7 +17,7 @@ export default function NewProduct() {
         title="מוצר חדש"
         sub={<span className="flex items-center gap-2"><Chip tone="blue">טיוטה</Chip> המוצר יישמר רק בלחיצה על „שמירה”</span>}
       />
-      <ProductEditor product={null} canEdit={hasDb()} blobReady={!!process.env.BLOB_READ_WRITE_TOKEN} siteHost={host} />
+      <ProductEditor product={null} canEdit={hasDb()} blobReady={imageStorageReady()} siteHost={host} />
     </>
   );
 }

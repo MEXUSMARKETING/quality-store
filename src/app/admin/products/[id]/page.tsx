@@ -1,3 +1,4 @@
+import { imageStorageReady } from "@/lib/storage";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
@@ -65,7 +66,7 @@ export default async function EditProduct({ params, searchParams }: { params: { 
         </div>
       )}
 
-      <ProductEditor key={`${p.id}-${p.updated_at || ""}`} product={p} canEdit={canEdit} blobReady={!!process.env.BLOB_READ_WRITE_TOKEN} siteHost={host} />
+      <ProductEditor key={`${p.id}-${p.updated_at || ""}`} product={p} canEdit={canEdit} blobReady={imageStorageReady()} siteHost={host} />
     </>
   );
 }
