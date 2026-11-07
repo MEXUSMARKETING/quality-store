@@ -8,16 +8,21 @@ import { SIZES, waLink } from "@/lib/config";
 
 type Props = {
   product: { id: number; slug: string; name: string; image: string; price: number; stock: Record<string, number> };
+  /** Store sizes in display order (admin → מידות וצבעים); defaults to the config list. */
+  sizes?: string[];
 };
 
-export default function BuyBox({ product }: Props) {
+export default function BuyBox({ product, sizes }: Props) {
   const { add } = useCart();
   const [size, setSize] = useState<string | null>(null);
   const [need, setNeed] = useState(false);
   const [added, setAdded] = useState(false);
   const [fav, setFav] = useState(false);
 
-  const allSizes = Array.from(new Set([...SIZES, ...Object.keys(product.stock || {})])).sort((a, b) => Number(a) - Number(b));
+  const base = sizes && sizes.length ? sizes : SIZES;
+  // configured order first; sizes with stock that are not in the list are appended in numeric order
+  const extra = Object.keys(product.stock || {}).filter((s) => !base.includes(s) && Number(product.stock[s]) > 0).sort((a, b) => Number(a) - Number(b));
+  const allSizes = [...base, ...extra];
   const avail = allSizes.filter((s) => Number(product.stock?.[s] || 0) > 0);
   const soldOut = avail.length === 0;
   const left = size ? Number(product.stock?.[size] || 0) : 0;

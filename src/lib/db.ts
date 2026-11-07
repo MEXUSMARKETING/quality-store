@@ -282,6 +282,7 @@ async function init(sql: Sql) {
       user_agent text not null default '',
       created_at timestamptz not null default now()
     )`;
+  await sql`alter table reviews add column if not exists ip_hash text not null default ''`;
 
   // Lock every table against Supabase's public API (the store talks to Postgres directly from its server).
   for (const t of ["settings", "categories", "pages", "reviews", "automation_rules", "automation_runs", "admin_users", "login_history"]) {

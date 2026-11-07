@@ -2,7 +2,7 @@ import Link from "next/link";
 import { isAdmin } from "@/lib/auth";
 import { hasDb } from "@/lib/db";
 import { listProducts } from "@/lib/store";
-import { CATEGORIES, COLORS } from "@/lib/config";
+import { categoryNames, getAttributes, getCategoriesAll } from "@/lib/catalog";
 import { Empty, Icon, LinkTabs, Notice, PageHeader } from "../_components/ui";
 import ProductsTable from "./ProductsTable";
 import { SORTS, TABS, applyFilters, filtersQuery, readFilters, stockLevel, type TabKey } from "./shared";
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function ProductsAdmin({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
   if (!isAdmin()) return null;
   const f = readFilters(searchParams);
-  const all = await listProducts({ includeInactive: true });
+  const [all, cats, attrs] = await Promise.all([listProducts({ includeInactive: true }), getCategoriesAll(), getAttributes()]);
   const { list, counts } = applyFilters(all, f);
 
   const lowCount = all.filter((p) => stockLevel(p) === "low").length;
@@ -58,14 +58,14 @@ export default async function ProductsAdmin({ searchParams }: { searchParams: Re
           קטגוריה
           <select name="category" defaultValue={f.category} className="a-input">
             <option value="">כל הקטגוריות</option>
-            {Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            {cats.map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
           </select>
         </label>
         <label className="a-field w-[150px]">
           צבע
           <select name="color" defaultValue={f.color} className="a-input">
             <option value="">כל הצבעים</option>
-            {Object.entries(COLORS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            {attrs.colors.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
           </select>
         </label>
         <label className="a-field w-[150px]">
@@ -83,7 +83,7 @@ export default async function ProductsAdmin({ searchParams }: { searchParams: Re
       </form>
 
       {list.length ? (
-        <ProductsTable products={list} canEdit={canEdit} />
+        <ProductsTable products={list} canEdit={canEdit} categoryNames={categoryNames(cats)} sizes={attrs.sizes} />
       ) : (
         <div className="a-card">
           {all.length === 0 ? (

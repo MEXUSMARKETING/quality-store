@@ -21,7 +21,9 @@ function confirmSubmit(message: string) {
   };
 }
 
-export default function ProductsTable({ products, canEdit }: { products: Product[]; canEdit: boolean }) {
+export default function ProductsTable({ products, canEdit, categoryNames, sizes }: { products: Product[]; canEdit: boolean; categoryNames?: Record<string, string>; sizes?: string[] }) {
+  const catLabel = (k: string) => categoryNames?.[k] || CATEGORIES[k] || k;
+  const sizeList = (stock: Record<string, number>) => Array.from(new Set([...(sizes && sizes.length ? sizes : SIZES), ...Object.keys(stock || {})])).filter((s) => Number(stock?.[s]) > 0);
   const router = useRouter();
   const [selected, setSelected] = useState<number[]>([]);
   const [pending, start] = useTransition();
@@ -127,7 +129,7 @@ export default function ProductsTable({ products, canEdit }: { products: Product
                         </span>
                       </Link>
                     </td>
-                    <td className="text-adm-muted whitespace-nowrap">{CATEGORIES[p.category] || p.category}</td>
+                    <td className="text-adm-muted whitespace-nowrap">{catLabel(p.category)}</td>
                     <td className="whitespace-nowrap">
                       <b>{shekel(p.price)}</b>
                       {p.old_price && p.old_price > p.price ? (
@@ -142,7 +144,7 @@ export default function ProductsTable({ products, canEdit }: { products: Product
                         </span>
                         {t > 0 && (
                           <span className="flex flex-wrap gap-1" aria-label="מלאי לפי מידה">
-                            {SIZES.filter((s) => Number(p.stock?.[s]) > 0).map((s) => (
+                            {sizeList(p.stock).map((s) => (
                               <span key={s} className={`text-[11px] leading-none rounded-md px-1.5 py-1 font-semibold ${Number(p.stock[s]) <= 1 ? "bg-[#FFF4E0] text-[#8A5A00]" : "bg-[#EEF1F6] text-[#3B475C]"}`} title={`מידה ${s}: ${p.stock[s]}`}>
                                 {s}<span className="font-normal">·{p.stock[s]}</span>
                               </span>

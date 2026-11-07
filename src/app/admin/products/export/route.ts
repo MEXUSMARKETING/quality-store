@@ -1,6 +1,6 @@
 import { hasPermission } from "@/lib/auth";
 import { listProducts } from "@/lib/store";
-import { CATEGORIES, COLORS, SIZES } from "@/lib/config";
+import { categoryNames, colorMap, getAttributes, getCategoriesAll } from "@/lib/catalog";
 import { stockTotal } from "../shared";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,10 @@ const esc = (v: unknown) => {
 
 export async function GET() {
   if (!(await hasPermission("products", "view"))) return new Response("Unauthorized", { status: 401 });
-  const rows = await listProducts({ includeInactive: true });
+  const [rows, cats, attrs] = await Promise.all([listProducts({ includeInactive: true }), getCategoriesAll(), getAttributes()]);
+  const CATEGORIES = categoryNames(cats);
+  const COLORS = colorMap(attrs);
+  const SIZES = Array.from(new Set([...attrs.sizes, ...rows.flatMap((p) => Object.keys(p.stock || {}).filter((k) => Number(p.stock[k]) > 0))]));
   const header = ["id", "sku", "name", "category", "color", "price", "old_price", "cost", "total_stock", ...SIZES.map((s) => `size_${s}`), "active"];
   const lines = rows.map((p) =>
     [

@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { isAdmin } from "@/lib/auth";
 import { hasDb } from "@/lib/db";
 import { getProductById } from "@/lib/store";
+import { getAttributes, getCategoriesAll } from "@/lib/catalog";
 import { Chip, Icon, Notice, PageHeader, fmtDateTime } from "../../_components/ui";
 import ProductEditor from "../ProductEditor";
 import ConfirmButton from "../ConfirmButton";
@@ -19,6 +20,7 @@ export default async function EditProduct({ params, searchParams }: { params: { 
   if (!Number.isInteger(id) || id <= 0) notFound();
   const p = await getProductById(id);
   if (!p) notFound();
+  const [cats, attrs] = await Promise.all([getCategoriesAll(), getAttributes()]);
   const canEdit = hasDb();
   const host = headers().get("host") || "quality-store";
   const lvl = stockLevel(p);
@@ -66,7 +68,7 @@ export default async function EditProduct({ params, searchParams }: { params: { 
         </div>
       )}
 
-      <ProductEditor key={`${p.id}-${p.updated_at || ""}`} product={p} canEdit={canEdit} blobReady={imageStorageReady()} siteHost={host} />
+      <ProductEditor key={`${p.id}-${p.updated_at || ""}`} product={p} canEdit={canEdit} blobReady={imageStorageReady()} siteHost={host} categories={cats.map((c) => ({ key: c.key, name: c.name, parent: c.parent, active: c.active }))} sizes={attrs.sizes} colors={attrs.colors} />
     </>
   );
 }

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { listProducts } from "@/lib/store";
 import ProductCard from "@/components/ProductCard";
-import { CATEGORIES, COLORS, SIZES, STORE, waLink } from "@/lib/config";
+import { CATEGORIES, STORE, waLink } from "@/lib/config";
+import { descendantKeys, getAttributes, getCategories, getRatings } from "@/lib/catalog";
 import type { Product } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "קולקציה" };
 
 type SP = { [k: string]: string | string[] | undefined };
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) || "";
@@ -24,6 +24,22 @@ const SORTS: Record<string, string> = {
   new: "חדשים ביותר",
 };
 
+const DEFAULT_TITLE = "מגפונים לנשים";
+
+export async function generateMetadata({ searchParams }: { searchParams: SP }) {
+  const key = one(searchParams.category) || "boots";
+  const q = one(searchParams.q).trim();
+  if (q) return { title: `חיפוש: ${q}` };
+  try {
+    const c = (await getCategories()).find((x) => x.key === key);
+    if (!c) return { title: "קולקציה" };
+    const name = key === "boots" && c.name === CATEGORIES.boots ? DEFAULT_TITLE : c.name;
+    return { title: c.seo_title || name, description: c.seo_description || c.description || undefined };
+  } catch {
+    return { title: "קולקציה" };
+  }
+}
+
 export default async function ShopPage({ searchParams }: { searchParams: SP }) {
   const category = one(searchParams.category) || "boots";
   const color = one(searchParams.color);
@@ -33,8 +49,15 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
   const q = one(searchParams.q).trim();
   const max = Number(one(searchParams.max)) || 0;
 
-  const all = await listProducts();
-  let list = all.filter((p) => p.category === category);
+  const [all, cats, attrs, ratings] = await Promise.all([listProducts(), getCategories(), getAttributes(), getRatings()]);
+  const cat = cats.find((c) => c.key === category);
+  // a parent category also shows the products of its (active) sub-categories
+  const inCat = new Set(cat ? descendantKeys(cats, category) : [category]);
+  const subs = cats.filter((c) => c.parent === category);
+  const parentCat = cat?.parent ? cats.find((c) => c.key === cat.parent) : undefined;
+  const COLORS = Object.fromEntries(attrs.colors.map((c) => [c.key, c]));
+  // a hidden (inactive) category shows nothing – the "coming soon" message – except the default boots page
+  let list = cat || category === "boots" ? all.filter((p) => inCat.has(p.category)) : [];
   if (q) list = all.filter((p) => (p.name + " " + p.description).includes(q));
   if (color) list = list.filter((p) => p.color === color);
   if (heel && HEELS[heel]) list = list.filter(HEELS[heel].test);
@@ -56,7 +79,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
     return "/shop" + (s ? "?" + s : "");
   };
 
-  const title = q ? `תוצאות עבור "${q}"` : category === "boots" ? "מגפונים לנשים" : CATEGORIES[category] || "קולקציה";
+  const title = q ? `תוצאות עבור "${q}"` : category === "boots" && (!cat || cat.name === CATEGORIES.boots) ? DEFAULT_TITLE : cat?.name || CATEGORIES[category] || "קולקציה";
   const active = [
     color && { label: COLORS[color]?.label || color, href: href({ color: "" }) },
     heel && { label: "עקב " + (HEELS[heel]?.label || heel), href: href({ heel: "" }) },
@@ -73,7 +96,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
       <div>
         <b className="block text-[15px] pb-2.5">המידה שלי</b>
         <div className="grid grid-cols-4 gap-1.5">
-          {SIZES.map((s) => (
+          {attrs.sizes.map((s) => (
             <Link key={s} href={href({ size: size === s ? "" : s })} className={`h-11 rounded-[10px] border flex items-center justify-center text-[15px] ${size === s ? "bg-ink text-white border-ink hover:text-white" : "bg-white border-line"}`}>
               {s}
             </Link>
@@ -98,7 +121,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
       <div>
         <b className="block text-[15px] pb-2.5">צבע</b>
         <div className="flex flex-col gap-1">
-          {Object.entries(COLORS).filter(([k]) => k !== "other").map(([k, c]) => (
+          {attrs.colors.filter((c) => c.key !== "other").map((c) => [c.key, c] as const).map(([k, c]) => (
             <Link key={k} href={href({ color: color === k ? "" : k })} className="flex items-center gap-2.5 min-h-[36px] text-[15px]">
               <span className={`w-6 h-6 rounded-full border ${color === k ? "ring-2 ring-offset-2 ring-ink" : ""}`} style={{ background: c.hex }} />
               {c.label}
@@ -131,12 +154,19 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
       <nav aria-label="פירורי לחם" className="text-[13px] md:text-sm text-muted flex gap-2">
         <Link href="/">בית</Link>
         <span aria-hidden="true">/</span>
+        {parentCat && !q && (
+          <>
+            <Link href={`/shop?category=${parentCat.key}`}>{parentCat.name}</Link>
+            <span aria-hidden="true">/</span>
+          </>
+        )}
         <span>{title}</span>
       </nav>
       <div className="flex items-end justify-between flex-wrap gap-4 pt-3 pb-5 md:pb-6">
         <div>
           <h1 className="font-display font-extrabold text-[30px] md:text-[44px]">{title}</h1>
           <span className="text-sm md:text-[15px] text-muted">{list.length} דגמים</span>
+          {!q && cat?.description && <p className="pt-2 max-w-[640px] text-[15px] leading-7 text-[#45443F] whitespace-pre-line">{cat.description}</p>}
         </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar max-w-full">
           {Object.entries(SORTS).map(([k, label]) => (
@@ -146,6 +176,19 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
           ))}
         </div>
       </div>
+
+      {!q && cat?.banner && (
+        <div className="relative overflow-hidden rounded-[22px] bg-ink aspect-[3/1] md:aspect-[4/1] mb-5 md:mb-6">
+          <img src={cat.banner} alt="" className="w-full h-full object-cover" />
+        </div>
+      )}
+      {!q && subs.length > 0 && (
+        <nav aria-label="תתי־קטגוריות" className="flex gap-2 overflow-x-auto no-scrollbar pb-5">
+          {subs.map((c) => (
+            <Link key={c.key} href={`/shop?category=${c.key}`} className={chip(false)}>{c.name}</Link>
+          ))}
+        </nav>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
         <details className="lg:hidden w-full rounded-2xl bg-panel border border-line">
@@ -176,7 +219,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
           {list.length ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-7 md:gap-x-5 md:gap-y-9">
               {list.map((p) => (
-                <ProductCard key={p.id} p={p} />
+                <ProductCard key={p.id} p={p} rating={ratings[p.id]} />
               ))}
             </div>
           ) : (

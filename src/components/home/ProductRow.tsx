@@ -6,11 +6,11 @@ import ProductCard from "../ProductCard";
 import { ChevronLeft, ChevronRight } from "../Icons";
 import type { Product } from "@/lib/types";
 
-export default function ProductRow({ title, kicker, products, href }: { title: string; kicker?: string; products: Product[]; href: string }) {
+export default function ProductRow({ title, kicker, products, href, limit = 10 }: { title: string; kicker?: string; products: Product[]; href: string; limit?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
-  const list = products.slice(0, 10);
+  const list = products.slice(0, limit);
 
   const update = () => {
     const el = ref.current;

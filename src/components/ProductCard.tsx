@@ -10,7 +10,19 @@ function sizesText(p: Product) {
   return s;
 }
 
-export default function ProductCard({ p, large = false }: { p: Product; large?: boolean }) {
+/** Small "★ 4.8 (12)" line; render nothing without approved reviews. */
+export function RatingLine({ rating, className = "" }: { rating?: { avg: number; count: number } | null; className?: string }) {
+  if (!rating || !rating.count) return null;
+  return (
+    <span className={`flex items-center gap-1 text-[13px] text-muted ${className}`} aria-label={`דירוג ${rating.avg.toFixed(1)} מתוך 5, ${rating.count} ביקורות`}>
+      <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" className="text-gold"><path fill="currentColor" d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" /></svg>
+      <b className="text-ink font-semibold tabular-nums">{rating.avg.toFixed(1)}</b>
+      <span className="tabular-nums">({rating.count})</span>
+    </span>
+  );
+}
+
+export default function ProductCard({ p, large = false, rating }: { p: Product; large?: boolean; rating?: { avg: number; count: number } | null }) {
   const sizes = sizesText(p);
   const soldOut = sizes.length === 0;
   const pct = p.old_price && p.old_price > p.price ? Math.round((1 - p.price / p.old_price) * 100) : null;
@@ -37,6 +49,7 @@ export default function ProductCard({ p, large = false }: { p: Product; large?: 
             {p.heel && sizes.length ? " · " : ""}
             {sizes.length ? `מידות ${sizes.join(", ")}` : ""}
           </span>
+          <RatingLine rating={rating} />
         </div>
         <div className="flex flex-col items-end shrink-0">
           <span className={`font-display font-bold ${large ? "text-[20px] md:text-[22px]" : "text-[17px] md:text-[19px]"}`}>{shekel(p.price)}</span>

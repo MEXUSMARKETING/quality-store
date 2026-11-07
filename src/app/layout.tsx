@@ -1,10 +1,29 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { getSetting } from "@/lib/site";
+import TrackingScripts from "@/components/TrackingScripts";
+import { SEO_DEFAULTS, type SeoSettings } from "@/app/admin/settings/defaults";
 
-export const metadata: Metadata = {
-  title: { default: "Quality טמרה · מגפונים ונעלי נשים", template: "%s · Quality" },
-  description: "קולקציית מגפוני חורף במחירים שלא חוזרים. משלוח חינם עד הבית ותשלום במזומן בעת המסירה. Quality טמרה.",
-};
+/** Site-wide SEO from /admin/settings → SEO, with today's hard-coded values as the fallback. */
+export async function generateMetadata(): Promise<Metadata> {
+  let seo: SeoSettings = SEO_DEFAULTS;
+  try {
+    seo = await getSetting<SeoSettings>("seo", SEO_DEFAULTS);
+  } catch {
+    seo = SEO_DEFAULTS;
+  }
+  const title = String(seo.defaultTitle || "").trim() || SEO_DEFAULTS.defaultTitle;
+  const template = String(seo.titleTemplate || "").includes("%s") ? seo.titleTemplate : SEO_DEFAULTS.titleTemplate;
+  const description = String(seo.description || "").trim() || SEO_DEFAULTS.description;
+  const image = String(seo.shareImage || "").trim();
+  const meta: Metadata = {
+    title: { default: title, template },
+    description,
+    openGraph: { title, description, type: "website", locale: "he_IL", ...(image ? { images: [{ url: image }] } : {}) },
+  };
+  if (seo.robotsAllow === false) meta.robots = { index: false, follow: false };
+  return meta;
+}
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -23,7 +42,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        {children}
+        <TrackingScripts />
+      </body>
     </html>
   );
 }

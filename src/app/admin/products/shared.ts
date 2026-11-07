@@ -1,4 +1,4 @@
-import { CATEGORIES, COLORS, SIZES } from "@/lib/config";
+import { SIZES } from "@/lib/config";
 import type { Product } from "@/lib/types";
 
 /* Pure helpers shared by the products list, editor, server actions and CSV export.
@@ -58,8 +58,10 @@ export function readFilters(sp: Record<string, string | string[] | undefined>): 
   const rawTab = one("tab") || one("stock");
   const tab = (rawTab in TABS ? rawTab : "all") as TabKey;
   const sort = (one("sort") in SORTS ? one("sort") : "sort") as SortKey;
-  const category = CATEGORIES[one("category")] ? one("category") : "";
-  const color = COLORS[one("color")] ? one("color") : "";
+  // keys are managed in the admin (categories / attributes), so accept any well-formed key
+  const key = (v: string) => (/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(v) ? v : "");
+  const category = key(one("category"));
+  const color = key(one("color"));
   return { tab, q: one("q").slice(0, 100), category, color, sort };
 }
 

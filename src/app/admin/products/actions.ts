@@ -6,7 +6,8 @@ import { imageStorageReady, uploadProductImage } from "@/lib/storage";
 import { requireAdmin } from "@/lib/auth";
 import { hasDb } from "@/lib/db";
 import { audit } from "@/lib/admin";
-import { CATEGORIES, COLORS, SIZES, shekel } from "@/lib/config";
+import { shekel } from "@/lib/config";
+import { getAttributes, getCategoriesAll } from "@/lib/catalog";
 import { bulkUpdateProducts, deleteProduct, duplicateProduct, getProductById, saveProduct, type BulkProductOp, type ProductInput } from "@/lib/store";
 import type { Product } from "@/lib/types";
 import { slugify } from "./shared";
@@ -51,7 +52,7 @@ const LABELS: Partial<Record<keyof ProductInput, string>> = {
 };
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
-const normStock = (s: Record<string, number>) => Object.fromEntries(SIZES.filter((k) => Number(s?.[k]) > 0).map((k) => [k, Number(s[k])]));
+const normStock = (s: Record<string, number>) => Object.fromEntries(Object.keys(s || {}).sort().filter((k) => Number(s?.[k]) > 0).map((k) => [k, Number(s[k])]));
 const money = (n: number | null | undefined) => (n === null || n === undefined ? "—" : shekel(n));
 
 async function auditChanges(id: number, before: Product | null, after: ProductInput) {
@@ -83,7 +84,8 @@ async function auditChanges(id: number, before: Product | null, after: ProductIn
   const sb = normStock(before.stock);
   const sa = normStock(after.stock);
   if (!same(sb, sa)) {
-    const diffs = SIZES.filter((s) => (sb[s] || 0) !== (sa[s] || 0)).map((s) => `${s}: ${sb[s] || 0}→${sa[s] || 0}`);
+    const keys = Array.from(new Set([...Object.keys(sb), ...Object.keys(sa)])).sort((x, y) => (parseFloat(x) || 0) - (parseFloat(y) || 0));
+    const diffs = keys.filter((s) => (sb[s] || 0) !== (sa[s] || 0)).map((s) => `${s}: ${sb[s] || 0}→${sa[s] || 0}`);
     const tb = Object.values(sb).reduce((a, b) => a + b, 0);
     const ta = Object.values(sa).reduce((a, b) => a + b, 0);
     await audit({
@@ -149,8 +151,11 @@ export async function saveProductAction(_: SaveState, fd: FormData): Promise<Sav
   const low_stock = int(fd.get("low_stock"));
   if (bad(low_stock)) return { error: "סף המלאי הנמוך חייב להיות מספר שלם", tab: "stock" };
 
+  const [attrs, cats] = await Promise.all([getAttributes(), getCategoriesAll()]);
+  // configured sizes + any other size the editor sent (a size removed from the list that still had stock)
+  const sentSizes = Array.from(fd.keys()).filter((k) => k.startsWith("stock_")).map((k) => k.slice(6)).filter((k) => k && k.length <= 10);
   const stock: Record<string, number> = {};
-  for (const s of SIZES) {
+  for (const s of Array.from(new Set([...attrs.sizes, ...sentSizes]))) {
     const q = int(fd.get(`stock_${s}`));
     if (bad(q)) return { error: `הכמות במידה ${s} חייבת להיות מספר שלם`, tab: "stock" };
     if (q && q > 0) stock[s] = Math.min(q, 9999);
@@ -192,8 +197,8 @@ export async function saveProductAction(_: SaveState, fd: FormData): Promise<Sav
     old_price: old_price && old_price > 0 ? old_price : null,
     cost,
     heel,
-    color: COLORS[color] ? color : "other",
-    category: CATEGORIES[category] ? category : "boots",
+    color: attrs.colors.some((c) => c.key === color) || color === before?.color ? color : attrs.colors.some((c) => c.key === "other") ? "other" : attrs.colors[0].key,
+    category: cats.some((c) => c.key === category) || category === before?.category ? category : "boots",
     images: Array.from(new Set(images)),
     stock,
     low_stock: low_stock ?? 2,

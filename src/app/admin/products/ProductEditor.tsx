@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
-import { CATEGORIES, COLORS, SIZES, shekel } from "@/lib/config";
+import { CATEGORIES, COLORS, SIZES as DEFAULT_SIZES, shekel } from "@/lib/config";
 import type { Product } from "@/lib/types";
 import { Icon, Notice } from "../_components/ui";
 import { saveProductAction, type SaveState } from "./actions";
 import { slugify } from "./shared";
+import AiDescribeButton from "../ai/AiDescribeButton";
 
 const TABS = [
   { key: "general", label: "פרטים כלליים" },
@@ -85,12 +86,24 @@ export default function ProductEditor({
   canEdit,
   blobReady,
   siteHost,
+  categories,
+  sizes,
+  colors,
 }: {
   product: Product | null;
   canEdit: boolean;
   blobReady: boolean;
   siteHost: string;
+  /** From the server (src/lib/catalog.ts); fall back to config when not passed */
+  categories?: { key: string; name: string; parent?: string | null; active?: boolean }[];
+  sizes?: string[];
+  colors?: { key: string; label: string; hex: string }[];
 }) {
+  // size matrix: the configured sizes plus any size this product still has stock in
+  const SIZES = Array.from(new Set([...(sizes && sizes.length ? sizes : DEFAULT_SIZES), ...Object.keys(product?.stock || {}).filter((k) => Number(product?.stock?.[k]) > 0)]));
+  const catOptions = categories && categories.length ? categories : Object.entries(CATEGORIES).map(([key, name]) => ({ key, name, parent: null as string | null, active: true }));
+  const colorOptions = colors && colors.length ? colors : Object.entries(COLORS).map(([key, c]) => ({ key, label: c.label, hex: c.hex }));
+  const catDepth = (c: { parent?: string | null }) => { let d = 0, p = c.parent; while (p && d < 6) { d++; p = catOptions.find((x) => x.key === p)?.parent || null; } return d; };
   const [state, action] = useFormState<SaveState, FormData>(saveProductAction, null);
   const [tab, setTab] = useState<TabKey>("general");
   const errRef = useRef<HTMLDivElement>(null);
@@ -265,17 +278,20 @@ export default function ProductEditor({
               תיאור
               <textarea name="description" rows={5} value={description} onChange={(e) => setDescription(e.target.value)} className="a-input" placeholder="חומר, נוחות, התאמה למידה, טיפים לשילוב…" />
             </label>
+            <AiDescribeButton productId={product?.id} name={name} current={description} price={price} onInsert={setDescription} />
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <label className="a-field">
                 קטגוריה
                 <select name="category" defaultValue={product?.category || "boots"} className="a-input">
-                  {Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  {catOptions.map((c) => <option key={c.key} value={c.key}>{"\u00A0\u00A0".repeat(catDepth(c))}{c.name}{c.active === false ? " (מוסתרת)" : ""}</option>)}
+                  {product?.category && !catOptions.some((c) => c.key === product.category) && <option value={product.category}>{product.category}</option>}
                 </select>
               </label>
               <label className="a-field">
                 צבע
                 <select name="color" defaultValue={product?.color || "black"} className="a-input">
-                  {Object.entries(COLORS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                  {colorOptions.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+                  {product?.color && !colorOptions.some((c) => c.key === product.color) && <option value={product.color}>{product.color}</option>}
                 </select>
               </label>
               <label className="a-field">
