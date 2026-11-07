@@ -67,7 +67,7 @@ async function auditChanges(id: number, before: Product | null, after: ProductIn
   }
 
   if (before.price !== after.price || !same(before.old_price, after.old_price)) {
-    const parts = [];
+    const parts: string[] = [];
     if (before.price !== after.price) parts.push(`${shekel(before.price)} ← ${shekel(after.price)}`);
     if (!same(before.old_price, after.old_price)) parts.push(`מחיר לפני הנחה ${money(before.old_price)} ← ${money(after.old_price)}`);
     await audit({

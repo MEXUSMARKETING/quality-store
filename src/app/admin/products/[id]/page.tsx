@@ -1,40 +1,71 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { isAdmin } from "@/lib/auth";
 import { hasDb } from "@/lib/db";
 import { getProductById } from "@/lib/store";
-import ProductForm from "../ProductForm";
-import { deleteProductAction } from "../../actions";
+import { Chip, Icon, Notice, PageHeader, fmtDateTime } from "../../_components/ui";
+import ProductEditor from "../ProductEditor";
+import ConfirmButton from "../ConfirmButton";
+import { deleteProductAction, duplicateProductAction } from "../actions";
+import { stockLevel, stockTotal } from "../shared";
 
 export const dynamic = "force-dynamic";
 
-export default async function EditProduct({ params, searchParams }: { params: { id: string }; searchParams: { saved?: string } }) {
+export default async function EditProduct({ params, searchParams }: { params: { id: string }; searchParams: { saved?: string; duplicated?: string } }) {
   if (!isAdmin()) return null;
-  const p = await getProductById(Number(params.id));
+  const id = Number(params.id);
+  if (!Number.isInteger(id) || id <= 0) notFound();
+  const p = await getProductById(id);
   if (!p) notFound();
   const canEdit = hasDb();
+  const host = headers().get("host") || "quality-store";
+  const lvl = stockLevel(p);
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <Link href="/admin/products" className="text-sm underline">← מוצרים</Link>
-          <h1 className="font-display font-bold text-[26px]">{p.name}</h1>
+    <>
+      <PageHeader
+        crumbs={[{ href: "/admin/products", label: "מוצרים ומלאי" }, { label: p.name }]}
+        title={p.name}
+        sub={
+          <span className="flex flex-wrap items-center gap-2">
+            {p.active ? <Chip tone="green">מוצג באתר</Chip> : <Chip tone="gray">מוסתר</Chip>}
+            {p.featured && <Chip tone="purple">מומלץ</Chip>}
+            {lvl === "out" ? <Chip tone="red">אזל מהמלאי</Chip> : lvl === "low" ? <Chip tone="amber">מלאי נמוך · {stockTotal(p.stock)}</Chip> : null}
+            <span>{p.updated_at ? `עודכן לאחרונה ${fmtDateTime(p.updated_at)}` : `נוצר ${fmtDateTime(p.created_at)}`}</span>
+          </span>
+        }
+      >
+        {canEdit && (
+          <>
+            <form action={duplicateProductAction}>
+              <input type="hidden" name="id" value={p.id} />
+              <button className="a-btn"><Icon name="copy" /> שכפול</button>
+            </form>
+            <form action={deleteProductAction}>
+              <input type="hidden" name="id" value={p.id} />
+              <ConfirmButton message={`למחוק את "${p.name}" לצמיתות? אי אפשר לבטל. (אפשר במקום זה להסתיר אותו מהאתר)`} className="a-btn a-btn-danger">
+                <Icon name="trash" /> מחיקה
+              </ConfirmButton>
+            </form>
+          </>
+        )}
+      </PageHeader>
+
+      {searchParams.saved && (
+        <div role="status">
+          <Notice tone="green"><b>המוצר נשמר.</b> השינויים כבר מופיעים באתר.{" "}
+            <Link href={`/product/${p.slug}`} target="_blank" className="underline font-semibold">לצפייה בדף המוצר</Link>
+          </Notice>
         </div>
-        <Link href={`/product/${p.slug}`} target="_blank" className="text-sm underline">צפייה באתר ↗</Link>
-      </div>
-      {searchParams.saved && <div role="status" className="p-3 rounded-xl bg-[#E2EADF] text-[#2F5A26] font-bold text-sm">המוצר נשמר ✓</div>}
-      <ProductForm key={p.id + (searchParams.saved || "")} product={p} canEdit={canEdit} />
-      {canEdit && (
-        <details className="bg-white rounded-2xl p-5 max-w-[520px]">
-          <summary className="cursor-pointer text-sm font-bold text-[#A13A0D]">מחיקת המוצר</summary>
-          <form action={deleteProductAction} className="pt-3 flex items-center gap-3 flex-wrap">
-            <input type="hidden" name="id" value={p.id} />
-            <span className="text-sm">המחיקה סופית. אפשר במקום זה להסתיר את המוצר.</span>
-            <button className="h-10 px-5 rounded-full bg-[#A13A0D] text-white text-sm font-bold">מחיקה סופית</button>
-          </form>
-        </details>
       )}
-    </div>
+      {searchParams.duplicated && (
+        <div role="status">
+          <Notice tone="blue"><b>נוצר עותק מוסתר.</b> עדכני שם, צבע, תמונות ומלאי – ואז הפעילי „מוצג באתר” ושמרי.</Notice>
+        </div>
+      )}
+
+      <ProductEditor key={`${p.id}-${p.updated_at || ""}`} product={p} canEdit={canEdit} blobReady={!!process.env.BLOB_READ_WRITE_TOKEN} siteHost={host} />
+    </>
   );
 }

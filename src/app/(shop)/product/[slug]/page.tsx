@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const p = await getProductBySlug(decodeURIComponent(params.slug));
-  return { title: p?.name || "מוצר", description: p?.description };
+  return { title: p?.seo_title || p?.name || "מוצר", description: p?.seo_description || p?.description };
 }
 
 export default async function ProductPage({ params }: { params: { slug: string } }) {
