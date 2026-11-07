@@ -53,7 +53,32 @@ function client(): Sql {
   return g.__qsql;
 }
 
+/** Bump when init() gains new DDL. Once the database is at this version, cold starts skip the DDL
+ *  entirely (ALTER TABLE takes exclusive locks even when it changes nothing, and instances that
+ *  start together would otherwise queue behind each other's locks). */
+const SCHEMA_VERSION = 3;
+
+async function schemaCurrent(sql: Sql): Promise<boolean> {
+  // No errors on purpose: this also runs inside the migration transaction, where an error would abort it.
+  const [{ t }] = await sql<{ t: string | null }[]>`select to_regclass('public.settings')::text as t`;
+  if (!t) return false;
+  const r = await sql<{ v: string }[]>`select value #>> '{}' as v from settings where key = '_schema_version'`;
+  return !!r[0] && Number(r[0].v) >= SCHEMA_VERSION;
+}
+
 async function init(sql: Sql) {
+  if (await schemaCurrent(sql)) return;
+  // One instance migrates at a time; the rest wait on the lock, then see the new version and skip.
+  await sql.begin(async (tx: any) => {
+    await tx`select pg_advisory_xact_lock(724519)`;
+    if (await schemaCurrent(tx)) return;
+    await migrate(tx);
+    await tx`insert into settings (key, value) values ('_schema_version', ${SCHEMA_VERSION}::text::jsonb)
+             on conflict (key) do update set value = excluded.value, updated_at = now()`;
+  });
+}
+
+async function migrate(sql: Sql) {
   await sql`
     create table if not exists products (
       id serial primary key,
