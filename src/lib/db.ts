@@ -6,7 +6,17 @@ type Sql = ReturnType<typeof postgres>;
 const g = globalThis as unknown as { __qsql?: Sql; __qready?: Promise<void> | null };
 
 export function dbUrl(): string | undefined {
-  return process.env.DATABASE_URL || process.env.POSTGRES_URL || undefined;
+  const raw = process.env.DATABASE_URL || process.env.POSTGRES_URL || undefined;
+  if (!raw) return undefined;
+  // Supabase/Vercel connection strings carry extra query params (supa, pgbouncer) that postgres.js
+  // would forward to the server as settings and fail on. Keep only the ones postgres.js understands.
+  try {
+    const u = new URL(raw);
+    for (const k of Array.from(u.searchParams.keys())) if (!["sslmode", "connect_timeout"].includes(k)) u.searchParams.delete(k);
+    return u.toString();
+  } catch {
+    return raw;
+  }
 }
 
 export function hasDb(): boolean {
