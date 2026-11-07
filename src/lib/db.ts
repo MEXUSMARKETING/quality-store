@@ -8,7 +8,7 @@ const g = globalThis as unknown as { __qsql?: Sql; __qready?: Promise<void> | nu
 /** Serverless instances are frozen between requests; sockets left open across a freeze can be
  *  silently dead when the instance wakes, and a query on them hangs until the function times out.
  *  So after a quiet period we drop the old client and open a fresh connection. */
-const STALE_MS = 10_000;
+const STALE_MS = 4_000;
 
 export function dbUrl(): string | undefined {
   const raw = process.env.DATABASE_URL || process.env.POSTGRES_URL || undefined;
@@ -33,7 +33,7 @@ function client(): Sql {
   if (g.__qsql && g.__qlast && now - g.__qlast > STALE_MS) {
     const old = g.__qsql;
     g.__qsql = undefined;
-    old.end({ timeout: 0 }).catch(() => {});
+    old.end({ timeout: 5 }).catch(() => {}); // let any query still running finish
   }
   g.__qlast = now;
   if (!g.__qsql) {
@@ -43,7 +43,8 @@ function client(): Sql {
     g.__qsql = postgres(url, {
       ssl: local ? false : "require",
       max: 3,
-      idle_timeout: 5,
+      // must stay above STALE_MS: an idle timer that expired during a freeze fires on wake and kills the socket mid-query
+      idle_timeout: 30,
       max_lifetime: 60 * 5,
       connect_timeout: 10,
       prepare: false,

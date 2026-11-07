@@ -2,9 +2,9 @@ import { isAdmin } from "@/lib/auth";
 import { hasDb } from "@/lib/db";
 import { DEFAULT_CONFIG, normConfig } from "@/lib/promotions-shared";
 import { DbMissing, PageHeader } from "../../_components/ui";
-import PromoEditor, { NEW_DEFAULTS } from "../PromoEditor";
+import PromoEditor from "../PromoEditor";
 import { editorData } from "../data";
-import { PRESETS } from "../presets";
+import { NEW_DEFAULTS, PRESETS } from "../presets";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "מבצע חדש" };

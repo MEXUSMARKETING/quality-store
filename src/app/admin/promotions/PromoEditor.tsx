@@ -9,7 +9,6 @@ import {
   applyPromotions,
   autoBadge,
   describePromo,
-  DEFAULT_CONFIG,
   EMPTY_SCOPE,
   inScope,
   productInPromo,
@@ -414,15 +413,3 @@ function distribute(top: EditorProduct[], n: number, q: Record<number, number>) 
   const k = Math.min(top.length, Math.max(1, n));
   for (let i = 0; i < n; i++) { const p = top[i % k]; q[p.id] = (q[p.id] || 0) + 1; }
 }
-
-export const NEW_DEFAULTS: Omit<PromoFormValues, "id"> = {
-  name: "",
-  type: "bxgy",
-  badge: "",
-  scope: EMPTY_SCOPE,
-  config: DEFAULT_CONFIG,
-  starts_at: "",
-  ends_at: "",
-  active: true,
-  allow_coupon: true,
-};

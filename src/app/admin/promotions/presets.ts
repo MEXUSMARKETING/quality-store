@@ -1,4 +1,4 @@
-import { DEFAULT_CONFIG, type PromoConfig, type PromoType } from "@/lib/promotions-shared";
+import { DEFAULT_CONFIG, EMPTY_SCOPE, type PromoConfig, type PromoScope, type PromoType } from "@/lib/promotions-shared";
 
 /* Quick-start templates for the promotions page (pure data; also used by the editor). */
 
@@ -16,3 +16,16 @@ export const PRESETS: Preset[] = [
   { key: "spend", title: "קני ב-₪500, קבלי ₪50", text: "הנחה כשסכום הקנייה עובר סף", name: "₪50 הנחה מעל ₪500", type: "spend", config: c({ min: 500, mode: "amount", amount: 50 }) },
   { key: "cross", title: "קני מגפון, קבלי תיק בהנחה", text: "פריט מקטגוריה אחרת בהנחה", name: "מגפון + תיק ב-50%", type: "bxgy", config: c({ buy: 1, get: 1, getPercent: 50, target: { mode: "categories", categories: ["bags"], products: [], exclude: [], excludeSale: false } }) },
 ];
+
+/** Starting values for a new promotion (kept here, not in the client editor, so server pages can use them). */
+export const NEW_DEFAULTS: { name: string; type: PromoType; badge: string; scope: PromoScope; config: PromoConfig; starts_at: string; ends_at: string; active: boolean; allow_coupon: boolean } = {
+  name: "",
+  type: "bxgy",
+  badge: "",
+  scope: EMPTY_SCOPE,
+  config: DEFAULT_CONFIG,
+  starts_at: "",
+  ends_at: "",
+  active: true,
+  allow_coupon: true,
+};
