@@ -8,6 +8,8 @@ import { useCart } from "@/components/CartProvider";
 import { checkCouponAction, placeOrder, type ActionResult } from "@/app/actions";
 import { LockIcon, WhatsAppIcon } from "@/components/Icons";
 import { STORE, shekel } from "@/lib/config";
+import { usePromoPricing } from "@/components/usePromoPricing";
+import { PromoHints, PromoRows } from "@/components/PromoSummary";
 
 function Radio({ name, value, current, onChange, title, sub, price }: { name: string; value: string; current: string; onChange: (v: string) => void; title: string; sub: string; price?: string }) {
   const on = current === value;
@@ -117,12 +119,14 @@ export default function CheckoutPage() {
   const formRef = useRef<HTMLFormElement>(null);
   const getPhone = () => String((formRef.current?.elements.namedItem("phone") as HTMLInputElement | null)?.value || "");
   // The discount was computed for a specific subtotal; if the cart changes, ask the customer to apply it again
+  const promo = usePromoPricing(items, ready);
+  const base = promo.afterPromo; // coupons apply after the automatic promotions
   const [couponFor, setCouponFor] = useState(0);
   useEffect(() => {
-    if (coupon && couponFor !== subtotal) setCoupon(null);
-  }, [subtotal, coupon, couponFor]);
-  const discount = coupon ? Math.min(coupon.discount, subtotal) : 0;
-  const total = subtotal - discount;
+    if (coupon && (couponFor !== base || !promo.allowCoupon)) setCoupon(null);
+  }, [base, coupon, couponFor, promo.allowCoupon]);
+  const discount = coupon ? Math.min(coupon.discount, base) : 0;
+  const total = base - discount;
 
   useEffect(() => {
     if (state?.ok && state.number) {
@@ -205,11 +209,24 @@ export default function CheckoutPage() {
           <div key={it.productId + it.size} className="flex gap-3 items-center pb-3 border-b border-[#EEECE6]">
             <img src={it.image} alt="" className="w-16 h-16 object-cover bg-ink" />
             <span className="flex-1 text-sm"><b className="block text-[15px]">{it.name}</b>מידה {it.size} · ×{it.qty}</span>
-            <b>{shekel(it.price * it.qty)}</b>
+            {promo.lines[`${it.productId}-${it.size}`] ? (
+              <span className="flex flex-col items-end leading-tight">
+                <s className="text-[13px] text-muted">{shekel(it.price * it.qty)}</s>
+                <b className="text-[#2F5A26]">{shekel(it.price * it.qty - promo.lines[`${it.productId}-${it.size}`])}</b>
+              </span>
+            ) : (
+              <b>{shekel(it.price * it.qty)}</b>
+            )}
           </div>
         ))}
-        <CouponBox subtotal={subtotal} applied={coupon} onApply={(a) => { setCoupon(a); setCouponFor(subtotal); }} onRemove={() => setCoupon(null)} getPhone={getPhone} />
-        {discount > 0 && <div className="flex justify-between text-[15px]"><span>סכום ביניים</span><span>{shekel(subtotal)}</span></div>}
+        <PromoHints hints={promo.hints} />
+        {promo.allowCoupon ? (
+          <CouponBox subtotal={base} applied={coupon} onApply={(a) => { setCoupon(a); setCouponFor(base); }} onRemove={() => setCoupon(null)} getPhone={getPhone} />
+        ) : (
+          <p className="text-[13px] text-muted">המבצע בסל לא מצטבר עם קופונים.</p>
+        )}
+        {(discount > 0 || promo.discount > 0) && <div className="flex justify-between text-[15px]"><span>סכום ביניים</span><span>{shekel(subtotal)}</span></div>}
+        <PromoRows applied={promo.applied} />
         {discount > 0 && (
           <div className="flex justify-between text-[15px] text-[#2F5A26] font-bold">
             <span>הנחת קופון <span dir="ltr" className="font-normal">({coupon!.code})</span></span>
@@ -220,7 +237,7 @@ export default function CheckoutPage() {
         <div className="flex justify-between items-baseline">
           <b className="text-[17px]">סה״כ</b>
           <span className="flex items-baseline gap-2">
-            {discount > 0 && <s className="text-[15px] text-muted">{shekel(subtotal)}</s>}
+            {(discount > 0 || promo.discount > 0) && <s className="text-[15px] text-muted">{shekel(subtotal)}</s>}
             <b className="font-display text-[28px]">{shekel(total)}</b>
           </span>
         </div>

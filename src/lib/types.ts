@@ -31,7 +31,11 @@ export type OrderItem = {
   size: string;
   qty: number;
   price: number;
+  /** promotion discount on this row (whole shekels), set when the order is placed */
+  discount?: number;
 };
+
+export type OrderPromotion = { id: number; name: string; badge: string; discount: number };
 
 export type Order = {
   id: number;
@@ -55,6 +59,9 @@ export type Order = {
   tracking?: string;
   discount?: number;
   coupon_code?: string;
+  /** automatic promotions (מבצעים): total and breakdown; `discount` above is the coupon only */
+  promo_discount?: number;
+  promotions?: OrderPromotion[];
 };
 
 export type OrderEvent = { id: number; order_id: number; type: string; message: string; actor: string; created_at: string };

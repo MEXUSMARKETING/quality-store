@@ -6,7 +6,7 @@ import ProductCard from "../ProductCard";
 import { ChevronLeft, ChevronRight } from "../Icons";
 import type { Product } from "@/lib/types";
 
-export default function ProductRow({ title, kicker, products, href, limit = 10 }: { title: string; kicker?: string; products: Product[]; href: string; limit?: number }) {
+export default function ProductRow({ title, kicker, products, href, limit = 10, badges = {} }: { title: string; kicker?: string; products: Product[]; href: string; limit?: number; badges?: Record<number, string> }) {
   const ref = useRef<HTMLDivElement>(null);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
@@ -55,7 +55,7 @@ export default function ProductRow({ title, kicker, products, href, limit = 10 }
       >
         {list.map((p) => (
           <div key={p.id} className="snap-start shrink-0 w-[calc((100%_-_12px)/2)] md:w-[calc((100%_-_40px)/3)]">
-            <ProductCard p={p} />
+            <ProductCard p={p} promo={badges[p.id]} />
           </div>
         ))}
       </div>

@@ -98,12 +98,18 @@ export default async function OrderPage({ params, searchParams }: { params: { id
                     <Link href={`/admin/products/${it.productId}`} className="font-semibold text-[15px] hover:underline">{it.name}</Link>
                     <span className="text-[13px] text-adm-muted">מידה <b className="text-adm-text">{it.size}</b> · כמות {it.qty} · {shekel(it.price)} ליחידה (במחיר הקנייה)</span>
                   </span>
-                  <b className="whitespace-nowrap">{shekel(it.price * it.qty)}</b>
+                  <span className="flex flex-col items-end">
+                    <b className="whitespace-nowrap">{shekel(it.price * it.qty)}</b>
+                    {!!it.discount && <span className="text-[12px] text-[#0F7A57] whitespace-nowrap">מבצע −{shekel(it.discount)}</span>}
+                  </span>
                 </li>
               ))}
             </ul>
             <div className="flex flex-col gap-2 pt-1">
               <Row k="סכום ביניים" v={shekel(o.subtotal)} />
+              {(o.promotions || []).map((pr) => (
+                <Row key={pr.id} k={<>מבצע · <Link href={`/admin/promotions/${pr.id}`} className="font-semibold hover:underline">{pr.badge || pr.name}</Link>{pr.badge && pr.name ? <span className="text-adm-muted"> ({pr.name})</span> : null}</>} v={<span className="text-[#0F7A57]">−{shekel(pr.discount)}</span>} />
+              ))}
               {!!o.discount && (
                 <Row k={<>הנחה{o.coupon_code ? <> · קופון <span dir="ltr" className="font-semibold">{o.coupon_code}</span></> : null}</>} v={<span className="text-[#0F7A57]">−{shekel(o.discount)}</span>} />
               )}

@@ -7,6 +7,7 @@ import CategoryTiles from "@/components/home/CategoryTiles";
 import PromoBanners from "@/components/home/PromoBanners";
 import Perks from "@/components/home/Perks";
 import ClubBlock from "@/components/home/ClubBlock";
+import { getPromoBadges } from "@/lib/promotions";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ function pickProducts(source: string, all: Product[], best: Product[]): Product[
 
 export default async function Home() {
   const all = await listProducts();
+  const badges = await getPromoBadges(all).catch(() => ({} as Record<number, string>));
   const boots = all.filter((p) => p.category === "boots");
   const minPrice = boots.length ? Math.min(...boots.map((p) => p.price)) : 140;
   const maxPct = boots.reduce((m, p) => (p.old_price && p.old_price > p.price ? Math.max(m, Math.round((1 - p.price / p.old_price) * 100)) : m), 0);
@@ -68,7 +70,7 @@ export default async function Home() {
           case "categories":
             return <CategoryTiles key={s.id} s={s} />;
           case "products":
-            return <ProductRow key={s.id} title={fill(s.title)} products={pickProducts(s.source, all, best).slice(0, s.count)} limit={s.count} href={s.href} />;
+            return <ProductRow key={s.id} title={fill(s.title)} products={pickProducts(s.source, all, best).slice(0, s.count)} limit={s.count} href={s.href} badges={badges} />;
           case "promos":
             return <PromoBanners key={s.id} s={{ ...s, items: s.items.map((b) => ({ ...b, title: fill(b.title), text: fill(b.text) })) }} />;
           case "perks":

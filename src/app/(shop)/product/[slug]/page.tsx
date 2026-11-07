@@ -6,6 +6,8 @@ import BuyBox from "@/components/BuyBox";
 import { STORE } from "@/lib/config";
 import { getApprovedReviews, getAttributes, getCategories, getRatings, type Review } from "@/lib/catalog";
 import { ReportButton, ReviewForm, Stars } from "./ReviewWidgets";
+import { getPromoBadges, promotionsForProduct } from "@/lib/promotions";
+import { describePromo, autoBadge } from "@/lib/promotions-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
     getApprovedReviews(p.id),
   ]);
   const related = all.filter((x) => x.id !== p.id).slice(0, 4);
+  const [promos, badges] = await Promise.all([promotionsForProduct(p).catch(() => []), getPromoBadges(related).catch(() => ({} as Record<number, string>))]);
   const cat = cats.find((c) => c.key === p.category);
   const color = attrs.colors.find((c) => c.key === p.color && c.key !== "other");
   const avg = reviews.length ? reviews.reduce((a, r) => a + r.rating, 0) / reviews.length : 0;
@@ -44,7 +47,12 @@ export default async function ProductPage({ params }: { params: { slug: string }
         <div className="w-full lg:flex-1 flex flex-col gap-3">
           <div className="relative overflow-hidden bg-ink aspect-square">
             {p.images[0] && <img src={p.images[0]} alt={p.name} className="w-full h-full object-contain" />}
-            {pct && <span className="absolute top-4 right-4 text-sm font-bold px-3.5 py-1.5 rounded-full bg-gold">−{pct}%</span>}
+            {(pct || promos[0]) && (
+              <span className="absolute top-4 right-4 flex flex-col items-end gap-1.5">
+                {promos[0] && <span className="text-sm font-extrabold px-3.5 py-1.5 rounded-full bg-gold text-ink">{promos[0].badge || autoBadge(promos[0].type, promos[0].config)}</span>}
+                {pct && <span className={`text-sm font-bold px-3.5 py-1.5 rounded-full ${promos[0] ? "bg-white text-ink" : "bg-gold"}`}>−{pct}%</span>}
+              </span>
+            )}
           </div>
           {p.images.length > 1 && (
             <div className="grid grid-cols-4 gap-2.5">
@@ -85,6 +93,21 @@ export default async function ProductPage({ params }: { params: { slug: string }
             ) : null}
           </div>
 
+          {promos.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {promos.slice(0, 2).map((pr) => (
+                <div key={pr.id} className="rounded-[14px] border-[1.5px] border-dashed border-gold bg-white px-4 py-3 flex gap-3 items-start">
+                  <span className="shrink-0 text-[13px] font-extrabold px-2.5 py-1 rounded-full bg-gold text-ink">{pr.badge || autoBadge(pr.type, pr.config)}</span>
+                  <span className="flex flex-col text-[14px] leading-6">
+                    <b className="text-[15px]">{pr.name}</b>
+                    <span className="text-[#45443F]">{describePromo(pr.type, pr.config)}. ההנחה מחושבת אוטומטית בסל.</span>
+                    {pr.ends_at && <span className="text-[13px] text-muted">בתוקף עד {new Date(pr.ends_at).toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem", day: "numeric", month: "long" })}</span>}
+                    <Link href="/shop?promo=1" className="text-[13px] font-bold underline underline-offset-2 self-start">לכל המוצרים במבצע</Link>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
           <BuyBox
             product={{ id: p.id, slug: p.slug, name: p.name, image: p.images[0] || "", price: p.price, stock: p.stock }}
             sizes={attrs.sizes}
@@ -168,7 +191,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
         <section className="pt-14 md:pt-16">
           <h2 className="font-display font-bold text-[24px] md:text-[30px] pb-5">עוד מהקולקציה</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-7 md:gap-x-5">
-            {related.map((r) => <ProductCard key={r.id} p={r} rating={ratings[r.id]} />)}
+            {related.map((r) => <ProductCard key={r.id} p={r} rating={ratings[r.id]} promo={badges[r.id]} />)}
           </div>
         </section>
       )}

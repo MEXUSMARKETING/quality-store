@@ -27,9 +27,19 @@ export default async function OrderPage({ params }: { params: { number: string }
               </div>
             ))}
             <div className="h-px bg-line" />
-            {(o.discount || 0) > 0 && (
+            {((o.discount || 0) > 0 || (o.promo_discount || 0) > 0) && (
               <>
                 <div className="flex justify-between"><span>סכום ביניים</span><span>{shekel(o.subtotal)}</span></div>
+                {(o.promotions || []).map((pr) => (
+                  <div key={pr.id} className="flex justify-between text-[#2F5A26] font-bold">
+                    <span>מבצע {pr.badge || pr.name}</span>
+                    <span dir="ltr">-{shekel(pr.discount)}</span>
+                  </div>
+                ))}
+              </>
+            )}
+            {(o.discount || 0) > 0 && (
+              <>
                 <div className="flex justify-between text-[#2F5A26] font-bold">
                   <span>הנחת קופון{o.coupon_code ? <> <span dir="ltr" className="font-normal">({o.coupon_code})</span></> : null}</span>
                   <span dir="ltr">-{shekel(o.discount || 0)}</span>

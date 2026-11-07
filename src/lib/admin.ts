@@ -13,7 +13,7 @@ const iso = (v: any) => (v ? new Date(v).toISOString() : null);
 
 export async function audit(entry: {
   action: "create" | "update" | "delete" | "status" | "price" | "stock" | "login" | "settings" | "bulk" | "permission";
-  entity: "product" | "order" | "customer" | "coupon" | "settings" | "user" | "category" | "page" | "menu" | "homepage" | "review" | "automation" | "attribute";
+  entity: "product" | "order" | "customer" | "coupon" | "settings" | "user" | "category" | "page" | "menu" | "homepage" | "review" | "automation" | "attribute" | "promotion";
   entityId?: string | number;
   summary: string;
   before?: Record<string, unknown> | null;

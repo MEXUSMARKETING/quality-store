@@ -83,7 +83,8 @@ export default async function CouponsPage({ searchParams }: { searchParams: { st
 
   return (
     <>
-      <PageHeader crumbs={[{ href: "/admin", label: "ראשי" }, { label: "קופונים" }]} title="קופונים" sub="קודי הנחה שהלקוחות מזינות בקופה באתר">
+      <PageHeader crumbs={[{ href: "/admin", label: "ראשי" }, { label: "קופונים" }]} title="קופונים" sub="קודי הנחה שהלקוחות מזינות בקופה באתר. להנחות אוטומטיות בלי קוד (1+1, חבילות, מדרגות) ראו מבצעים.">
+        <Link href="/admin/promotions" className="a-btn"><Icon name="percent" /> למבצעים</Link>
         <Link href="/admin/coupons?new=1" className="a-btn a-btn-primary"><Icon name="plus" /> קופון חדש</Link>
       </PageHeader>
 

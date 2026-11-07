@@ -4,9 +4,12 @@ import Link from "next/link";
 import { useCart } from "@/components/CartProvider";
 import { TrashIcon, TruckIcon } from "@/components/Icons";
 import { shekel } from "@/lib/config";
+import { usePromoPricing } from "@/components/usePromoPricing";
+import { PromoHints, PromoRows } from "@/components/PromoSummary";
 
 export default function CartPage() {
   const { items, subtotal, count, setQty, remove, ready } = useCart();
+  const promo = usePromoPricing(items, ready);
 
   if (!ready) return <div className="container-site py-20 text-center text-muted">טוען…</div>;
 
@@ -48,7 +51,14 @@ export default function CartPage() {
                     <span className="w-5 text-center font-bold">{it.qty}</span>
                     <button onClick={() => setQty(it.productId, it.size, it.qty - 1)} aria-label="הפחתת כמות" className="w-10 h-[38px] text-lg">−</button>
                   </div>
-                  <b className="text-[17px]">{shekel(it.price * it.qty)}</b>
+                  {promo.lines[`${it.productId}-${it.size}`] ? (
+                    <span className="flex flex-col items-end leading-tight">
+                      <s className="text-[13px] text-muted">{shekel(it.price * it.qty)}</s>
+                      <b className="text-[17px] text-[#2F5A26]">{shekel(it.price * it.qty - promo.lines[`${it.productId}-${it.size}`])}</b>
+                    </span>
+                  ) : (
+                    <b className="text-[17px]">{shekel(it.price * it.qty)}</b>
+                  )}
                 </div>
               </div>
             </div>
@@ -58,10 +68,13 @@ export default function CartPage() {
 
       <aside className="w-full lg:w-[380px] lg:sticky lg:top-24 p-5 md:p-6 rounded-[20px] bg-panel flex flex-col gap-3 text-[15px]">
         <h2 className="font-display font-bold text-[22px]">סיכום</h2>
+        <PromoHints hints={promo.hints} />
         <div className="flex justify-between"><span>סכום ביניים</span><span>{shekel(subtotal)}</span></div>
+        <PromoRows applied={promo.applied} />
         <div className="flex justify-between"><span>משלוח</span><span>חינם</span></div>
         <div className="h-px bg-line my-1" />
-        <div className="flex justify-between items-baseline"><b className="text-[17px]">סה״כ לתשלום</b><b className="font-display text-[26px]">{shekel(subtotal)}</b></div>
+        <div className="flex justify-between items-baseline"><b className="text-[17px]">סה״כ לתשלום</b><b className="font-display text-[26px]">{shekel(promo.afterPromo)}</b></div>
+        {promo.discount > 0 && <span className="text-[14px] font-bold text-[#2F5A26]">חסכת {shekel(promo.discount)} במבצעים</span>}
         <span className="text-[13px] text-muted">כולל מע״מ · מזומן בעת המסירה, אשראי או Bit</span>
         <Link href="/checkout" className="btn btn-dark h-14 text-[17px] mt-2">להשלמת ההזמנה</Link>
         <Link href="/shop" className="text-center underline py-2">המשך קנייה</Link>

@@ -37,6 +37,7 @@ export default function Shell({ newOrders, alerts, logoutAction, perms, userName
       { href: "/admin/reviews", label: "ביקורות ודירוגים", icon: "star", module: "reviews" },
     ] },
     { label: "שיווק", items: [
+      { href: "/admin/promotions", label: "מבצעים", icon: "percent", module: "promotions" },
       { href: "/admin/coupons", label: "קופונים", icon: "tag", module: "coupons" },
       { href: "/admin/club", label: "מועדון לקוחות", icon: "heart", module: "coupons" },
       { href: "/admin/automations", label: "אוטומציות", icon: "zap", module: "automations" },

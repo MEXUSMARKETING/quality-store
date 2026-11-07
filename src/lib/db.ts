@@ -56,7 +56,7 @@ function client(): Sql {
 /** Bump when init() gains new DDL. Once the database is at this version, cold starts skip the DDL
  *  entirely (ALTER TABLE takes exclusive locks even when it changes nothing, and instances that
  *  start together would otherwise queue behind each other's locks). */
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 async function schemaCurrent(sql: Sql): Promise<boolean> {
   // No errors on purpose: this also runs inside the migration transaction, where an error would abort it.
@@ -316,8 +316,27 @@ async function migrate(sql: Sql) {
   await sql`alter table automation_runs add column if not exists ran_at timestamptz`;
   await sql`create index if not exists automation_runs_due_idx on automation_runs(status, due_at)`;
 
+  // automatic promotions (v4)
+  await sql`
+    create table if not exists promotions (
+      id serial primary key,
+      name text not null,
+      type text not null,
+      scope jsonb not null default '{}'::jsonb,
+      config jsonb not null default '{}'::jsonb,
+      starts_at timestamptz,
+      ends_at timestamptz,
+      active boolean not null default true,
+      allow_coupon boolean not null default true,
+      badge text not null default '',
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )`;
+  await sql`alter table orders add column if not exists promo_discount integer not null default 0`;
+  await sql`alter table orders add column if not exists promotions jsonb not null default '[]'::jsonb`;
+
   // Lock every table against Supabase's public API (the store talks to Postgres directly from its server).
-  for (const t of ["settings", "categories", "pages", "reviews", "automation_rules", "automation_runs", "admin_users", "login_history"]) {
+  for (const t of ["settings", "categories", "pages", "reviews", "automation_rules", "automation_runs", "admin_users", "login_history", "promotions"]) {
     await sql.unsafe(`alter table ${t} enable row level security`);
     await sql.unsafe(`revoke all on table ${t} from anon, authenticated`).catch(() => {});
   }

@@ -3,6 +3,7 @@
 import { hasDb } from "@/lib/db";
 import { addClubMember, createOrder, getProductById } from "@/lib/store";
 import { checkCoupon } from "@/lib/admin";
+import { priceCartRows } from "@/lib/promotions";
 import type { CartItem, OrderItem } from "@/lib/types";
 import { PAYMENT, SHIPPING, STORE, shekel, waLink } from "@/lib/config";
 
@@ -24,6 +25,30 @@ export async function checkCouponAction(code: string, subtotal: number, phone: s
   } catch (e) {
     console.error(e);
     return { ok: false, error: "לא הצלחנו לבדוק את הקופון, נסי שוב" };
+  }
+}
+
+export type CartPricing = {
+  ok: boolean;
+  subtotal: number;
+  discount: number;
+  total: number;
+  applied: { id: number; name: string; badge: string; discount: number }[];
+  lines: Record<string, number>;
+  allowCoupon: boolean;
+  hints: string[];
+};
+
+/** Storefront: price the cart with the running promotions (display; placeOrder recomputes). */
+export async function priceCartAction(rows: { productId: number; size: string; qty: number }[]): Promise<CartPricing> {
+  const empty: CartPricing = { ok: false, subtotal: 0, discount: 0, total: 0, applied: [], lines: {}, allowCoupon: true, hints: [] };
+  if (!hasDb() || !Array.isArray(rows) || !rows.length) return empty;
+  try {
+    const r = await priceCartRows(rows.slice(0, 30).map((x) => ({ productId: Number(x?.productId), size: String(x?.size ?? ""), qty: Number(x?.qty) })));
+    return { ok: true, subtotal: r.subtotal, discount: r.discount, total: r.total, applied: r.applied, lines: r.lines, allowCoupon: r.allowCoupon, hints: r.hints };
+  } catch (e) {
+    console.error("priceCart failed", e);
+    return empty;
   }
 }
 
@@ -87,22 +112,45 @@ export async function placeOrder(_: ActionResult | null, fd: FormData): Promise<
   }
   const subtotal = items.reduce((a, x) => a + x.price * x.qty, 0);
 
-  // Coupon: never trust the client – validate again against the recomputed subtotal
+  // Automatic promotions, computed from the catalogue (never from the browser)
+  let promo_discount = 0;
+  let promotions: { id: number; name: string; badge: string; discount: number }[] = [];
+  let allowCoupon = true;
+  if (hasDb()) {
+    try {
+      const pr = await priceCartRows(items.map((x) => ({ productId: x.productId, size: x.size, qty: x.qty })));
+      promo_discount = Math.max(0, Math.min(subtotal, pr.discount));
+      promotions = pr.applied;
+      allowCoupon = pr.allowCoupon;
+      for (const it of items) {
+        const d = pr.lines[`${it.productId}-${it.size}`];
+        if (d) it.discount = d;
+      }
+    } catch (e) {
+      console.error("promotions at checkout failed", e); // sell at regular prices rather than fail the order
+    }
+  }
+  const afterPromo = subtotal - promo_discount;
+
+  // Coupon: never trust the client – validate again against the recomputed (post-promotion) amount
   let discount = 0;
   let coupon_code = "";
   if (couponCode) {
     if (!hasDb()) return { ok: false, error: "לא ניתן להשתמש בקופון כרגע. הסירי את הקופון כדי להמשיך." };
-    const r = await checkCoupon(couponCode, subtotal, phone);
+    if (!allowCoupon) return { ok: false, error: `המבצע בסל לא מצטבר עם קופונים. הסירי את הקופון ${couponCode} כדי להמשיך.` };
+    const r = await checkCoupon(couponCode, afterPromo, phone);
     if (r.error || !r.coupon) return { ok: false, error: `קופון ${couponCode}: ${r.error || "הקוד לא תקין"}. הסירי אותו או נסי קוד אחר.` };
-    discount = Math.max(0, Math.min(subtotal, Math.round(r.discount || 0)));
+    discount = Math.max(0, Math.min(afterPromo, Math.round(r.discount || 0)));
     coupon_code = discount > 0 ? r.coupon.code.toUpperCase() : "";
   }
-  const total = subtotal - discount;
+  const total = afterPromo - discount;
 
   const summary =
     `הזמנה חדשה מהאתר\n` +
     items.map((x) => `• ${x.name} | מידה ${x.size} | ×${x.qty} | ${shekel(x.price * x.qty)}`).join("\n") +
-    (discount ? `\nסכום ביניים: ${shekel(subtotal)}\nקופון ${coupon_code}: -${shekel(discount)}` : "") +
+    (promo_discount || discount ? `\nסכום ביניים: ${shekel(subtotal)}` : "") +
+    promotions.map((p) => `\nמבצע ${p.badge || p.name}: -${shekel(p.discount)}`).join("") +
+    (discount ? `\nקופון ${coupon_code}: -${shekel(discount)}` : "") +
     `\nסה״כ: ${shekel(total)}\n\nשם: ${name}\nטלפון: ${phone}` +
     (shipping === "home" ? `\nכתובת: ${street}${apt ? " " + apt : ""}, ${city}` : `\nאיסוף מהחנות`) +
     `\nתשלום: ${PAYMENT[payment]}` +
@@ -128,6 +176,8 @@ export async function placeOrder(_: ActionResult | null, fd: FormData): Promise<
       total,
       discount,
       coupon_code,
+      promo_discount,
+      promotions,
     });
     return { ok: true, number, whatsapp: waLink(`${summary}\n\nמספר הזמנה: ${number}`) };
   } catch (e) {

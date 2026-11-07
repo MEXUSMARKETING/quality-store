@@ -6,7 +6,7 @@ export const ENTITIES: Record<string, { label: string; db: string[] }> = {
   product: { label: "מוצרים", db: ["product"] },
   order: { label: "הזמנות", db: ["order"] },
   customer: { label: "לקוחות", db: ["customer"] },
-  coupon: { label: "קופונים", db: ["coupon"] },
+  coupon: { label: "קופונים ומבצעים", db: ["coupon", "promotion"] },
   catalog: { label: "קטלוג", db: ["category", "attribute", "review"] },
   content: { label: "תוכן", db: ["homepage", "page", "menu"] },
   automation: { label: "אוטומציות", db: ["automation"] },
@@ -18,6 +18,7 @@ export const ENTITY_SINGLE: Record<string, string> = {
   order: "הזמנה",
   customer: "לקוח",
   coupon: "קופון",
+  promotion: "מבצע",
   settings: "הגדרות",
   user: "משתמש",
   category: "קטגוריה",
@@ -136,5 +137,6 @@ export function entityHref(entity: string, id: string): string | null {
   if (entity === "order") return `/admin/orders/${id}`;
   if (entity === "customer") return `/admin/customers/${id}`;
   if (entity === "coupon") return `/admin/coupons?edit=${id}`;
+  if (entity === "promotion") return `/admin/promotions/${id}`;
   return null;
 }

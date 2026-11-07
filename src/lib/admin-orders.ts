@@ -29,6 +29,8 @@ export function normOrderRow(r: any): Order {
     tracking: r.tracking || "",
     discount: Number(r.discount || 0),
     coupon_code: r.coupon_code || "",
+    promo_discount: Number(r.promo_discount || 0),
+    promotions: (typeof r.promotions === "string" ? JSON.parse(r.promotions) : r.promotions) || [],
   };
 }
 

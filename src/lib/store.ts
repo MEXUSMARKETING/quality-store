@@ -44,6 +44,8 @@ function normOrder(r: any): Order {
     tracking: r.tracking || "",
     discount: Number(r.discount || 0),
     coupon_code: r.coupon_code || "",
+    promo_discount: Number(r.promo_discount || 0),
+    promotions: (typeof r.promotions === "string" ? JSON.parse(r.promotions) : r.promotions) || [],
     updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : undefined,
   };
 }
@@ -168,10 +170,12 @@ export async function createOrder(
   const sql = await db();
   const discount = Math.max(0, Number(o.discount || 0));
   const coupon = (o.coupon_code || "").toUpperCase();
+  const promoDiscount = Math.max(0, Number(o.promo_discount || 0));
   const r = await sql`
-    insert into orders (customer_name, phone, email, city, street, apt, notes, shipping_method, payment_method, items, subtotal, total, discount, coupon_code)
+    insert into orders (customer_name, phone, email, city, street, apt, notes, shipping_method, payment_method, items, subtotal, total, discount, coupon_code, promo_discount, promotions)
     values (${o.customer_name}, ${o.phone}, ${o.email}, ${o.city}, ${o.street}, ${o.apt}, ${o.notes},
-            ${o.shipping_method}, ${o.payment_method}, ${JSON.stringify(o.items)}::jsonb, ${o.subtotal}, ${o.total}, ${discount}, ${coupon})
+            ${o.shipping_method}, ${o.payment_method}, ${JSON.stringify(o.items)}::jsonb, ${o.subtotal}, ${o.total}, ${discount}, ${coupon},
+            ${promoDiscount}, ${JSON.stringify(o.promotions || [])}::jsonb)
     returning id`;
   const id = Number(r[0].id);
   const number = "Q" + (1000 + id);

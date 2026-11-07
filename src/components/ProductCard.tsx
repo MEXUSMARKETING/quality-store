@@ -22,7 +22,7 @@ export function RatingLine({ rating, className = "" }: { rating?: { avg: number;
   );
 }
 
-export default function ProductCard({ p, large = false, rating }: { p: Product; large?: boolean; rating?: { avg: number; count: number } | null }) {
+export default function ProductCard({ p, large = false, rating, promo }: { p: Product; large?: boolean; rating?: { avg: number; count: number } | null; promo?: string | null }) {
   const sizes = sizesText(p);
   const soldOut = sizes.length === 0;
   const pct = p.old_price && p.old_price > p.price ? Math.round((1 - p.price / p.old_price) * 100) : null;
@@ -37,8 +37,11 @@ export default function ProductCard({ p, large = false, rating }: { p: Product; 
         ) : (
           <div className="w-full h-full flex items-center justify-center text-soft text-sm">[תמונה]</div>
         )}
-        {badge && (
-          <span className={`absolute top-3 right-3 md:top-4 md:right-4 text-[12px] md:text-[13px] font-bold px-2.5 md:px-3 py-1 md:py-1.5 rounded-full ${badgeCls}`}>{badge}</span>
+        {(badge || (promo && !soldOut)) && (
+          <span className="absolute top-3 right-3 md:top-4 md:right-4 flex flex-col items-end gap-1.5">
+            {promo && !soldOut && <span className="text-[12px] md:text-[13px] font-extrabold px-2.5 md:px-3 py-1 md:py-1.5 rounded-full bg-gold text-ink">{promo}</span>}
+            {badge && !(promo && badge.startsWith("−")) && <span className={`text-[12px] md:text-[13px] font-bold px-2.5 md:px-3 py-1 md:py-1.5 rounded-full ${promo ? "bg-white text-ink" : badgeCls}`}>{badge}</span>}
+          </span>
         )}
       </div>
       <div className="flex justify-between items-start gap-3 px-0.5 md:px-1">

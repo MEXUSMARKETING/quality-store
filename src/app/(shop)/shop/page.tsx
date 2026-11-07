@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listProducts } from "@/lib/store";
 import ProductCard from "@/components/ProductCard";
+import { getPromoBadges } from "@/lib/promotions";
 import { CATEGORIES, STORE, waLink } from "@/lib/config";
 import { descendantKeys, getAttributes, getCategories, getRatings } from "@/lib/catalog";
 import type { Product } from "@/lib/types";
@@ -48,6 +49,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
   const sort = one(searchParams.sort);
   const q = one(searchParams.q).trim();
   const max = Number(one(searchParams.max)) || 0;
+  const promo = one(searchParams.promo) === "1";
 
   const [all, cats, attrs, ratings] = await Promise.all([listProducts(), getCategories(), getAttributes(), getRatings()]);
   const cat = cats.find((c) => c.key === category);
@@ -59,6 +61,10 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
   // a hidden (inactive) category shows nothing – the "coming soon" message – except the default boots page
   let list = cat || category === "boots" ? all.filter((p) => inCat.has(p.category)) : [];
   if (q) list = all.filter((p) => (p.name + " " + p.description).includes(q));
+  const badges = await getPromoBadges(all).catch(() => ({} as Record<number, string>));
+  const hasPromos = Object.keys(badges).length > 0;
+  // "on sale" view: every product in a running promotion, across categories (unless a category was chosen)
+  if (promo) list = (one(searchParams.category) || q ? list : all).filter((p) => badges[p.id]);
   if (color) list = list.filter((p) => p.color === color);
   if (heel && HEELS[heel]) list = list.filter(HEELS[heel].test);
   if (size) list = list.filter((p) => Number(p.stock?.[size] || 0) > 0);
@@ -70,7 +76,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
   else if (sort === "discount") list = [...list].sort((a, b) => pct(b) - pct(a));
   else if (sort === "new") list = [...list].sort((a, b) => b.id - a.id);
 
-  const current: Record<string, string> = { category: category === "boots" ? "" : category, color, heel, size, sort, q, max: max ? String(max) : "" };
+  const current: Record<string, string> = { category: category === "boots" ? "" : category, color, heel, size, sort, q, max: max ? String(max) : "", promo: promo ? "1" : "" };
   const href = (patch: Record<string, string>) => {
     const next = { ...current, ...patch };
     const sp = new URLSearchParams();
@@ -79,13 +85,14 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
     return "/shop" + (s ? "?" + s : "");
   };
 
-  const title = q ? `תוצאות עבור "${q}"` : category === "boots" && (!cat || cat.name === CATEGORIES.boots) ? DEFAULT_TITLE : cat?.name || CATEGORIES[category] || "קולקציה";
+  const title = promo && !one(searchParams.category) && !q ? "מבצעים" : q ? `תוצאות עבור "${q}"` : category === "boots" && (!cat || cat.name === CATEGORIES.boots) ? DEFAULT_TITLE : cat?.name || CATEGORIES[category] || "קולקציה";
   const active = [
     color && { label: COLORS[color]?.label || color, href: href({ color: "" }) },
     heel && { label: "עקב " + (HEELS[heel]?.label || heel), href: href({ heel: "" }) },
     size && { label: "מידה " + size, href: href({ size: "" }) },
     max && { label: `עד ₪${max}`, href: href({ max: "" }) },
     q && { label: `"${q}"`, href: href({ q: "" }) },
+    promo && { label: "במבצע", href: href({ promo: "" }) },
   ].filter(Boolean) as { label: string; href: string }[];
 
   const chip = (on: boolean) =>
@@ -93,6 +100,11 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
 
   const Filters = (
     <div className="flex flex-col gap-6">
+      {hasPromos && (
+        <Link href={href({ promo: promo ? "" : "1" })} className={`h-11 rounded-[12px] border-[1.5px] flex items-center justify-center gap-2 text-[15px] font-bold ${promo ? "bg-gold border-gold text-ink" : "bg-white border-dashed border-gold"}`} aria-current={promo ? "true" : undefined}>
+          <span aria-hidden="true">✦</span> רק מוצרים במבצע
+        </Link>
+      )}
       <div>
         <b className="block text-[15px] pb-2.5">המידה שלי</b>
         <div className="grid grid-cols-4 gap-1.5">
@@ -219,7 +231,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
           {list.length ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-7 md:gap-x-5 md:gap-y-9">
               {list.map((p) => (
-                <ProductCard key={p.id} p={p} rating={ratings[p.id]} />
+                <ProductCard key={p.id} p={p} rating={ratings[p.id]} promo={badges[p.id]} />
               ))}
             </div>
           ) : (
