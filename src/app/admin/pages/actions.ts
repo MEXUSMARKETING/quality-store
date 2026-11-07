@@ -39,6 +39,7 @@ function diff(a: Record<string, unknown>, b: Record<string, unknown>) {
 
 const revalidatePage = (slug?: string, oldSlug?: string) => {
   revalidatePath("/admin/pages");
+  revalidatePath("/", "layout");
   if (slug) revalidatePath(`/info/${slug}`);
   if (oldSlug && oldSlug !== slug) revalidatePath(`/info/${oldSlug}`);
 };

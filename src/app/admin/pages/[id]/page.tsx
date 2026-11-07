@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { isAdmin } from "@/lib/auth";
+import { currentAdmin, isAdmin } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { hasDb } from "@/lib/db";
 import { imageStorageReady } from "@/lib/storage";
 import { getPageById, toIsraelLocalInput, type CmsPage } from "@/lib/content";
@@ -14,6 +15,8 @@ export const metadata = { title: "עריכת דף" };
 
 export default async function EditPage({ params, searchParams }: { params: { id: string }; searchParams: { saved?: string } }) {
   if (!isAdmin()) return null;
+  const me = await currentAdmin();
+  const canEdit = !!me && can(me.perms, "pages", "edit");
   let page: CmsPage | null = null;
   try {
     page = await getPageById(Number(params.id));
@@ -39,13 +42,14 @@ export default async function EditPage({ params, searchParams }: { params: { id:
         sub={<span className="flex items-center gap-2 flex-wrap"><Chip tone={st.tone}>{st.label}</Chip> עודכן {fmtDateTime(page.updated_at)}</span>}
       >
         <a href={`/info/${page.slug}`} target="_blank" rel="noopener" className="a-btn"><Icon name="external" size={16} /> צפייה באתר</a>
-        <ConfirmForm action={duplicatePageAction} id={page.id} icon="copy" danger={false} label="שכפול" ariaLabel={`שכפול ${page.title}`} />
-        <ConfirmForm action={deletePageAction} id={page.id} label="מחיקה" ariaLabel={`מחיקת ${page.title}`} message={`למחוק את "${page.title}"? הכתובת /info/${page.slug} תפסיק לעבוד. לא ניתן לבטל.`} />
+        {canEdit && <ConfirmForm action={duplicatePageAction} id={page.id} icon="copy" danger={false} label="שכפול" ariaLabel={`שכפול ${page.title}`} />}
+        {canEdit && <ConfirmForm action={deletePageAction} id={page.id} label="מחיקה" ariaLabel={`מחיקת ${page.title}`} message={`למחוק את "${page.title}"? הכתובת /info/${page.slug} תפסיק לעבוד. לא ניתן לבטל.`} />}
       </PageHeader>
+      {!canEdit && <Notice tone="blue">יש לך הרשאת צפייה בלבד בדפים.</Notice>}
       {searchParams.saved === "1" && <Notice tone="green">הדף נוצר ונשמר.</Notice>}
       {searchParams.saved === "dup" && <Notice tone="green">נוצר עותק כטיוטה. שנו כותרת וכתובת לפני הפרסום.</Notice>}
       <PageEditor
-        key={page.id + page.updated_at}
+        key={page.id}
         initial={{
           id: page.id,
           slug: page.slug,
@@ -59,7 +63,7 @@ export default async function EditPage({ params, searchParams }: { params: { id:
           share_image: page.share_image,
         }}
         storageReady={imageStorageReady()}
-        canSave={hasDb()}
+        canSave={hasDb() && canEdit}
       />
     </>
   );

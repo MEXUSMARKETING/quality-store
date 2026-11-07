@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { hasDb } from "@/lib/db";
 import { audit } from "@/lib/admin";
 import { imageStorageReady, uploadProductImage } from "@/lib/storage";
-import { defaultSections, normalizeSections, readHomepageRaw, writeHomepage, type HomeSection } from "@/lib/content";
+import { defaultSections, normalizeSections, readHomepageRaw, safeHref, safeImage, writeHomepage, type HomeSection } from "@/lib/content";
 
 export type HomeActionResult = { ok?: boolean; error?: string; publishedAt?: string; sections?: HomeSection[] };
 
@@ -18,31 +18,47 @@ const outline = (list: HomeSection[]) =>
     return `${s.type}${t ? ": " + t.slice(0, 40) : ""}${s.visible ? "" : " (מוסתר)"}${s.start || s.end ? ` [${s.start || ""}–${s.end || ""}]` : ""}`;
   });
 
-function parse(json: unknown): HomeSection[] | null {
-  try {
-    const raw = JSON.parse(String(json || ""));
-    if (!Array.isArray(raw)) return null;
-    return normalizeSections(raw);
-  } catch {
-    return null;
-  }
-}
+const linkOk = (v: unknown) => !String(v ?? "").trim() || !!safeHref(v);
+const imageOk = (v: unknown) => !String(v ?? "").trim() || !!safeImage(v);
 
-function validate(list: HomeSection[]): string | null {
-  for (const s of list) {
-    if (s.start && s.end && s.end < s.start) return "באחד המקטעים תאריך הסיום מוקדם מתאריך ההתחלה";
+/** Hebrew error for the first bad link / image URL in the raw editor data (before normalizing drops it). */
+function badUrl(raw: any[]): string | null {
+  for (const s of raw) {
+    const links: unknown[] = [], images: unknown[] = [];
+    if (s?.type === "hero") { links.push(s.primaryHref, s.secondaryHref); images.push(s.image); }
+    if (s?.type === "products") links.push(s.href);
+    if (s?.type === "categories") for (const t of s.tiles || []) { links.push(t?.href); images.push(t?.image); }
+    if (s?.type === "promos") for (const t of s.items || []) { links.push(t?.href); images.push(t?.image); }
+    if (!links.every(linkOk)) return "באחד המקטעים יש קישור לא תקין. קישור צריך להתחיל ב־/ (עמוד באתר) או ב־https://";
+    if (!images.every(imageOk)) return "באחד המקטעים יש קישור תמונה לא תקין (צריך להתחיל ב־https://)";
   }
   return null;
+}
+
+/** Parse + validate the editor JSON. Returns the clean sections or a Hebrew error. */
+function parse(json: unknown): { list?: HomeSection[]; error?: string } {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(String(json || ""));
+  } catch {
+    return { error: "הנתונים שנשלחו לא תקינים" };
+  }
+  if (!Array.isArray(raw)) return { error: "הנתונים שנשלחו לא תקינים" };
+  const urlErr = badUrl(raw);
+  if (urlErr) return { error: urlErr };
+  const list = normalizeSections(raw);
+  for (const s of list) {
+    if (s.start && s.end && s.end < s.start) return { error: "באחד המקטעים תאריך הסיום מוקדם מתאריך ההתחלה" };
+  }
+  return { list };
 }
 
 /** Save the editor state as the draft (the live site does not change). */
 export async function saveHomepageDraftAction(json: string): Promise<HomeActionResult> {
   await requireAdmin("homepage");
   if (!hasDb()) return { error: NO_DB };
-  const list = parse(json);
-  if (!list) return { error: "הנתונים שנשלחו לא תקינים" };
-  const bad = validate(list);
-  if (bad) return { error: bad };
+  const { list, error } = parse(json);
+  if (!list) return { error };
   try {
     const cur = await readHomepageRaw();
     await writeHomepage({ ...cur, draft: list });
@@ -59,10 +75,8 @@ export async function saveHomepageDraftAction(json: string): Promise<HomeActionR
 export async function publishHomepageAction(json: string): Promise<HomeActionResult> {
   await requireAdmin("homepage");
   if (!hasDb()) return { error: NO_DB };
-  const list = parse(json);
-  if (!list) return { error: "הנתונים שנשלחו לא תקינים" };
-  const bad = validate(list);
-  if (bad) return { error: bad };
+  const { list, error } = parse(json);
+  if (!list) return { error };
   const publishedAt = new Date().toISOString();
   try {
     const cur = await readHomepageRaw();
@@ -89,8 +103,10 @@ export async function publishHomepageAction(json: string): Promise<HomeActionRes
 export async function discardHomepageDraftAction(): Promise<HomeActionResult> {
   await requireAdmin("homepage");
   if (!hasDb()) return { error: NO_DB };
+  let live: HomeSection[];
   try {
     const cur = await readHomepageRaw();
+    live = Array.isArray(cur.sections) ? normalizeSections(cur.sections) : defaultSections();
     await writeHomepage({ ...cur, draft: null });
     await audit({ action: "update", entity: "homepage", entityId: "draft", summary: "בוטלה טיוטת דף הבית" });
   } catch (e) {
@@ -98,8 +114,7 @@ export async function discardHomepageDraftAction(): Promise<HomeActionResult> {
     return { error: "הפעולה נכשלה, נסו שוב" };
   }
   revalidatePath("/admin/homepage");
-  const cur = await readHomepageRaw().catch(() => ({} as any));
-  return { ok: true, sections: Array.isArray(cur.sections) ? normalizeSections(cur.sections) : defaultSections() };
+  return { ok: true, sections: live };
 }
 
 /** Upload one image for a section; returns its public URL. */

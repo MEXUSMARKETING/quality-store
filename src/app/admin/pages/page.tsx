@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { isAdmin } from "@/lib/auth";
+import { currentAdmin, isAdmin } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { hasDb } from "@/lib/db";
 import { ensurePagesSeeded, listPages, type CmsPage } from "@/lib/content";
 import { Chip, Empty, Icon, LinkTabs, Notice, PageHeader, fmtDateTime } from "../_components/ui";
@@ -13,11 +14,13 @@ export const metadata = { title: "דפים ותוכן" };
 export default async function PagesAdmin({ searchParams }: { searchParams: { tab?: string; q?: string; status?: string; deleted?: string } }) {
   if (!isAdmin()) return null;
 
+  const me = await currentAdmin();
+  const canEdit = !!me && can(me.perms, "pages", "edit");
   let pages: CmsPage[] = [];
   let loadError = false;
   if (hasDb()) {
     try {
-      await ensurePagesSeeded();
+      if (canEdit) await ensurePagesSeeded();
       pages = await listPages();
     } catch (e) {
       console.error(e);
@@ -43,7 +46,7 @@ export default async function PagesAdmin({ searchParams }: { searchParams: { tab
   return (
     <>
       <PageHeader crumbs={[{ href: "/admin", label: "ראשי" }, { label: "דפים ותוכן" }]} title="דפים ותוכן" sub="דפי מידע (משלוחים, תקנון, מידות…) ופוסטים לבלוג. כל דף זמין בכתובת /info/<כתובת>.">
-        {hasDb() && (
+        {hasDb() && canEdit && (
           <Link href={`/admin/pages/new${tab === "blog" ? "?type=blog" : ""}`} className="a-btn a-btn-primary"><Icon name="plus" /> {tab === "blog" ? "פוסט חדש" : "דף חדש"}</Link>
         )}
       </PageHeader>
@@ -83,7 +86,7 @@ export default async function PagesAdmin({ searchParams }: { searchParams: { tab
         {shown.length === 0 ? (
           ofType.length === 0 ? (
             <Empty title={tab === "blog" ? "עדיין אין פוסטים" : "עדיין אין דפים"} text={tab === "blog" ? "פוסטים בבלוג עוזרים לקידום בגוגל – למשל ״איך לבחור מידה במגפונים״ או ״טיפים לטיפוח עור״." : "צרו דף מידע ראשון."}>
-              {hasDb() && <Link href={`/admin/pages/new${tab === "blog" ? "?type=blog" : ""}`} className="a-btn a-btn-primary"><Icon name="plus" /> {tab === "blog" ? "פוסט חדש" : "דף חדש"}</Link>}
+              {hasDb() && canEdit && <Link href={`/admin/pages/new${tab === "blog" ? "?type=blog" : ""}`} className="a-btn a-btn-primary"><Icon name="plus" /> {tab === "blog" ? "פוסט חדש" : "דף חדש"}</Link>}
             </Empty>
           ) : (
             <Empty title="לא נמצאו תוצאות" text="נסו חיפוש אחר או נקו את הסינון." />
@@ -119,8 +122,8 @@ export default async function PagesAdmin({ searchParams }: { searchParams: { tab
                         <div className="flex items-center gap-1.5 justify-end">
                           <a href={`/info/${p.slug}`} target="_blank" rel="noopener" className="a-btn a-btn-sm !h-9 !px-2.5" aria-label={`צפייה בדף ${p.title} באתר`} title="צפייה באתר"><Icon name="external" size={15} /></a>
                           <Link href={`/admin/pages/${p.id}`} className="a-btn a-btn-sm !h-9 !px-2.5" aria-label={`עריכת ${p.title}`} title="עריכה"><Icon name="edit" size={15} /></Link>
-                          <ConfirmForm action={duplicatePageAction} id={p.id} icon="copy" danger={false} ariaLabel={`שכפול ${p.title}`} />
-                          <ConfirmForm action={deletePageAction} id={p.id} ariaLabel={`מחיקת ${p.title}`} message={`למחוק את "${p.title}"? הכתובת /info/${p.slug} תפסיק לעבוד${["shipping", "sizes", "terms", "privacy", "accessibility"].includes(p.slug) ? " (ייתכן שיש אליה קישור בפוטר)" : ""}. לא ניתן לבטל.`} />
+                          {canEdit && <ConfirmForm action={duplicatePageAction} id={p.id} icon="copy" danger={false} ariaLabel={`שכפול ${p.title}`} />}
+                          {canEdit && <ConfirmForm action={deletePageAction} id={p.id} ariaLabel={`מחיקת ${p.title}`} message={`למחוק את "${p.title}"? הכתובת /info/${p.slug} תפסיק לעבוד${["shipping", "sizes", "terms", "privacy", "accessibility"].includes(p.slug) ? " (ייתכן שיש אליה קישור בפוטר)" : ""}. לא ניתן לבטל.`} />}
                         </div>
                       </td>
                     </tr>

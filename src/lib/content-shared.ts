@@ -347,7 +347,7 @@ export function normalizeMenus(raw: unknown): Menus {
     announcement: { text: str(a.text, 200), enabled: a.enabled !== false, showPhone: a.showPhone !== false },
     main: Array.isArray(x.main) ? normItems(x.main, 2) : d.main,
     footer: Array.isArray(x.footer)
-      ? x.footer.slice(0, 4).map((c: any) => ({ title: str(c?.title, 60), items: normItems(c?.items, 1, 15) })).filter((c: FooterColumn) => c.title || c.items.length)
+      ? x.footer.slice(0, 3).map((c: any) => ({ title: str(c?.title, 60), items: normItems(c?.items, 1, 15) })).filter((c: FooterColumn) => c.title || c.items.length)
       : d.footer,
     mobileExtra: Array.isArray(x.mobileExtra) ? normItems(x.mobileExtra, 1, 15) : [],
   };

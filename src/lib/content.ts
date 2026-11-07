@@ -104,9 +104,10 @@ export async function menusSaved(): Promise<boolean> {
 export async function ensurePagesSeeded(): Promise<boolean> {
   if (!hasDb()) return false;
   try {
-    const done = await getSetting<boolean>("pages_seeded", false);
-    if (done) return false;
     const sql = await db();
+    // read the flag directly (not through the cached settings reader, which hides errors as "empty")
+    const flag = await sql`select value from settings where key = 'pages_seeded' limit 1`;
+    if (flag[0]) return false;
     const store = await getStoreInfo();
     const pages = defaultPages(store);
     let inserted = 0;

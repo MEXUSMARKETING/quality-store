@@ -284,6 +284,13 @@ async function init(sql: Sql) {
     )`;
   await sql`alter table reviews add column if not exists ip_hash text not null default ''`;
 
+  // automations engine (reports/automations agent)
+  await sql`alter table automation_rules add column if not exists trigger_config jsonb not null default '{}'::jsonb`;
+  await sql`alter table automation_runs add column if not exists payload jsonb not null default '{}'::jsonb`;
+  await sql`alter table automation_runs add column if not exists results jsonb not null default '[]'::jsonb`;
+  await sql`alter table automation_runs add column if not exists ran_at timestamptz`;
+  await sql`create index if not exists automation_runs_due_idx on automation_runs(status, due_at)`;
+
   // Lock every table against Supabase's public API (the store talks to Postgres directly from its server).
   for (const t of ["settings", "categories", "pages", "reviews", "automation_rules", "automation_runs", "admin_users", "login_history"]) {
     await sql.unsafe(`alter table ${t} enable row level security`);
