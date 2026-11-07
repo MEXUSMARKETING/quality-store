@@ -2,10 +2,30 @@
 
 import { hasDb } from "@/lib/db";
 import { addClubMember, createOrder, getProductById } from "@/lib/store";
+import { checkCoupon } from "@/lib/admin";
 import type { CartItem, OrderItem } from "@/lib/types";
 import { PAYMENT, SHIPPING, STORE, shekel, waLink } from "@/lib/config";
 
 export type ActionResult = { ok: boolean; error?: string; number?: string; whatsapp?: string };
+
+export type CouponCheck = { ok: boolean; code?: string; discount?: number; label?: string; error?: string };
+
+/** Storefront: validate a coupon code against the current cart subtotal (display only; placeOrder re-validates). */
+export async function checkCouponAction(code: string, subtotal: number, phone: string): Promise<CouponCheck> {
+  const c = String(code || "").trim().toUpperCase().slice(0, 32);
+  if (!c) return { ok: false, error: "נא להזין קוד קופון" };
+  if (!hasDb()) return { ok: false, error: "לא ניתן להשתמש בקופון כרגע" };
+  try {
+    const r = await checkCoupon(c, Math.max(0, Math.round(Number(subtotal) || 0)), String(phone || "").slice(0, 30));
+    if (r.error || !r.coupon) return { ok: false, error: r.error || "קוד הקופון לא קיים" };
+    if (!r.discount) return { ok: false, error: "הקופון לא מקנה הנחה על הסל הזה" };
+    const label = r.coupon.type === "fixed" ? `${shekel(r.coupon.value)} הנחה` : `${r.coupon.value}% הנחה`;
+    return { ok: true, code: r.coupon.code.toUpperCase(), discount: r.discount, label };
+  } catch (e) {
+    console.error(e);
+    return { ok: false, error: "לא הצלחנו לבדוק את הקופון, נסי שוב" };
+  }
+}
 
 const clean = (v: FormDataEntryValue | null, max = 200) => String(v ?? "").trim().slice(0, max);
 
@@ -37,6 +57,7 @@ export async function placeOrder(_: ActionResult | null, fd: FormData): Promise<
   const apt = clean(fd.get("apt"), 40);
   const notes = clean(fd.get("notes"), 400);
   const terms = fd.get("terms");
+  const couponCode = clean(fd.get("coupon"), 32).toUpperCase();
 
   let cart: CartItem[] = [];
   try {
@@ -65,11 +86,23 @@ export async function placeOrder(_: ActionResult | null, fd: FormData): Promise<
     items.push({ productId: p.id, slug: p.slug, name: p.name, image: p.images[0] || "", size, qty, price: p.price });
   }
   const subtotal = items.reduce((a, x) => a + x.price * x.qty, 0);
-  const total = subtotal;
+
+  // Coupon: never trust the client – validate again against the recomputed subtotal
+  let discount = 0;
+  let coupon_code = "";
+  if (couponCode) {
+    if (!hasDb()) return { ok: false, error: "לא ניתן להשתמש בקופון כרגע. הסירי את הקופון כדי להמשיך." };
+    const r = await checkCoupon(couponCode, subtotal, phone);
+    if (r.error || !r.coupon) return { ok: false, error: `קופון ${couponCode}: ${r.error || "הקוד לא תקין"}. הסירי אותו או נסי קוד אחר.` };
+    discount = Math.max(0, Math.min(subtotal, Math.round(r.discount || 0)));
+    coupon_code = discount > 0 ? r.coupon.code.toUpperCase() : "";
+  }
+  const total = subtotal - discount;
 
   const summary =
     `הזמנה חדשה מהאתר\n` +
     items.map((x) => `• ${x.name} | מידה ${x.size} | ×${x.qty} | ${shekel(x.price * x.qty)}`).join("\n") +
+    (discount ? `\nסכום ביניים: ${shekel(subtotal)}\nקופון ${coupon_code}: -${shekel(discount)}` : "") +
     `\nסה״כ: ${shekel(total)}\n\nשם: ${name}\nטלפון: ${phone}` +
     (shipping === "home" ? `\nכתובת: ${street}${apt ? " " + apt : ""}, ${city}` : `\nאיסוף מהחנות`) +
     `\nתשלום: ${PAYMENT[payment]}` +
@@ -93,6 +126,8 @@ export async function placeOrder(_: ActionResult | null, fd: FormData): Promise<
       items,
       subtotal,
       total,
+      discount,
+      coupon_code,
     });
     return { ok: true, number, whatsapp: waLink(`${summary}\n\nמספר הזמנה: ${number}`) };
   } catch (e) {

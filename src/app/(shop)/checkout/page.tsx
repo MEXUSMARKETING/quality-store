@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { useCart } from "@/components/CartProvider";
-import { placeOrder, type ActionResult } from "@/app/actions";
+import { checkCouponAction, placeOrder, type ActionResult } from "@/app/actions";
 import { LockIcon, WhatsAppIcon } from "@/components/Icons";
 import { STORE, shekel } from "@/lib/config";
 
@@ -29,12 +29,100 @@ function Submit({ total, cash }: { total: number; cash: boolean }) {
   );
 }
 
+type Applied = { code: string; discount: number; label: string };
+
+function CouponBox({ subtotal, applied, onApply, onRemove, getPhone }: { subtotal: number; applied: Applied | null; onApply: (a: Applied) => void; onRemove: () => void; getPhone: () => string }) {
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+  const [pending, start] = useTransition();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open && !applied) inputRef.current?.focus();
+  }, [open, applied]);
+
+  function apply() {
+    const c = code.trim();
+    if (!c) {
+      setError("נא להזין קוד קופון");
+      return;
+    }
+    setError("");
+    start(async () => {
+      const r = await checkCouponAction(c, subtotal, getPhone());
+      if (r.ok && r.code && r.discount) {
+        onApply({ code: r.code, discount: r.discount, label: r.label || "" });
+        setCode("");
+      } else setError(r.error || "הקופון לא תקין");
+    });
+  }
+
+  if (applied) {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-[14px] border-[1.5px] border-dashed border-gold bg-white px-3.5 py-2.5">
+        <span className="flex flex-col text-sm">
+          <b className="text-[15px]">קופון <span dir="ltr">{applied.code}</span> הופעל</b>
+          <span className="text-muted">{applied.label}</span>
+        </span>
+        <button type="button" onClick={() => { onRemove(); setOpen(true); }} className="min-h-[40px] px-2 text-sm font-bold underline underline-offset-2" aria-label={`הסרת הקופון ${applied.code}`}>הסרה</button>
+      </div>
+    );
+  }
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} aria-expanded={false} className="self-start min-h-[40px] text-[15px] font-bold underline underline-offset-4 decoration-gold">
+        יש לך קוד קופון?
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor="coupon-input" className="text-[14px] font-medium">קוד קופון</label>
+      <div className="flex gap-2">
+        <input
+          id="coupon-input"
+          ref={inputRef}
+          value={code}
+          onChange={(e) => { setCode(e.target.value.toUpperCase()); if (error) setError(""); }}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); apply(); } }}
+          dir="ltr"
+          autoComplete="off"
+          autoCapitalize="characters"
+          spellCheck={false}
+          maxLength={32}
+          placeholder="WINTER15"
+          aria-invalid={!!error}
+          aria-describedby={error ? "coupon-error" : undefined}
+          className="input text-right uppercase tracking-wide"
+        />
+        <button type="button" onClick={apply} disabled={pending} className="btn btn-dark !h-[50px] !px-5 shrink-0 disabled:opacity-60">
+          {pending ? "בודקת…" : "החלה"}
+        </button>
+      </div>
+      {error && <p id="coupon-error" role="alert" className="text-sm font-bold text-[#A13A0D]">{error}</p>}
+    </div>
+  );
+}
+
 export default function CheckoutPage() {
   const { items, subtotal, ready, clear } = useCart();
   const router = useRouter();
   const [shipping, setShipping] = useState("home");
   const [payment, setPayment] = useState("cash");
   const [state, action] = useFormState<ActionResult | null, FormData>(placeOrder, null);
+  const [coupon, setCoupon] = useState<Applied | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const getPhone = () => String((formRef.current?.elements.namedItem("phone") as HTMLInputElement | null)?.value || "");
+  // The discount was computed for a specific subtotal; if the cart changes, ask the customer to apply it again
+  const [couponFor, setCouponFor] = useState(0);
+  useEffect(() => {
+    if (coupon && couponFor !== subtotal) setCoupon(null);
+  }, [subtotal, coupon, couponFor]);
+  const discount = coupon ? Math.min(coupon.discount, subtotal) : 0;
+  const total = subtotal - discount;
 
   useEffect(() => {
     if (state?.ok && state.number) {
@@ -67,8 +155,9 @@ export default function CheckoutPage() {
   }
 
   return (
-    <form action={action} className="container-site pt-6 pb-16 flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
+    <form ref={formRef} action={action} className="container-site pt-6 pb-16 flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
       <input type="hidden" name="cart" value={JSON.stringify(items)} />
+      <input type="hidden" name="coupon" value={coupon?.code || ""} />
       <div className="flex-1 w-full flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h1 className="font-display font-extrabold text-[26px] md:text-[36px]">השלמת הזמנה</h1>
@@ -119,14 +208,28 @@ export default function CheckoutPage() {
             <b>{shekel(it.price * it.qty)}</b>
           </div>
         ))}
+        <CouponBox subtotal={subtotal} applied={coupon} onApply={(a) => { setCoupon(a); setCouponFor(subtotal); }} onRemove={() => setCoupon(null)} getPhone={getPhone} />
+        {discount > 0 && <div className="flex justify-between text-[15px]"><span>סכום ביניים</span><span>{shekel(subtotal)}</span></div>}
+        {discount > 0 && (
+          <div className="flex justify-between text-[15px] text-[#2F5A26] font-bold">
+            <span>הנחת קופון <span dir="ltr" className="font-normal">({coupon!.code})</span></span>
+            <span dir="ltr">-{shekel(discount)}</span>
+          </div>
+        )}
         <div className="flex justify-between text-[15px]"><span>משלוח</span><span>חינם</span></div>
-        <div className="flex justify-between items-baseline"><b className="text-[17px]">סה״כ</b><b className="font-display text-[28px]">{shekel(subtotal)}</b></div>
+        <div className="flex justify-between items-baseline">
+          <b className="text-[17px]">סה״כ</b>
+          <span className="flex items-baseline gap-2">
+            {discount > 0 && <s className="text-[15px] text-muted">{shekel(subtotal)}</s>}
+            <b className="font-display text-[28px]">{shekel(total)}</b>
+          </span>
+        </div>
         <label className="flex items-start gap-2.5 text-sm leading-normal">
           <input type="checkbox" name="terms" required className="w-5 h-5 mt-0.5 accent-ink shrink-0" />
           <span>קראתי ואני מסכימה ל<Link href="/info/terms" className="underline" target="_blank">תקנון האתר</Link></span>
         </label>
         {state?.error && <p role="alert" className="text-sm font-bold text-[#A13A0D]">{state.error}</p>}
-        <Submit total={subtotal} cash={payment === "cash"} />
+        <Submit total={total} cash={payment === "cash"} />
         <span className="text-[13px] text-muted text-center">שאלות? וואטסאפ <span dir="ltr">{STORE.phoneDisplay}</span></span>
       </aside>
     </form>

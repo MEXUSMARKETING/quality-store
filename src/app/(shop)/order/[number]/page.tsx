@@ -27,6 +27,15 @@ export default async function OrderPage({ params }: { params: { number: string }
               </div>
             ))}
             <div className="h-px bg-line" />
+            {(o.discount || 0) > 0 && (
+              <>
+                <div className="flex justify-between"><span>סכום ביניים</span><span>{shekel(o.subtotal)}</span></div>
+                <div className="flex justify-between text-[#2F5A26] font-bold">
+                  <span>הנחת קופון{o.coupon_code ? <> <span dir="ltr" className="font-normal">({o.coupon_code})</span></> : null}</span>
+                  <span dir="ltr">-{shekel(o.discount || 0)}</span>
+                </div>
+              </>
+            )}
             <div className="flex justify-between"><span>משלוח</span><span>{SHIPPING[o.shipping_method]} · חינם</span></div>
             <div className="flex justify-between"><span>תשלום</span><span>{PAYMENT[o.payment_method]}</span></div>
             <div className="flex justify-between items-baseline"><b>סה״כ</b><b className="font-display text-2xl">{shekel(o.total)}</b></div>

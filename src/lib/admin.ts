@@ -31,15 +31,21 @@ export async function audit(entry: {
   }
 }
 
-export async function listAudit(opts: { entity?: string; action?: string; q?: string; limit?: number } = {}): Promise<AuditLog[]> {
+export async function listAudit(
+  opts: { entity?: string; entities?: string[]; action?: string; q?: string; since?: Date | null; limit?: number } = {}
+): Promise<AuditLog[]> {
   if (!hasDb()) return [];
   const sql = await db();
   const q = opts.q ? `%${opts.q}%` : null;
+  const ents = opts.entities && opts.entities.length ? opts.entities : null;
+  const since = opts.since ? opts.since.toISOString() : null;
   const r = await sql`
     select * from audit_logs
     where (${opts.entity || null}::text is null or entity = ${opts.entity || null})
+      ${ents ? sql`and entity in ${sql(ents)}` : sql``}
       and (${opts.action || null}::text is null or action = ${opts.action || null})
-      and (${q}::text is null or summary ilike ${q})
+      and (${q}::text is null or summary ilike ${q} or entity_id ilike ${q})
+      and (${since}::timestamptz is null or created_at >= ${since}::timestamptz)
     order by id desc limit ${opts.limit || 300}`;
   return r.map((x: any) => ({ ...x, id: Number(x.id), created_at: iso(x.created_at)! }));
 }
