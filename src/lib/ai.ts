@@ -15,15 +15,19 @@ export function aiModel(): string {
   return (process.env.AI_MODEL || "").trim() || DEFAULT_AI_MODEL;
 }
 
-export type AiMessage = { role: "user" | "assistant"; content: string };
+/** Text, or content blocks (text + images) for vision requests. */
+export type AiContentBlock =
+  | { type: "text"; text: string }
+  | { type: "image"; source: { type: "base64"; media_type: string; data: string } | { type: "url"; url: string } };
+export type AiMessage = { role: "user" | "assistant"; content: string | AiContentBlock[] };
 export type AiResult = { text: string; error?: undefined } | { text?: undefined; error: string };
 
 /** One call to the Messages API. Never throws – returns a Hebrew error instead. */
-export async function callClaude(opts: { system: string; messages: AiMessage[]; maxTokens?: number }): Promise<AiResult> {
+export async function callClaude(opts: { system: string; messages: AiMessage[]; maxTokens?: number; timeoutMs?: number }): Promise<AiResult> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return { error: "עוזר ה־AI עדיין לא מחובר: יש להוסיף ב־Vercel את המשתנה ANTHROPIC_API_KEY ולפרוס מחדש." };
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 25_000);
+  const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs || 25_000);
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -53,6 +57,21 @@ export async function callClaude(opts: { system: string; messages: AiMessage[]; 
     return { error: "לא הצלחנו להתחבר לשירות ה־AI. נסו שוב." };
   } finally {
     clearTimeout(timer);
+  }
+}
+
+/** Ask for JSON only and parse the first JSON object in the answer. */
+export async function callClaudeJson<T = any>(opts: { system: string; messages: AiMessage[]; maxTokens?: number; timeoutMs?: number }): Promise<{ data: T; error?: undefined } | { data?: undefined; error: string }> {
+  const r = await callClaude(opts);
+  if (r.error) return { error: r.error };
+  const t = r.text!;
+  const start = t.indexOf("{");
+  const end = t.lastIndexOf("}");
+  if (start < 0 || end <= start) return { error: "ה־AI החזיר תשובה לא צפויה. נסו שוב." };
+  try {
+    return { data: JSON.parse(t.slice(start, end + 1)) as T };
+  } catch {
+    return { error: "ה־AI החזיר תשובה לא צפויה. נסו שוב." };
   }
 }
 

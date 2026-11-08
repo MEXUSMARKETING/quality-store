@@ -29,8 +29,11 @@ export default async function ProductsAdmin({ searchParams }: { searchParams: Re
         <a href="/admin/products/export" className="a-btn" download>
           <Icon name="download" /> ייצוא CSV
         </a>
-        <Link href="/admin/products/new" className="a-btn a-btn-primary">
+        <Link href="/admin/products/new" className="a-btn">
           <Icon name="plus" /> מוצר חדש
+        </Link>
+        <Link href="/admin/products/ai" className="a-btn a-btn-primary">
+          <Icon name="sparkle" /> הוספה מהירה עם AI
         </Link>
       </PageHeader>
 
@@ -88,7 +91,8 @@ export default async function ProductsAdmin({ searchParams }: { searchParams: Re
         <div className="a-card">
           {all.length === 0 ? (
             <Empty title="עדיין אין מוצרים" text="הוסיפי את המוצר הראשון: שם, מחיר, תמונות ומלאי לפי מידה.">
-              <Link href="/admin/products/new" className="a-btn a-btn-primary"><Icon name="plus" /> מוצר חדש</Link>
+              <Link href="/admin/products/ai" className="a-btn a-btn-primary"><Icon name="sparkle" /> הוספה מהירה עם AI</Link>
+              <Link href="/admin/products/new" className="a-btn"><Icon name="plus" /> מוצר חדש</Link>
             </Empty>
           ) : (
             <Empty title="לא נמצאו מוצרים" text={filtered ? "אין מוצרים שמתאימים לחיפוש ולסינון שבחרת." : `אין מוצרים בלשונית "${TABS[f.tab]}".`}>

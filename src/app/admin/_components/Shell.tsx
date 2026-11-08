@@ -217,6 +217,16 @@ export default function Shell({ newOrders, alerts, logoutAction, perms, userName
           </div>
         </header>
         <main className="p-4 md:p-7 flex flex-col gap-5 w-full max-w-[1280px] mx-auto">{children}</main>
+        {can(perms, "products", "edit") && !path.startsWith("/admin/products/ai") && !/^\/admin\/products\/(new|\d+)/.test(path) && (
+          <Link
+            href="/admin/products/ai"
+            aria-label="הוספה מהירה של מוצר עם AI"
+            title="הוספה מהירה עם AI"
+            className="fixed bottom-5 end-5 z-30 w-14 h-14 rounded-full nx-grad text-white flex items-center justify-center shadow-[0_14px_30px_-10px_rgba(122,18,255,.8)] hover:scale-105 transition-transform"
+          >
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+          </Link>
+        )}
       </div>
     </div>
   );

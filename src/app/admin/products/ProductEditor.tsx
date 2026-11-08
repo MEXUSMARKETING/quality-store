@@ -472,6 +472,11 @@ export default function ProductEditor({
 
         {/* ---------------- stock ---------------- */}
         <div role="tabpanel" id="panel-stock" aria-labelledby="tab-stock" data-tab="stock" className={tab === "stock" ? "flex flex-col gap-5" : "hidden"}>
+          {product && (
+            <Link href={`/admin/products/ai?product=${product.id}`} className="self-start flex items-center gap-2 h-11 px-4 rounded-xl border border-[#D9C9FF] bg-[linear-gradient(135deg,#F2F7FF,#F6EEFF_55%,#FFF0FA)] text-[14px] font-bold text-[#5414D6]">
+              <Icon name="sparkle" /> הוספת צבע מצילום
+            </Link>
+          )}
           <VariantsEditor
             initial={product?.variants || null}
             colors={colorOptions}
