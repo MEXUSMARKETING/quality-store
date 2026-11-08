@@ -95,7 +95,7 @@ export default function Shell({ newOrders, alerts, logoutAction, perms, userName
                 key={it.href}
                 href={it.href}
                 aria-current={on ? "page" : undefined}
-                className={`flex items-center gap-2.5 min-h-[40px] px-2.5 rounded-[9px] text-[14px] transition-colors ${on ? "nx-grad text-white font-semibold shadow-[0_8px_20px_-10px_rgba(122,18,255,.8)] hover:text-white" : "text-[#D9D4F0] hover:bg-white/10 hover:text-white"}`}
+                className={`flex items-center gap-2.5 min-h-[40px] px-2.5 rounded-[9px] text-[14px] transition-colors ${on ? "nx-grad text-white font-semibold shadow-[0_8px_20px_-10px_rgba(122,18,255,.8)] hover:text-white hover:brightness-110" : "text-[#D9D4F0] hover:bg-[linear-gradient(90deg,rgba(122,18,255,.10),rgba(0,106,255,.22))] hover:text-white"}`}
               >
                 <Icon name={it.icon} />
                 <span className="flex-1">{it.label}</span>
@@ -115,7 +115,7 @@ export default function Shell({ newOrders, alerts, logoutAction, perms, userName
           <img src="/brand/nexshop-compact.png" alt="NEXSHOP" width={640} height={180} className="w-[170px] h-auto" />
         </Link>
         {storeName && (
-          <a href="/" target="_blank" rel="noopener" className="flex items-center gap-2 rounded-xl px-2.5 py-2 bg-white/[.06] border border-white/10 hover:bg-white/10 hover:text-white">
+          <a href="/" target="_blank" rel="noopener" className="flex items-center gap-2 rounded-xl px-2.5 py-2 bg-white/[.06] border border-white/10 hover:bg-white/[.09] hover:text-white">
             <span className="w-7 h-7 rounded-lg nx-grad flex items-center justify-center text-[13px] font-extrabold text-white" aria-hidden="true">{storeName.trim().charAt(0).toUpperCase()}</span>
             <span className="flex flex-col leading-tight min-w-0">
               <span className="text-[11px] text-[#ABA5CC]">החנות שלך</span>
@@ -126,11 +126,11 @@ export default function Shell({ newOrders, alerts, logoutAction, perms, userName
       </div>
       {nav}
       <div className="mt-auto flex flex-col gap-0.5 pt-4 border-t border-white/10">
-        <a href="/" target="_blank" rel="noopener" className="flex items-center gap-2.5 min-h-[40px] px-2.5 rounded-[9px] text-[14px] text-[#D9D4F0] hover:bg-white/10 hover:text-white">
+        <a href="/" target="_blank" rel="noopener" className="flex items-center gap-2.5 min-h-[40px] px-2.5 rounded-[9px] text-[14px] text-[#D9D4F0] hover:bg-white/[.09] hover:text-white">
           <Icon name="external" /> צפייה באתר
         </a>
         <form action={logoutAction}>
-          <button className="w-full flex items-center gap-2.5 min-h-[40px] px-2.5 rounded-[9px] text-[14px] text-[#D9D4F0] hover:bg-white/10 hover:text-white">
+          <button className="w-full flex items-center gap-2.5 min-h-[40px] px-2.5 rounded-[9px] text-[14px] text-[#D9D4F0] hover:bg-white/[.09] hover:text-white">
             <Icon name="logout" /> יציאה
           </button>
         </form>
