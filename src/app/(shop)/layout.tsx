@@ -6,6 +6,9 @@ import { getStoreInfo, STORE_DEFAULTS, type StoreInfo } from "@/lib/site";
 import { defaultMenus, getMenus, resolveMenus, type Menus } from "@/lib/content";
 import { WhatsAppIcon } from "@/components/Icons";
 
+/** a storefront page should never wait minutes; reads fall back to defaults well before this */
+export const maxDuration = 30;
+
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {
   // Admin-managed menus and store details; any failure falls back to today's built-in content.
   let store: StoreInfo = STORE_DEFAULTS;

@@ -3,7 +3,7 @@ import { SEED_PRODUCTS } from "./seed";
 
 type Sql = ReturnType<typeof postgres>;
 
-const g = globalThis as unknown as { __qsql?: Sql; __qready?: Promise<void> | null; __qlast?: number };
+const g = globalThis as unknown as { __qsql?: Sql; __qraw?: Sql; __qready?: Promise<void> | null; __qlast?: number };
 
 /** Serverless instances are frozen between requests; sockets left open across a freeze can be
  *  silently dead when the instance wakes, and a query on them hangs until the function times out.
@@ -28,19 +28,58 @@ export function hasDb(): boolean {
   return !!dbUrl();
 }
 
+/** A query that has not answered in this long is treated as stuck on a dead socket. Without this a
+ *  silently dropped connection makes the page wait until the platform kills it (5 minutes). */
+const QUERY_TIMEOUT_MS = 12_000;
+
+function dropClient(raw: Sql | undefined, graceSeconds: number) {
+  if (!raw || g.__qraw !== raw) return;
+  g.__qsql = undefined;
+  g.__qraw = undefined;
+  raw.end({ timeout: graceSeconds }).catch(() => {});
+}
+
+/** Wrap the client so every awaited query races a timeout; on timeout the client is discarded and
+ *  the next query opens a fresh connection. Fragments (nested sql``) are never awaited, so they
+ *  never start a timer. sql.begin / transactions are passed through unchanged. */
+function guard(raw: Sql): Sql {
+  const wrap = (q: any) => {
+    if (!q || typeof q.then !== "function") return q;
+    const orig = q.then; // postgres.js starts the query lazily inside then()
+    q.then = function (onOk?: any, onErr?: any) {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          dropClient(raw, 0);
+          reject(new Error(`database query timed out after ${QUERY_TIMEOUT_MS / 1000}s`));
+        }, QUERY_TIMEOUT_MS);
+      });
+      const run = orig.call(q, (v: any) => v, (e: any) => { throw e; });
+      return Promise.race([run, timeout]).finally(() => clearTimeout(timer)).then(onOk, onErr);
+    };
+    return q;
+  };
+  return new Proxy(raw as any, {
+    apply(target, thisArg, args) {
+      return wrap(Reflect.apply(target, thisArg, args));
+    },
+    get(target, prop) {
+      const v = (target as any)[prop];
+      if (prop === "unsafe" && typeof v === "function") return (...a: any[]) => wrap(v(...a));
+      return v;
+    },
+  }) as Sql;
+}
+
 function client(): Sql {
   const now = Date.now();
-  if (g.__qsql && g.__qlast && now - g.__qlast > STALE_MS) {
-    const old = g.__qsql;
-    g.__qsql = undefined;
-    old.end({ timeout: 5 }).catch(() => {}); // let any query still running finish
-  }
+  if (g.__qsql && g.__qlast && now - g.__qlast > STALE_MS) dropClient(g.__qraw, 5); // let any query still running finish
   g.__qlast = now;
   if (!g.__qsql) {
     const url = dbUrl();
     if (!url) throw new Error("DATABASE_URL is not set");
     const local = /localhost|127\.0\.0\.1/.test(url);
-    g.__qsql = postgres(url, {
+    const raw = postgres(url, {
       ssl: local ? false : "require",
       max: 3,
       // must stay above STALE_MS: an idle timer that expired during a freeze fires on wake and kills the socket mid-query
@@ -50,6 +89,8 @@ function client(): Sql {
       prepare: false,
       onnotice: () => {},
     });
+    g.__qraw = raw;
+    g.__qsql = guard(raw);
   }
   return g.__qsql;
 }
