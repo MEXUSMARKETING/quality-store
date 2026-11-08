@@ -112,7 +112,7 @@ export default function Shell({ newOrders, alerts, logoutAction, perms, userName
     <div className="h-full flex flex-col gap-5 p-3.5 pt-5">
       <div className="flex flex-col gap-3 px-1.5">
         <Link href="/admin" className="block hover:opacity-90" aria-label="NEXSHOP – לוח הבקרה">
-          <img src="/brand/nexshop-logo.png" alt="NEXSHOP" width={1100} height={335} className="w-[188px] h-auto" />
+          <img src="/brand/nexshop-logo.png" alt="NEXSHOP" width={1100} height={309} className="w-[188px] h-auto" />
         </Link>
         {storeName && (
           <a href="/" target="_blank" rel="noopener" className="flex items-center gap-2 rounded-xl px-2.5 py-2 bg-white/[.06] border border-white/10 hover:bg-white/10 hover:text-white">
@@ -156,6 +156,10 @@ export default function Shell({ newOrders, alerts, logoutAction, perms, userName
           <button className="lg:hidden w-11 h-11 rounded-[11px] border border-adm-line flex items-center justify-center" aria-label="פתיחת התפריט" onClick={() => setOpen(true)}>
             <Icon name="menu" />
           </button>
+          <Link href="/admin" className="lg:hidden shrink-0" aria-label="NEXSHOP – לוח הבקרה">
+            <img src="/brand/nexshop-logo-dark.png" alt="NEXSHOP" width={1100} height={309} className="hidden sm:block h-9 w-auto" />
+            <img src="/brand/nexshop-mark.png" alt="NEXSHOP" width={256} height={256} className="sm:hidden w-10 h-10" />
+          </Link>
           <form
             role="search"
             className="flex-1 max-w-[560px]"
