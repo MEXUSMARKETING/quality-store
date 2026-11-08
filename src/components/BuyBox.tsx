@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCart } from "./CartProvider";
+import { ColorPicker, useVariant } from "./ProductVariants";
 import { HeartIcon, WhatsAppIcon } from "./Icons";
 import { SIZES, waLink } from "@/lib/config";
 
@@ -14,6 +15,11 @@ type Props = {
 
 export default function BuyBox({ product, sizes }: Props) {
   const { add } = useCart();
+  const v = useVariant();
+  const variant = v && v.colors.length ? v.color : null;
+  // variant products: sizes and stock of the selected colour
+  const stock: Record<string, number> = v && v.colors.length ? variant?.stock || {} : product.stock || {};
+  const image = v?.images[0] || product.image;
   const [size, setSize] = useState<string | null>(null);
   const [need, setNeed] = useState(false);
   const [added, setAdded] = useState(false);
@@ -21,23 +27,31 @@ export default function BuyBox({ product, sizes }: Props) {
 
   const base = sizes && sizes.length ? sizes : SIZES;
   // configured order first; sizes with stock that are not in the list are appended in numeric order
-  const extra = Object.keys(product.stock || {}).filter((s) => !base.includes(s) && Number(product.stock[s]) > 0).sort((a, b) => Number(a) - Number(b));
+  const extra = Object.keys(stock).filter((s) => !base.includes(s) && Number(stock[s]) > 0).sort((a, b) => Number(a) - Number(b));
   const allSizes = [...base, ...extra];
-  const avail = allSizes.filter((s) => Number(product.stock?.[s] || 0) > 0);
+  const avail = allSizes.filter((s) => Number(stock[s] || 0) > 0);
   const soldOut = avail.length === 0;
-  const left = size ? Number(product.stock?.[size] || 0) : 0;
+  const left = size ? Number(stock[size] || 0) : 0;
+
+  // switching colour: keep the size only if that colour has it
+  useEffect(() => {
+    setAdded(false);
+    setSize((s) => (s && Number(stock[s] || 0) > 0 ? s : null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [variant?.key]);
 
   const onAdd = () => {
     if (!size) {
       setNeed(true);
       return;
     }
-    add({ productId: product.id, slug: product.slug, name: product.name, image: product.image, size, qty: 1, price: product.price });
+    add({ productId: product.id, slug: product.slug, name: product.name, image, size, ...(variant ? { color: variant.key, colorName: variant.label } : {}), qty: 1, price: product.price });
     setAdded(true);
   };
 
   return (
     <div className="flex flex-col gap-4">
+      <ColorPicker />
       <div className="flex flex-col gap-2.5">
         <div className="flex justify-between items-baseline">
           <span className="text-[15px]"><b>מידה:</b> {size || "לא נבחרה"}</span>
@@ -45,7 +59,7 @@ export default function BuyBox({ product, sizes }: Props) {
         </div>
         <div className="grid grid-cols-4 sm:grid-cols-8 lg:grid-cols-4 xl:grid-cols-8 gap-2">
           {allSizes.map((s) => {
-            const out = Number(product.stock?.[s] || 0) <= 0;
+            const out = Number(stock[s] || 0) <= 0;
             const on = size === s;
             return (
               <button
@@ -61,14 +75,15 @@ export default function BuyBox({ product, sizes }: Props) {
             );
           })}
         </div>
-        {!soldOut && <span className="text-sm text-muted">זמין במידות {avail.join(", ")}{avail.length <= 3 ? " — מלאי מוגבל" : ""}</span>}
+        {!soldOut && <span className="text-sm text-muted">{variant ? `ב${variant.label}: ` : ""}זמין במידות {avail.join(", ")}{avail.length <= 3 ? " — מלאי מוגבל" : ""}</span>}
+        {soldOut && variant && <span className="text-sm text-[#A13A0D] font-bold">הצבע {variant.label} אזל כרגע. אפשר לבחור צבע אחר או לכתוב לנו בוואטסאפ.</span>}
         {size && left > 0 && left <= 2 && <span className="text-sm text-[#A13A0D] font-bold">נשארו {left === 1 ? "זוג אחרון" : `${left} זוגות אחרונים`} במידה הזו</span>}
         {need && <span role="alert" className="text-sm text-[#A13A0D] font-bold">יש לבחור מידה לפני ההוספה לסל</span>}
       </div>
 
       <div className="flex gap-2.5">
         <button type="button" onClick={onAdd} disabled={soldOut} className="flex-1 h-[58px] rounded-[14px] bg-ink text-white text-[17px] font-bold disabled:opacity-50">
-          {soldOut ? "אזל מהמלאי" : `הוספה לסל · ₪${product.price}`}
+          {soldOut ? (variant ? `${variant.label} אזל` : "אזל מהמלאי") : `הוספה לסל · ₪${product.price}`}
         </button>
         <button type="button" aria-label="הוספה למועדפים" aria-pressed={fav} onClick={() => setFav(!fav)} className="w-[58px] h-[58px] rounded-[14px] border border-line bg-white flex items-center justify-center">
           <HeartIcon size={22} stroke={fav ? "#C0392B" : "#141414"} />
@@ -77,13 +92,13 @@ export default function BuyBox({ product, sizes }: Props) {
 
       {added && (
         <div role="status" className="px-4 py-3 rounded-[14px] bg-[#E2EADF] flex items-center justify-between text-[15px]">
-          <b>נוסף לסל — מידה {size}</b>
+          <b>נוסף לסל — {variant ? `${variant.label}, ` : ""}מידה {size}</b>
           <Link href="/cart" className="font-bold underline">לסל ולתשלום</Link>
         </div>
       )}
 
       <a
-        href={waLink(`שלום, אשמח להזמין: ${product.name}${size ? ` במידה ${size}` : ""} (₪${product.price})`)}
+        href={waLink(`שלום, אשמח להזמין: ${product.name}${variant ? ` בצבע ${variant.label}` : ""}${size ? ` במידה ${size}` : ""} (₪${product.price})`)}
         target="_blank"
         rel="noopener"
         className="h-[52px] rounded-[14px] border-[1.5px] border-[#1F8A4C] text-[#1F6B3B] text-base font-bold flex items-center justify-center gap-2 hover:text-[#1F6B3B]"

@@ -5,6 +5,7 @@ import { useCart } from "@/components/CartProvider";
 import { TrashIcon, TruckIcon } from "@/components/Icons";
 import { shekel } from "@/lib/config";
 import { usePromoPricing } from "@/components/usePromoPricing";
+import { lineKey } from "@/lib/variants";
 import { PromoHints, PromoRows } from "@/components/PromoSummary";
 
 export default function CartPage() {
@@ -33,28 +34,28 @@ export default function CartPage() {
         </div>
         <div>
           {items.map((it) => (
-            <div key={it.productId + "-" + it.size} className="flex gap-3.5 md:gap-5 py-4 border-b border-line">
+            <div key={lineKey(it.productId, it.size, it.color)} className="flex gap-3.5 md:gap-5 py-4 border-b border-line">
               <Link href={`/product/${it.slug}`} className="shrink-0">
                 <img src={it.image} alt={it.name} className="w-[96px] h-[96px] md:w-[120px] md:h-[120px] object-cover bg-ink" />
               </Link>
               <div className="flex-1 min-w-0 flex flex-col gap-1">
                 <div className="flex justify-between items-start gap-2">
                   <Link href={`/product/${it.slug}`} className="font-bold text-base md:text-lg">{it.name}</Link>
-                  <button onClick={() => remove(it.productId, it.size)} aria-label="הסרה מהסל" className="w-11 h-11 -mt-2.5 -ml-2.5 flex items-center justify-center text-muted">
+                  <button onClick={() => remove(it.productId, it.size, it.color)} aria-label="הסרה מהסל" className="w-11 h-11 -mt-2.5 -ml-2.5 flex items-center justify-center text-muted">
                     <TrashIcon />
                   </button>
                 </div>
-                <span className="text-[13px] text-muted">מידה {it.size}</span>
+                <span className="text-[13px] text-muted">{it.colorName ? `${it.colorName} · ` : ""}מידה {it.size}</span>
                 <div className="flex justify-between items-center mt-auto">
                   <div className="h-10 rounded-[10px] border border-line bg-white flex items-center">
-                    <button onClick={() => setQty(it.productId, it.size, it.qty + 1)} aria-label="הוספת כמות" className="w-10 h-[38px] text-lg">+</button>
+                    <button onClick={() => setQty(it.productId, it.size, it.qty + 1, it.color)} aria-label="הוספת כמות" className="w-10 h-[38px] text-lg">+</button>
                     <span className="w-5 text-center font-bold">{it.qty}</span>
-                    <button onClick={() => setQty(it.productId, it.size, it.qty - 1)} aria-label="הפחתת כמות" className="w-10 h-[38px] text-lg">−</button>
+                    <button onClick={() => setQty(it.productId, it.size, it.qty - 1, it.color)} aria-label="הפחתת כמות" className="w-10 h-[38px] text-lg">−</button>
                   </div>
-                  {promo.lines[`${it.productId}-${it.size}`] ? (
+                  {promo.lines[lineKey(it.productId, it.size, it.color)] ? (
                     <span className="flex flex-col items-end leading-tight">
                       <s className="text-[13px] text-muted">{shekel(it.price * it.qty)}</s>
-                      <b className="text-[17px] text-[#2F5A26]">{shekel(it.price * it.qty - promo.lines[`${it.productId}-${it.size}`])}</b>
+                      <b className="text-[17px] text-[#2F5A26]">{shekel(it.price * it.qty - promo.lines[lineKey(it.productId, it.size, it.color)])}</b>
                     </span>
                   ) : (
                     <b className="text-[17px]">{shekel(it.price * it.qty)}</b>

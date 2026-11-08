@@ -83,7 +83,7 @@ export default async function ProductsAdmin({ searchParams }: { searchParams: Re
       </form>
 
       {list.length ? (
-        <ProductsTable products={list} canEdit={canEdit} categoryNames={categoryNames(cats)} sizes={attrs.sizes} />
+        <ProductsTable products={list} canEdit={canEdit} categoryNames={categoryNames(cats)} sizes={attrs.sizes} colorHex={Object.fromEntries(attrs.colors.map((c) => [c.key, c.hex]))} />
       ) : (
         <div className="a-card">
           {all.length === 0 ? (

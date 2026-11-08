@@ -96,3 +96,5 @@ select.a-input { padding: 0 10px; }
 .nx-rise { animation: nx-rise .7s cubic-bezier(.2,.8,.2,1) both; }
 @keyframes nx-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .nx-blob, .nx-rise, .nx-shake, .nx-spin { animation: none !important; } .nx-btn { transition: none; } }
+
+@keyframes fadeIn { from { opacity: .35; } to { opacity: 1; } }

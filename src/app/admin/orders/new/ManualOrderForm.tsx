@@ -6,7 +6,8 @@ import { PAYMENT, PAYMENT_STATUS, SHIPPING, shekel } from "@/lib/config";
 import { createManualOrderAction } from "../actions";
 import { Result, Submit } from "../_components/forms";
 
-export type PickProduct = { id: number; name: string; price: number; image: string; stock: Record<string, number>; active: boolean };
+/** `stock` keys are sizes, or "colour::size" for variant products (labels in `labels`) */
+export type PickProduct = { id: number; name: string; price: number; image: string; stock: Record<string, number>; labels?: Record<string, string>; active: boolean };
 type Line = { key: number; productId: string; size: string; qty: number };
 
 let seq = 1;
@@ -20,7 +21,7 @@ export default function ManualOrderForm({ products }: { products: PickProduct[] 
 
   const update = (key: number, patch: Partial<Line>) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   const sizesOf = (p?: PickProduct) =>
-    p ? Object.entries(p.stock).filter(([, q]) => Number(q) > 0).sort((a, b) => Number(a[0]) - Number(b[0])) : [];
+    p ? Object.entries(p.stock).filter(([, q]) => Number(q) > 0).sort((a, b) => (p.labels ? 0 : Number(a[0]) - Number(b[0]))) : [];
 
   // what is already taken by other lines (same product + size)
   const used = (l: Line) => lines.filter((x) => x.key !== l.key && x.productId === l.productId && x.size === l.size).reduce((a, x) => a + x.qty, 0);
@@ -59,10 +60,10 @@ export default function ManualOrderForm({ products }: { products: PickProduct[] 
                     </select>
                   </label>
                   <label className="a-field flex-[1_1_100px]">
-                    מידה
+                    {p?.labels ? "צבע ומידה" : "מידה"}
                     <select name="size" className="a-input" value={l.size} required onChange={(e: any) => update(l.key, { size: e.target.value, qty: 1 })}>
                       <option value="">—</option>
-                      {sizes.map(([s, q]) => <option key={s} value={s}>{s} (נשארו {q})</option>)}
+                      {sizes.map(([s, q]) => <option key={s} value={s}>{p?.labels?.[s] || s} (נשארו {q})</option>)}
                     </select>
                   </label>
                   <label className="a-field w-[86px]">

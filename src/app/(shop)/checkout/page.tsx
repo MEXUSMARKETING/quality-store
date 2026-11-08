@@ -9,6 +9,7 @@ import { checkCouponAction, placeOrder, type ActionResult } from "@/app/actions"
 import { LockIcon, WhatsAppIcon } from "@/components/Icons";
 import { STORE, shekel } from "@/lib/config";
 import { usePromoPricing } from "@/components/usePromoPricing";
+import { lineKey } from "@/lib/variants";
 import { PromoHints, PromoRows } from "@/components/PromoSummary";
 
 function Radio({ name, value, current, onChange, title, sub, price }: { name: string; value: string; current: string; onChange: (v: string) => void; title: string; sub: string; price?: string }) {
@@ -206,13 +207,13 @@ export default function CheckoutPage() {
       <aside className="w-full lg:w-[400px] lg:sticky lg:top-24 p-5 md:p-6 rounded-[20px] bg-panel flex flex-col gap-4">
         <h2 className="font-display font-bold text-[22px]">ההזמנה שלך</h2>
         {items.map((it) => (
-          <div key={it.productId + it.size} className="flex gap-3 items-center pb-3 border-b border-[#EEECE6]">
+          <div key={lineKey(it.productId, it.size, it.color)} className="flex gap-3 items-center pb-3 border-b border-[#EEECE6]">
             <img src={it.image} alt="" className="w-16 h-16 object-cover bg-ink" />
-            <span className="flex-1 text-sm"><b className="block text-[15px]">{it.name}</b>מידה {it.size} · ×{it.qty}</span>
-            {promo.lines[`${it.productId}-${it.size}`] ? (
+            <span className="flex-1 text-sm"><b className="block text-[15px]">{it.name}</b>{it.colorName ? `${it.colorName} · ` : ""}מידה {it.size} · ×{it.qty}</span>
+            {promo.lines[lineKey(it.productId, it.size, it.color)] ? (
               <span className="flex flex-col items-end leading-tight">
                 <s className="text-[13px] text-muted">{shekel(it.price * it.qty)}</s>
-                <b className="text-[#2F5A26]">{shekel(it.price * it.qty - promo.lines[`${it.productId}-${it.size}`])}</b>
+                <b className="text-[#2F5A26]">{shekel(it.price * it.qty - promo.lines[lineKey(it.productId, it.size, it.color)])}</b>
               </span>
             ) : (
               <b>{shekel(it.price * it.qty)}</b>

@@ -32,7 +32,7 @@ export async function GET(req: Request) {
       PAYMENT_STATUS[o.payment_status || "pending"]?.label || o.payment_status,
       ORDER_STATUS[o.status]?.label || o.status,
       itemsCount(o),
-      o.items.map((i) => `${i.name} מידה ${i.size} ×${i.qty}`).join(" | "),
+      o.items.map((i) => `${i.name}${i.colorName ? ` ${i.colorName}` : ""} מידה ${i.size} ×${i.qty}`).join(" | "),
       o.subtotal,
       o.discount || 0,
       o.coupon_code,

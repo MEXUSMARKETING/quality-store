@@ -50,7 +50,7 @@ export default async function OrderPage({ params, searchParams }: { params: { id
   const summary = [
     `שלום ${o.customer_name}, כאן Quality טמרה.`,
     `לגבי ההזמנה שלך ${o.number}:`,
-    ...o.items.map((i) => `• ${i.name} – מידה ${i.size} × ${i.qty}`),
+    ...o.items.map((i) => `• ${i.name}${i.colorName ? ` – ${i.colorName}` : ""} – מידה ${i.size} × ${i.qty}`),
     `סה״כ: ${shekel(o.total)}`,
     o.tracking ? `מספר מעקב: ${o.tracking}` : "",
   ].filter(Boolean).join("\n");
@@ -96,7 +96,7 @@ export default async function OrderPage({ params, searchParams }: { params: { id
                   {it.image ? <img src={it.image} alt="" className="w-14 h-14 rounded-[10px] object-cover bg-adm-bg shrink-0" /> : <span className="w-14 h-14 rounded-[10px] bg-adm-bg shrink-0" aria-hidden="true" />}
                   <span className="flex-1 min-w-0 flex flex-col gap-0.5">
                     <Link href={`/admin/products/${it.productId}`} className="font-semibold text-[15px] hover:underline">{it.name}</Link>
-                    <span className="text-[13px] text-adm-muted">מידה <b className="text-adm-text">{it.size}</b> · כמות {it.qty} · {shekel(it.price)} ליחידה (במחיר הקנייה)</span>
+                    <span className="text-[13px] text-adm-muted">{it.colorName && <>צבע <b className="text-adm-text">{it.colorName}</b> · </>}מידה <b className="text-adm-text">{it.size}</b> · כמות {it.qty} · {shekel(it.price)} ליחידה (במחיר הקנייה)</span>
                   </span>
                   <span className="flex flex-col items-end">
                     <b className="whitespace-nowrap">{shekel(it.price * it.qty)}</b>

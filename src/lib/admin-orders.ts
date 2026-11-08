@@ -1,5 +1,6 @@
 import { db, hasDb } from "./db";
 import { normCustomer, phoneKey } from "./admin";
+import { adjustStock } from "./store";
 import type { Customer, Order, OrderEvent } from "./types";
 
 /* Admin v2 – orders & customers queries (server only). Money is integer shekels. */
@@ -153,13 +154,7 @@ export async function changeOrderStatus(id: number, status: string, opts: { note
           const size = String(it.size || "");
           const pid = Number(it.productId);
           if (!qty || !size || !Number.isFinite(pid)) continue;
-          const u = await tx`
-            update products
-            set stock = jsonb_set(coalesce(stock, '{}'::jsonb), array[${size}]::text[],
-                                  to_jsonb(coalesce((stock->>${size})::int, 0) + ${qty}::int), true),
-                updated_at = now()
-            where id = ${pid} returning id`;
-          if (u[0]) restocked += qty;
+          if (await adjustStock(tx, pid, size, it.color ? String(it.color) : null, qty)) restocked += qty;
         }
         await tx`insert into order_events (order_id, type, message, actor)
                  values (${id}, 'restock', ${`${restocked} זוגות הוחזרו למלאי`}, 'מנהל')`;

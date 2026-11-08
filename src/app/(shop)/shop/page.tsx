@@ -2,6 +2,7 @@ import Link from "next/link";
 import { listProducts } from "@/lib/store";
 import ProductCard from "@/components/ProductCard";
 import { getPromoBadges } from "@/lib/promotions";
+import { hasColor, stockFor } from "@/lib/variants";
 import { CATEGORIES, STORE, waLink } from "@/lib/config";
 import { descendantKeys, getAttributes, getCategories, getRatings } from "@/lib/catalog";
 import type { Product } from "@/lib/types";
@@ -58,6 +59,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
   const subs = cats.filter((c) => c.parent === category);
   const parentCat = cat?.parent ? cats.find((c) => c.key === cat.parent) : undefined;
   const COLORS = Object.fromEntries(attrs.colors.map((c) => [c.key, c]));
+  const palette = Object.fromEntries(attrs.colors.map((c) => [c.key, { hex: c.hex, label: c.label }]));
   // a hidden (inactive) category shows nothing – the "coming soon" message – except the default boots page
   let list = cat || category === "boots" ? all.filter((p) => inCat.has(p.category)) : [];
   if (q) list = all.filter((p) => (p.name + " " + p.description).includes(q));
@@ -65,9 +67,10 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
   const hasPromos = Object.keys(badges).length > 0;
   // "on sale" view: every product in a running promotion, across categories (unless a category was chosen)
   if (promo) list = (one(searchParams.category) || q ? list : all).filter((p) => badges[p.id]);
-  if (color) list = list.filter((p) => p.color === color);
+  if (color) list = list.filter((p) => hasColor(p, color, true));
   if (heel && HEELS[heel]) list = list.filter(HEELS[heel].test);
-  if (size) list = list.filter((p) => Number(p.stock?.[size] || 0) > 0);
+  // with a colour filter, the size must be in stock in that colour
+  if (size) list = list.filter((p) => Number(stockFor(p, color && p.variants ? color : null)[size] || 0) > 0);
   if (max) list = list.filter((p) => p.price <= max);
 
   const pct = (p: Product) => (p.old_price && p.old_price > p.price ? 1 - p.price / p.old_price : 0);
@@ -231,7 +234,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
           {list.length ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-7 md:gap-x-5 md:gap-y-9">
               {list.map((p) => (
-                <ProductCard key={p.id} p={p} rating={ratings[p.id]} promo={badges[p.id]} />
+                <ProductCard key={p.id} p={p} rating={ratings[p.id]} promo={badges[p.id]} color={color || undefined} palette={palette} />
               ))}
             </div>
           ) : (

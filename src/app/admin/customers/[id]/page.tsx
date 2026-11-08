@@ -89,7 +89,7 @@ export default async function CustomerPage({ params, searchParams }: { params: {
                       <tr key={o.id}>
                         <td><Link href={`/admin/orders/${o.id}`} className="font-bold text-adm-link" dir="ltr">{o.number}</Link></td>
                         <td className="text-adm-muted whitespace-nowrap">{fmtDateTime(o.created_at)}</td>
-                        <td className="text-[13px]">{o.items.map((i) => `${i.name} (${i.size})${i.qty > 1 ? ` ×${i.qty}` : ""}`).join(", ")}</td>
+                        <td className="text-[13px]">{o.items.map((i) => `${i.name} (${i.colorName ? `${i.colorName} ` : ""}${i.size})${i.qty > 1 ? ` ×${i.qty}` : ""}`).join(", ")}</td>
                         <td className="font-semibold whitespace-nowrap">{shekel(o.total)}</td>
                         <td><PaymentStatusChip status={o.payment_status} /></td>
                         <td><OrderStatusChip status={o.status} /></td>

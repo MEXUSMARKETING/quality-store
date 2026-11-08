@@ -2,10 +2,17 @@ import { db, hasDb } from "./db";
 import { SEED_WITH_IDS } from "./seed";
 import { addOrderEvent, markCouponUsed, upsertCustomer } from "./admin";
 import type { ClubMember, Order, Product } from "./types";
+import { aggregateStock, colorTotal, normVariants, type Variants } from "./variants";
 
 function normProduct(r: any): Product {
-  const images = typeof r.images === "string" ? JSON.parse(r.images) : r.images || [];
-  const stock = typeof r.stock === "string" ? JSON.parse(r.stock) : r.stock || {};
+  const rawImages = typeof r.images === "string" ? JSON.parse(r.images) : r.images || [];
+  const baseImages: string[] = Array.isArray(rawImages) ? rawImages : [];
+  const rawStock = typeof r.stock === "string" ? JSON.parse(r.stock) : r.stock || {};
+  const variants = normVariants(r.variants);
+  // variant products: plain stock = total per size, colour = default colour, images = its view
+  const stock = variants ? aggregateStock(variants) : rawStock && typeof rawStock === "object" ? rawStock : {};
+  const lead = variants ? variants.colors.find((c) => colorTotal(variants, c.key) > 0) || variants.colors[0] : null;
+  const images = lead ? Array.from(new Set([...lead.images, ...baseImages])) : baseImages;
   return {
     id: Number(r.id),
     slug: r.slug,
@@ -14,10 +21,10 @@ function normProduct(r: any): Product {
     price: Number(r.price),
     old_price: r.old_price === null || r.old_price === undefined ? null : Number(r.old_price),
     heel: r.heel === null || r.heel === undefined ? null : Number(r.heel),
-    color: r.color || "black",
+    color: lead ? lead.key : r.color || "black",
     category: r.category || "boots",
-    images: Array.isArray(images) ? images : [],
-    stock: stock && typeof stock === "object" ? stock : {},
+    images,
+    stock,
     featured: !!r.featured,
     active: !!r.active,
     sort: Number(r.sort ?? 100),
@@ -28,6 +35,8 @@ function normProduct(r: any): Product {
     seo_title: r.seo_title || "",
     seo_description: r.seo_description || "",
     updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : undefined,
+    variants,
+    baseImages,
   };
 }
 
@@ -100,8 +109,12 @@ export type ProductInput = Omit<Product, "id" | "created_at">;
 
 export async function saveProduct(id: number | null, p: ProductInput): Promise<number> {
   const sql = await db();
-  const images = JSON.stringify(p.images);
-  const stock = JSON.stringify(p.stock);
+  const v = normVariants(p.variants);
+  // variant products: the images column holds the shared images; stock = total per size; colour = default colour
+  const images = JSON.stringify(v ? p.baseImages ?? p.images : p.images);
+  const stock = JSON.stringify(v ? aggregateStock(v) : p.stock);
+  const variants = v ? JSON.stringify(v) : null;
+  if (v) p = { ...p, color: v.colors[0].key };
   const sku = (p.sku ?? "").trim();
   const cost = p.cost === undefined ? null : p.cost;
   const lowStock = Number.isFinite(p.low_stock as number) ? Math.max(0, Number(p.low_stock)) : 2;
@@ -113,16 +126,16 @@ export async function saveProduct(id: number | null, p: ProductInput): Promise<n
         old_price=${p.old_price}, heel=${p.heel}, color=${p.color}, category=${p.category},
         images=${images}::jsonb, stock=${stock}::jsonb, featured=${p.featured}, active=${p.active}, sort=${p.sort},
         sku=${sku}, cost=${cost}, low_stock=${lowStock}, seo_title=${seoTitle}, seo_description=${seoDescription},
-        updated_at=now()
+        variants=${variants}::jsonb, updated_at=now()
       where id=${id}`;
     return id;
   }
   const r = await sql`
     insert into products (slug, name, description, price, old_price, heel, color, category, images, stock, featured, active, sort,
-                          sku, cost, low_stock, seo_title, seo_description, updated_at)
+                          sku, cost, low_stock, seo_title, seo_description, variants, updated_at)
     values (${p.slug}, ${p.name}, ${p.description}, ${p.price}, ${p.old_price}, ${p.heel}, ${p.color}, ${p.category},
             ${images}::jsonb, ${stock}::jsonb, ${p.featured}, ${p.active}, ${p.sort},
-            ${sku}, ${cost}, ${lowStock}, ${seoTitle}, ${seoDescription}, now())
+            ${sku}, ${cost}, ${lowStock}, ${seoTitle}, ${seoDescription}, ${variants}::jsonb, now())
     returning id`;
   return Number(r[0].id);
 }
@@ -162,6 +175,37 @@ export async function bulkUpdateProducts(ids: number[], op: BulkProductOp): Prom
   return rows.map((r: any) => ({ id: Number(r.id), name: String(r.name) }));
 }
 
+/* ---------------- stock ---------------- */
+
+/**
+ * Change stock for one line (delta < 0 sells, > 0 returns to stock). For variant products the
+ * colour's own size is changed and the size total kept in step; never goes below zero.
+ * Works with a plain client or inside a transaction (`tx`).
+ */
+export async function adjustStock(sql: any, productId: number, size: string, color: string | null, delta: number): Promise<boolean> {
+  const d = Math.round(Number(delta) || 0);
+  if (!d || !size) return false;
+  const rows = await sql`select variants from products where id = ${productId} for update`;
+  if (!rows[0]) return false;
+  const v: Variants | null = normVariants(rows[0].variants);
+  if (v) {
+    const key = color && v.colors.some((c) => c.key === color) ? color : v.colors[0].key;
+    const row = { ...(v.stock[key] || {}) };
+    const next = Math.max(0, (Number(row[size]) || 0) + d);
+    if (next > 0) row[size] = next;
+    else delete row[size];
+    v.stock[key] = row;
+    await sql`update products set variants = ${JSON.stringify(v)}::jsonb, stock = ${JSON.stringify(aggregateStock(v))}::jsonb, updated_at = now() where id = ${productId}`;
+    return true;
+  }
+  await sql`
+    update products
+    set stock = jsonb_set(coalesce(stock, '{}'::jsonb), ARRAY[${size}]::text[], to_jsonb(greatest(coalesce((stock->>${size})::int, 0) + ${d}::int, 0)), true),
+        updated_at = now()
+    where id = ${productId}`;
+  return true;
+}
+
 /* ---------------- orders ---------------- */
 
 export async function createOrder(
@@ -180,13 +224,10 @@ export async function createOrder(
   const id = Number(r[0].id);
   const number = "Q" + (1000 + id);
   await sql`update orders set number=${number} where id=${id}`;
-  for (const it of o.items) {
-    await sql`
-      update products
-      set stock = jsonb_set(stock, ARRAY[${it.size}]::text[],
-        to_jsonb(greatest(coalesce((stock->>${it.size})::int, 0) - ${it.qty}, 0)))
-      where id = ${it.productId}`;
-  }
+  // one transaction, so two orders for the same pair can't both read the old count
+  await sql.begin(async (tx: any) => {
+    for (const it of o.items) await adjustStock(tx, it.productId, it.size, it.color || null, -it.qty);
+  });
   // Admin v2 side effects: never let them break the order itself
   try {
     await addOrderEvent(id, "created", "ההזמנה התקבלה מהאתר", "לקוח");

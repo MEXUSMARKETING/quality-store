@@ -9,12 +9,14 @@ type CartCtx = {
   subtotal: number;
   ready: boolean;
   add: (item: CartItem) => void;
-  setQty: (productId: number, size: string, qty: number) => void;
-  remove: (productId: number, size: string) => void;
+  setQty: (productId: number, size: string, qty: number, color?: string) => void;
+  remove: (productId: number, size: string, color?: string) => void;
   clear: () => void;
 };
 
 const Ctx = createContext<CartCtx | null>(null);
+/** same product + size + colour (colour only for variant products) */
+const same = (x: CartItem, productId: number, size: string, color?: string) => x.productId === productId && x.size === size && (x.color || "") === (color || "");
 const KEY = "quality_cart_v1";
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
@@ -38,7 +40,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const add = useCallback((item: CartItem) => {
     setItems((prev) => {
-      const i = prev.findIndex((x) => x.productId === item.productId && x.size === item.size);
+      const i = prev.findIndex((x) => same(x, item.productId, item.size, item.color));
       if (i >= 0) {
         const next = [...prev];
         next[i] = { ...next[i], qty: Math.min(9, next[i].qty + item.qty) };
@@ -48,14 +50,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const setQty = useCallback((productId: number, size: string, qty: number) => {
-    setItems((prev) =>
-      prev.map((x) => (x.productId === productId && x.size === size ? { ...x, qty: Math.max(1, Math.min(9, qty)) } : x))
-    );
+  const setQty = useCallback((productId: number, size: string, qty: number, color?: string) => {
+    setItems((prev) => prev.map((x) => (same(x, productId, size, color) ? { ...x, qty: Math.max(1, Math.min(9, qty)) } : x)));
   }, []);
 
-  const remove = useCallback((productId: number, size: string) => {
-    setItems((prev) => prev.filter((x) => !(x.productId === productId && x.size === size)));
+  const remove = useCallback((productId: number, size: string, color?: string) => {
+    setItems((prev) => prev.filter((x) => !same(x, productId, size, color)));
   }, []);
 
   const clear = useCallback(() => setItems([]), []);

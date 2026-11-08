@@ -8,6 +8,8 @@ import { getApprovedReviews, getAttributes, getCategories, getRatings, type Revi
 import { ReportButton, ReviewForm, Stars } from "./ReviewWidgets";
 import { getPromoBadges, promotionsForProduct } from "@/lib/promotions";
 import { describePromo, autoBadge } from "@/lib/promotions-shared";
+import { VariantGallery, VariantScope, type ColorOption } from "@/components/ProductVariants";
+import { defaultColor, imagesFor } from "@/lib/variants";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +18,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   return { title: p?.seo_title || p?.name || "מוצר", description: p?.seo_description || p?.description };
 }
 
-export default async function ProductPage({ params }: { params: { slug: string } }) {
+export default async function ProductPage({ params, searchParams }: { params: { slug: string }; searchParams: { color?: string } }) {
   const p = await getProductBySlug(decodeURIComponent(params.slug));
   if (!p || !p.active) notFound();
   const [all, attrs, cats, ratings, reviews] = await Promise.all([
@@ -34,6 +36,21 @@ export default async function ProductPage({ params }: { params: { slug: string }
   const dist = [5, 4, 3, 2, 1].map((s) => ({ s, n: reviews.filter((r: Review) => r.rating === s).length }));
   const fmt = (d: string) => new Date(d).toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem", day: "numeric", month: "long", year: "numeric" });
   const pct = p.old_price && p.old_price > p.price ? Math.round((1 - p.price / p.old_price) * 100) : null;
+  // variant products: every colour with its images and stock per size
+  const colorOptions: ColorOption[] = p.variants
+    ? p.variants.colors.map((c) => {
+        const a = attrs.colors.find((x) => x.key === c.key);
+        return { key: c.key, label: a?.label || c.key, hex: a?.hex || "#CCCCCC", images: imagesFor(p, c.key), stock: p.variants!.stock[c.key] || {} };
+      })
+    : [];
+  const initialColor = p.variants ? defaultColor(p, typeof searchParams?.color === "string" ? searchParams.color : null) : null;
+  const badgesOverlay =
+    pct || promos[0] ? (
+      <span className="absolute top-4 right-4 flex flex-col items-end gap-1.5">
+        {promos[0] && <span className="text-sm font-extrabold px-3.5 py-1.5 rounded-full bg-gold text-ink">{promos[0].badge || autoBadge(promos[0].type, promos[0].config)}</span>}
+        {pct && <span className={`text-sm font-bold px-3.5 py-1.5 rounded-full ${promos[0] ? "bg-white text-ink" : "bg-gold"}`}>−{pct}%</span>}
+      </span>
+    ) : null;
 
   return (
     <div className="container-site pt-4 md:pt-6 pb-16">
@@ -43,25 +60,9 @@ export default async function ProductPage({ params }: { params: { slug: string }
         <span className="truncate">{p.name}</span>
       </nav>
 
+      <VariantScope colors={colorOptions} initial={initialColor} fallbackImages={p.images}>
       <div className="flex flex-col lg:flex-row gap-7 lg:gap-12 items-start">
-        <div className="w-full lg:flex-1 flex flex-col gap-3">
-          <div className="relative overflow-hidden bg-ink aspect-square">
-            {p.images[0] && <img src={p.images[0]} alt={p.name} className="w-full h-full object-contain" />}
-            {(pct || promos[0]) && (
-              <span className="absolute top-4 right-4 flex flex-col items-end gap-1.5">
-                {promos[0] && <span className="text-sm font-extrabold px-3.5 py-1.5 rounded-full bg-gold text-ink">{promos[0].badge || autoBadge(promos[0].type, promos[0].config)}</span>}
-                {pct && <span className={`text-sm font-bold px-3.5 py-1.5 rounded-full ${promos[0] ? "bg-white text-ink" : "bg-gold"}`}>−{pct}%</span>}
-              </span>
-            )}
-          </div>
-          {p.images.length > 1 && (
-            <div className="grid grid-cols-4 gap-2.5">
-              {p.images.slice(1, 5).map((src) => (
-                <img key={src} src={src} alt="" className="aspect-square object-cover bg-ink" />
-              ))}
-            </div>
-          )}
-        </div>
+        <VariantGallery name={p.name} overlay={badgesOverlay} />
 
         <div className="w-full lg:flex-1 lg:max-w-[520px] flex flex-col gap-5 md:gap-[22px]">
           <div className="flex flex-col gap-2">
@@ -86,7 +87,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
 
           <div className="flex flex-wrap gap-2">
             {p.heel ? <span className="h-[38px] px-4 rounded-full bg-panel border border-line flex items-center text-[15px]">עקב {p.heel} ס״מ</span> : null}
-            {color ? (
+            {color && !p.variants ? (
               <span className="h-[38px] px-4 rounded-full bg-panel border border-line flex items-center gap-2 text-[15px]">
                 <span className="w-4 h-4 rounded-full border border-line" style={{ background: color.hex }} aria-hidden="true" /> {color.label}
               </span>
@@ -131,6 +132,8 @@ export default async function ProductPage({ params }: { params: { slug: string }
           </div>
         </div>
       </div>
+
+      </VariantScope>
 
       <section id="reviews" aria-labelledby="reviews-title" className="pt-14 md:pt-16 scroll-mt-24">
         <div className="flex flex-col md:flex-row gap-6 md:gap-12 items-start">
@@ -191,7 +194,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
         <section className="pt-14 md:pt-16">
           <h2 className="font-display font-bold text-[24px] md:text-[30px] pb-5">עוד מהקולקציה</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-7 md:gap-x-5">
-            {related.map((r) => <ProductCard key={r.id} p={r} rating={ratings[r.id]} promo={badges[r.id]} />)}
+            {related.map((r) => <ProductCard key={r.id} p={r} rating={ratings[r.id]} promo={badges[r.id]} palette={Object.fromEntries(attrs.colors.map((c) => [c.key, { hex: c.hex, label: c.label }]))} />)}
           </div>
         </section>
       )}

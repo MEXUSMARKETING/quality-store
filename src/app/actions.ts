@@ -4,6 +4,8 @@ import { hasDb } from "@/lib/db";
 import { addClubMember, createOrder, getProductById } from "@/lib/store";
 import { checkCoupon } from "@/lib/admin";
 import { priceCartRows } from "@/lib/promotions";
+import { getAttributes } from "@/lib/catalog";
+import { imagesFor, lineKey, unitsFor } from "@/lib/variants";
 import type { CartItem, OrderItem } from "@/lib/types";
 import { PAYMENT, SHIPPING, STORE, shekel, waLink } from "@/lib/config";
 
@@ -40,11 +42,11 @@ export type CartPricing = {
 };
 
 /** Storefront: price the cart with the running promotions (display; placeOrder recomputes). */
-export async function priceCartAction(rows: { productId: number; size: string; qty: number }[]): Promise<CartPricing> {
+export async function priceCartAction(rows: { productId: number; size: string; color?: string; qty: number }[]): Promise<CartPricing> {
   const empty: CartPricing = { ok: false, subtotal: 0, discount: 0, total: 0, applied: [], lines: {}, allowCoupon: true, hints: [] };
   if (!hasDb() || !Array.isArray(rows) || !rows.length) return empty;
   try {
-    const r = await priceCartRows(rows.slice(0, 30).map((x) => ({ productId: Number(x?.productId), size: String(x?.size ?? ""), qty: Number(x?.qty) })));
+    const r = await priceCartRows(rows.slice(0, 30).map((x) => ({ productId: Number(x?.productId), size: String(x?.size ?? ""), color: x?.color ? String(x.color) : undefined, qty: Number(x?.qty) })));
     return { ok: true, subtotal: r.subtotal, discount: r.discount, total: r.total, applied: r.applied, lines: r.lines, allowCoupon: r.allowCoupon, hints: r.hints };
   } catch (e) {
     console.error("priceCart failed", e);
@@ -99,16 +101,22 @@ export async function placeOrder(_: ActionResult | null, fd: FormData): Promise<
 
   // Recompute everything from the catalogue so prices can't be changed in the browser
   const items: OrderItem[] = [];
+  const colorNames: Record<string, string> = hasDb() ? Object.fromEntries((await getAttributes().catch(() => ({ colors: [] as { key: string; label: string }[] }))).colors.map((c) => [c.key, c.label])) : {};
   for (const c of cart.slice(0, 30)) {
     const p = await getProductById(Number(c.productId));
     const qty = Math.max(1, Math.min(9, Number(c.qty) || 1));
     const size = String(c.size);
     if (!p || !p.active) return { ok: false, error: `המוצר "${c.name}" כבר לא זמין` };
-    const inStock = Number(p.stock?.[size] || 0);
+    // variant products: the colour must be one of the product's colours
+    const color = p.variants ? (c.color && p.variants.colors.some((x) => x.key === c.color) ? String(c.color) : null) : null;
+    if (p.variants && !color) return { ok: false, error: `יש לבחור צבע ל"${p.name}". הסירי אותו מהסל והוסיפי שוב.` };
+    const colorName = color ? colorNames[color] || color : "";
+    const what = `"${p.name}"${colorName ? ` ב${colorName}` : ""} במידה ${size}`;
+    const inStock = unitsFor(p, size, color);
     if (inStock < qty) {
-      return { ok: false, error: inStock > 0 ? `נשארו רק ${inStock} זוגות של "${p.name}" במידה ${size}` : `"${p.name}" במידה ${size} אזל מהמלאי` };
+      return { ok: false, error: inStock > 0 ? `נשארו רק ${inStock} זוגות של ${what}` : `${what} אזל מהמלאי` };
     }
-    items.push({ productId: p.id, slug: p.slug, name: p.name, image: p.images[0] || "", size, qty, price: p.price });
+    items.push({ productId: p.id, slug: p.slug, name: p.name, image: imagesFor(p, color)[0] || "", size, ...(color ? { color, colorName } : {}), qty, price: p.price });
   }
   const subtotal = items.reduce((a, x) => a + x.price * x.qty, 0);
 
@@ -118,12 +126,12 @@ export async function placeOrder(_: ActionResult | null, fd: FormData): Promise<
   let allowCoupon = true;
   if (hasDb()) {
     try {
-      const pr = await priceCartRows(items.map((x) => ({ productId: x.productId, size: x.size, qty: x.qty })));
+      const pr = await priceCartRows(items.map((x) => ({ productId: x.productId, size: x.size, color: x.color, qty: x.qty })));
       promo_discount = Math.max(0, Math.min(subtotal, pr.discount));
       promotions = pr.applied;
       allowCoupon = pr.allowCoupon;
       for (const it of items) {
-        const d = pr.lines[`${it.productId}-${it.size}`];
+        const d = pr.lines[lineKey(it.productId, it.size, it.color)];
         if (d) it.discount = d;
       }
     } catch (e) {
@@ -147,7 +155,7 @@ export async function placeOrder(_: ActionResult | null, fd: FormData): Promise<
 
   const summary =
     `הזמנה חדשה מהאתר\n` +
-    items.map((x) => `• ${x.name} | מידה ${x.size} | ×${x.qty} | ${shekel(x.price * x.qty)}`).join("\n") +
+    items.map((x) => `• ${x.name}${x.colorName ? ` | ${x.colorName}` : ""} | מידה ${x.size} | ×${x.qty} | ${shekel(x.price * x.qty)}`).join("\n") +
     (promo_discount || discount ? `\nסכום ביניים: ${shekel(subtotal)}` : "") +
     promotions.map((p) => `\nמבצע ${p.badge || p.name}: -${shekel(p.discount)}`).join("") +
     (discount ? `\nקופון ${coupon_code}: -${shekel(discount)}` : "") +

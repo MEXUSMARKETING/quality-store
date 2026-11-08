@@ -1,3 +1,5 @@
+import type { Variants } from "./variants";
+
 export type Product = {
   id: number;
   slug: string;
@@ -21,6 +23,10 @@ export type Product = {
   seo_title?: string;
   seo_description?: string;
   updated_at?: string;
+  /** colours × sizes (null = simple product: one colour, stock per size) */
+  variants?: Variants | null;
+  /** images shared by all colours (variant products); `images` is the default colour's view */
+  baseImages?: string[];
 };
 
 export type OrderItem = {
@@ -29,6 +35,9 @@ export type OrderItem = {
   name: string;
   image: string;
   size: string;
+  /** variant colour key and its display name at order time (variant products only) */
+  color?: string;
+  colorName?: string;
   qty: number;
   price: number;
   /** promotion discount on this row (whole shekels), set when the order is placed */

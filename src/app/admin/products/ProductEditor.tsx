@@ -9,12 +9,13 @@ import { Icon, Notice } from "../_components/ui";
 import { saveProductAction, type SaveState } from "./actions";
 import { slugify } from "./shared";
 import AiDescribeButton from "../ai/AiDescribeButton";
+import VariantsEditor from "./VariantsEditor";
 
 const TABS = [
   { key: "general", label: "פרטים כלליים" },
   { key: "price", label: "מחיר ורווח" },
   { key: "images", label: "תמונות" },
-  { key: "stock", label: "מידות ומלאי" },
+  { key: "stock", label: "צבעים, מידות ומלאי" },
   { key: "seo", label: "SEO" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
@@ -122,7 +123,8 @@ export default function ProductEditor({
   const [cost, setCost] = useState(product?.cost !== null && product?.cost !== undefined ? String(product.cost) : "");
 
   // images
-  const [images, setImages] = useState<string[]>(product?.images || []);
+  // variant products: this tab holds the images shared by all colours
+  const [images, setImages] = useState<string[]>(product?.baseImages ?? product?.images ?? []);
   const [pasted, setPasted] = useState("");
   const [picked, setPicked] = useState<{ name: string; url: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -130,6 +132,8 @@ export default function ProductEditor({
   // stock
   const [stock, setStock] = useState<Record<string, string>>(() => Object.fromEntries(SIZES.map((s) => [s, product?.stock?.[s] ? String(product.stock[s]) : ""])));
   const [lowStock, setLowStock] = useState(String(product?.low_stock ?? 2));
+  const [variantInfo, setVariantInfo] = useState({ on: !!product?.variants, total: 0, colors: product?.variants?.colors.length || 0 });
+  const [simpleColor, setSimpleColor] = useState(product?.color || "black");
 
   // seo
   const [seoTitle, setSeoTitle] = useState(product?.seo_title || "");
@@ -156,7 +160,8 @@ export default function ProductEditor({
   const margin = profit !== null && p ? Math.round((profit * 100) / p) : null;
   const discount = p !== null && op && op > p ? Math.round(((op - p) * 100) / op) : null;
   const qty = (s: string) => toInt(stock[s]) || 0;
-  const total = SIZES.reduce((a, s) => a + qty(s), 0);
+  const simpleTotal = SIZES.reduce((a, s) => a + qty(s), 0);
+  const total = variantInfo.on ? variantInfo.total : simpleTotal;
   const low = toInt(lowStock) ?? 2;
 
   const levelCls = (n: number) => (n === 0 ? "border-[#E8E5F3] bg-[#F9F8FD]" : n <= 1 ? "border-[#F5DFB3] bg-[#FFF8EB]" : "border-[#C6EADB] bg-[#F1FAF6]");
@@ -243,7 +248,7 @@ export default function ProductEditor({
       <fieldset disabled={!canEdit} className="contents">
         {/* ---------------- general ---------------- */}
         <div role="tabpanel" id="panel-general" aria-labelledby="tab-general" data-tab="general" className={tab === "general" ? "flex flex-col gap-5" : "hidden"}>
-          <Section title="פרטי המוצר" sub="כל מוצר הוא צבע אחד. לצבע נוסף של אותו דגם – שכפלי את המוצר.">
+          <Section title="פרטי המוצר" sub="דגם בכמה צבעים? מגדירים את הצבעים, התמונות והמלאי לכל צבע בלשונית „צבעים, מידות ומלאי”.">
             <label className="a-field">
               שם המוצר *
               <input name="name" required maxLength={160} value={name} onChange={(e) => setName(e.target.value)} className="a-input" placeholder="למשל: מגפון עור שחור עם עקב בלוק" />
@@ -289,10 +294,14 @@ export default function ProductEditor({
               </label>
               <label className="a-field">
                 צבע
-                <select name="color" defaultValue={product?.color || "black"} className="a-input">
-                  {colorOptions.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
-                  {product?.color && !colorOptions.some((c) => c.key === product.color) && <option value={product.color}>{product.color}</option>}
-                </select>
+                {variantInfo.on ? (
+                  <button type="button" onClick={() => setTab("stock")} className="a-input text-start text-adm-link underline">{variantInfo.colors} צבעים (וריאציות)</button>
+                ) : (
+                  <select name="color" value={simpleColor} onChange={(e) => setSimpleColor(e.target.value)} className="a-input">
+                    {colorOptions.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+                    {product?.color && !colorOptions.some((c) => c.key === product.color) && <option value={product.color}>{product.color}</option>}
+                  </select>
+                )}
               </label>
               <label className="a-field">
                 גובה עקב (ס״מ)
@@ -355,7 +364,13 @@ export default function ProductEditor({
 
         {/* ---------------- images ---------------- */}
         <div role="tabpanel" id="panel-images" aria-labelledby="tab-images" data-tab="images" className={tab === "images" ? "flex flex-col gap-5" : "hidden"}>
-          <Section title="תמונות המוצר" sub="התמונה הראשונה היא התמונה הראשית בחנות. אפשר לשנות סדר, לבחור ראשית ולהסיר.">
+          {variantInfo.on && (
+            <Notice tone="blue">
+              למוצר יש כמה צבעים. התמונות כאן <b>משותפות לכל הצבעים</b> ומוצגות אחרי התמונות של הצבע שנבחר. את התמונות של כל צבע מוסיפים בלשונית{" "}
+              <button type="button" className="underline font-semibold" onClick={() => setTab("stock")}>צבעים, מידות ומלאי</button>.
+            </Notice>
+          )}
+          <Section title={variantInfo.on ? "תמונות משותפות" : "תמונות המוצר"} sub="התמונה הראשונה היא התמונה הראשית בחנות. אפשר לשנות סדר, לבחור ראשית ולהסיר.">
             {images.map((src) => <input key={src} type="hidden" name="image" value={src} />)}
             {images.length ? (
               <ul className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))]">
@@ -457,6 +472,17 @@ export default function ProductEditor({
 
         {/* ---------------- stock ---------------- */}
         <div role="tabpanel" id="panel-stock" aria-labelledby="tab-stock" data-tab="stock" className={tab === "stock" ? "flex flex-col gap-5" : "hidden"}>
+          <VariantsEditor
+            initial={product?.variants || null}
+            colors={colorOptions}
+            sizes={SIZES}
+            simpleStock={stock}
+            simpleColor={simpleColor}
+            sharedImages={images}
+            blobReady={blobReady}
+            onSummary={setVariantInfo}
+          />
+          <div className={variantInfo.on ? "hidden" : "contents"}>
           <Section title="מלאי לפי מידה" sub="כמה זוגות יש מכל מידה. מידה עם 0 לא תוצג כזמינה באתר. המלאי יורד אוטומטית בכל הזמנה.">
             <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
               {SIZES.map((s) => {
@@ -495,6 +521,7 @@ export default function ProductEditor({
               </span>
             </div>
           </Section>
+          </div>
           <Section title="התראת מלאי נמוך" sub="כשסך הזוגות יורד לסף הזה (או פחות), המוצר יסומן ב„מלאי נמוך” ותופיע התראה.">
             <label className="a-field max-w-[200px]">
               סף מלאי נמוך (זוגות)

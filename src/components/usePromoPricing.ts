@@ -9,7 +9,7 @@ import type { CartItem } from "@/lib/types";
 export function usePromoPricing(items: CartItem[], ready: boolean) {
   const [pricing, setPricing] = useState<CartPricing | null>(null);
   const [loading, setLoading] = useState(false);
-  const sig = JSON.stringify(items.map((i) => [i.productId, i.size, i.qty]));
+  const sig = JSON.stringify(items.map((i) => [i.productId, i.size, i.color || "", i.qty]));
 
   useEffect(() => {
     if (!ready) return;
@@ -17,7 +17,7 @@ export function usePromoPricing(items: CartItem[], ready: boolean) {
     let cancelled = false;
     setLoading(true);
     const t = setTimeout(() => {
-      priceCartAction(items.map((i) => ({ productId: i.productId, size: i.size, qty: i.qty })))
+      priceCartAction(items.map((i) => ({ productId: i.productId, size: i.size, color: i.color, qty: i.qty })))
         .then((r) => { if (!cancelled) setPricing(r.ok ? r : null); })
         .catch(() => { if (!cancelled) setPricing(null); })
         .finally(() => { if (!cancelled) setLoading(false); });

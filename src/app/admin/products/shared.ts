@@ -80,7 +80,7 @@ export function filtersQuery(f: Partial<ProductFilters>, overrides: Partial<Prod
 /** Search + category + colour (everything except the tab) */
 export function matchBase(p: Product, f: ProductFilters) {
   if (f.category && p.category !== f.category) return false;
-  if (f.color && p.color !== f.color) return false;
+  if (f.color && !(p.variants ? p.variants.colors.some((c) => c.key === f.color) : p.color === f.color)) return false;
   if (f.q) {
     const q = f.q.toLowerCase();
     if (!`${p.name} ${p.sku || ""} ${p.slug}`.toLowerCase().includes(q)) return false;

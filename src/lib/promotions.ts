@@ -3,6 +3,7 @@ import { db, hasDb } from "./db";
 import { getCategoriesAll } from "./catalog";
 import { getProductById } from "./store";
 import type { Product } from "./types";
+import { lineKey } from "./variants";
 import {
   applyPromotions,
   autoBadge,
@@ -73,9 +74,9 @@ export const getCategoryPaths = cache(async (): Promise<Record<string, string[]>
   return out;
 });
 
-export function lineFor(p: Product, qty: number, size: string, paths: Record<string, string[]>): PricingLine {
+export function lineFor(p: Product, qty: number, size: string, paths: Record<string, string[]>, color?: string | null): PricingLine {
   return {
-    key: `${p.id}-${size}`,
+    key: lineKey(p.id, size, p.variants ? color : null),
     productId: p.id,
     price: p.price,
     qty,
@@ -85,7 +86,7 @@ export function lineFor(p: Product, qty: number, size: string, paths: Record<str
 }
 
 /** Price cart rows with the catalogue's current prices and the running promotions. */
-export async function priceCartRows(rows: { productId: number; size: string; qty: number }[]): Promise<PricingResult & { prices: Record<string, number> }> {
+export async function priceCartRows(rows: { productId: number; size: string; color?: string | null; qty: number }[]): Promise<PricingResult & { prices: Record<string, number> }> {
   const [promos, paths] = await Promise.all([getActivePromotions(), getCategoryPaths()]);
   const lines: PricingLine[] = [];
   const prices: Record<string, number> = {};
@@ -93,7 +94,7 @@ export async function priceCartRows(rows: { productId: number; size: string; qty
     const p = await getProductById(Number(r.productId));
     if (!p || !p.active) continue;
     const qty = Math.max(1, Math.min(9, Math.round(Number(r.qty) || 1)));
-    const l = lineFor(p, qty, String(r.size), paths);
+    const l = lineFor(p, qty, String(r.size), paths, r.color ? String(r.color) : null);
     lines.push(l);
     prices[l.key] = p.price;
   }

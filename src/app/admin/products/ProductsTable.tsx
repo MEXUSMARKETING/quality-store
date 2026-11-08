@@ -21,7 +21,7 @@ function confirmSubmit(message: string) {
   };
 }
 
-export default function ProductsTable({ products, canEdit, categoryNames, sizes }: { products: Product[]; canEdit: boolean; categoryNames?: Record<string, string>; sizes?: string[] }) {
+export default function ProductsTable({ products, canEdit, categoryNames, sizes, colorHex }: { products: Product[]; canEdit: boolean; categoryNames?: Record<string, string>; sizes?: string[]; colorHex?: Record<string, string> }) {
   const catLabel = (k: string) => categoryNames?.[k] || CATEGORIES[k] || k;
   const sizeList = (stock: Record<string, number>) => Array.from(new Set([...(sizes && sizes.length ? sizes : SIZES), ...Object.keys(stock || {})])).filter((s) => Number(stock?.[s]) > 0);
   const router = useRouter();
@@ -126,6 +126,14 @@ export default function ProductsTable({ products, canEdit, categoryNames, sizes 
                         <span className="flex flex-col min-w-0">
                           <b className="text-adm-navy group-hover:underline leading-5">{p.name}</b>
                           <span className="text-[12px] text-adm-muted" dir="ltr">{p.sku || p.slug}</span>
+                          {p.variants && (
+                            <span className="flex items-center gap-1 pt-0.5" title={`${p.variants.colors.length} צבעים`}>
+                              {p.variants.colors.slice(0, 6).map((c) => (
+                                <span key={c.key} className="w-3.5 h-3.5 rounded-full border border-adm-line" style={{ background: colorHex?.[c.key] || "#ccc" }} aria-hidden="true" />
+                              ))}
+                              <span className="text-[11px] text-adm-muted ms-0.5">{p.variants.colors.length} צבעים</span>
+                            </span>
+                          )}
                         </span>
                       </Link>
                     </td>

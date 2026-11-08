@@ -6,6 +6,8 @@ import { requireAdmin } from "@/lib/auth";
 import { db, hasDb } from "@/lib/db";
 import { addOrderEvent, audit } from "@/lib/admin";
 import { createOrder, getProductById } from "@/lib/store";
+import { getAttributes } from "@/lib/catalog";
+import { imagesFor, unitsFor } from "@/lib/variants";
 import { changeOrderStatus, normIsraeliMobile } from "@/lib/admin-orders";
 import { runAutomationsSafe } from "@/lib/automations";
 import { ORDER_STATUS, PAYMENT, PAYMENT_STATUS, SHIPPING } from "@/lib/config";
@@ -214,9 +216,13 @@ export async function createManualOrderAction(_: ActionResult, fd: FormData): Pr
   for (const w of Array.from(wanted.values())) {
     const p = await getProductById(w.productId);
     if (!p) return { error: "אחד המוצרים כבר לא קיים" };
-    const have = Number(p.stock?.[w.size] || 0);
-    if (have < w.qty) return { error: `${p.name} מידה ${w.size}: נשארו במלאי ${have} בלבד` };
-    items.push({ productId: p.id, slug: p.slug, name: p.name, image: p.images[0] || "", size: w.size, qty: w.qty, price: p.price });
+    // variant products send "colour::size"
+    const [color, size] = w.size.includes("::") ? w.size.split("::") : [null, w.size];
+    if (p.variants && !color) return { error: `${p.name}: יש לבחור צבע ומידה` };
+    const have = unitsFor(p, size, color);
+    const colorName = color ? (await getAttributes()).colors.find((c) => c.key === color)?.label || color : undefined;
+    if (have < w.qty) return { error: `${p.name}${colorName ? ` ${colorName}` : ""} מידה ${size}: נשארו במלאי ${have} בלבד` };
+    items.push({ productId: p.id, slug: p.slug, name: p.name, image: imagesFor(p, color)[0] || "", size, ...(color ? { color, colorName } : {}), qty: w.qty, price: p.price });
   }
   const subtotal = items.reduce((a, i) => a + i.price * i.qty, 0);
 

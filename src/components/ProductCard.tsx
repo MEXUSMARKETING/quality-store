@@ -1,9 +1,10 @@
 import Link from "next/link";
 import type { Product } from "@/lib/types";
 import { shekel } from "@/lib/config";
+import { colorTotal, hasVariants, imagesFor, stockFor } from "@/lib/variants";
 
-function sizesText(p: Product) {
-  const s = Object.entries(p.stock || {})
+function sizesText(stock: Record<string, number>) {
+  const s = Object.entries(stock || {})
     .filter(([, q]) => Number(q) > 0)
     .map(([k]) => k)
     .sort((a, b) => Number(a) - Number(b));
@@ -22,18 +23,38 @@ export function RatingLine({ rating, className = "" }: { rating?: { avg: number;
   );
 }
 
-export default function ProductCard({ p, large = false, rating, promo }: { p: Product; large?: boolean; rating?: { avg: number; count: number } | null; promo?: string | null }) {
-  const sizes = sizesText(p);
+export default function ProductCard({
+  p,
+  large = false,
+  rating,
+  promo,
+  color,
+  palette,
+}: {
+  p: Product;
+  large?: boolean;
+  rating?: { avg: number; count: number } | null;
+  promo?: string | null;
+  /** show this colour (e.g. the shop's colour filter) for variant products */
+  color?: string;
+  /** colour key → swatch, to draw the colour dots of variant products */
+  palette?: Record<string, { hex: string; label: string }>;
+}) {
+  const multi = hasVariants(p);
+  const shown = multi && color && p.variants!.colors.some((c) => c.key === color) ? color : null;
+  const sizes = sizesText(shown ? stockFor(p, shown) : p.stock);
+  const image = shown ? imagesFor(p, shown)[0] : p.images[0];
+  const dots = multi && palette ? p.variants!.colors.filter((c) => colorTotal(p.variants!, c.key) > 0).map((c) => ({ key: c.key, ...(palette[c.key] || { hex: "#ccc", label: c.key }) })) : [];
   const soldOut = sizes.length === 0;
   const pct = p.old_price && p.old_price > p.price ? Math.round((1 - p.price / p.old_price) * 100) : null;
   const badge = soldOut ? "אזל מהמלאי" : sizes.length === 1 ? "מידה אחרונה" : pct ? `−${pct}%` : null;
   const badgeCls = soldOut ? "bg-white text-muted" : sizes.length === 1 ? "bg-white text-ink" : "bg-gold text-ink";
 
   return (
-    <Link href={`/product/${p.slug}`} className="group flex flex-col gap-3">
+    <Link href={`/product/${p.slug}${shown ? `?color=${shown}` : ""}`} className="group flex flex-col gap-3">
       <div className={`relative aspect-square overflow-hidden bg-ink `}>
-        {p.images[0] ? (
-          <img src={p.images[0]} alt={p.name} loading="lazy" className={`w-full h-full object-contain transition-transform duration-500 group-hover:scale-[1.03] ${soldOut ? "opacity-60" : ""}`} />
+        {image ? (
+          <img src={image} alt={p.name} loading="lazy" className={`w-full h-full object-contain transition-transform duration-500 group-hover:scale-[1.03] ${soldOut ? "opacity-60" : ""}`} />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-soft text-sm">[תמונה]</div>
         )}
@@ -52,6 +73,14 @@ export default function ProductCard({ p, large = false, rating, promo }: { p: Pr
             {p.heel && sizes.length ? " · " : ""}
             {sizes.length ? `מידות ${sizes.join(", ")}` : ""}
           </span>
+          {dots.length > 1 && (
+            <span className="flex items-center gap-1.5 pt-1" aria-label={`${dots.length} צבעים: ${dots.map((d) => d.label).join(", ")}`}>
+              {dots.slice(0, 6).map((d) => (
+                <span key={d.key} title={d.label} className={`w-4 h-4 rounded-full border ${d.key === shown ? "ring-2 ring-offset-1 ring-ink border-white" : "border-line"}`} style={{ background: d.hex }} aria-hidden="true" />
+              ))}
+              {dots.length > 6 && <span className="text-[12px] text-muted">+{dots.length - 6}</span>}
+            </span>
+          )}
           <RatingLine rating={rating} />
         </div>
         <div className="flex flex-col items-end shrink-0">

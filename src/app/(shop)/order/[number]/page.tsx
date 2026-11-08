@@ -20,9 +20,9 @@ export default async function OrderPage({ params }: { params: { number: string }
         {o && (
           <div className="flex flex-col gap-3 pt-2">
             {o.items.map((it) => (
-              <div key={it.productId + it.size} className="flex gap-3 items-center">
+              <div key={`${it.productId}-${it.color || ""}-${it.size}`} className="flex gap-3 items-center">
                 <img src={it.image} alt="" className="w-14 h-14 object-cover bg-ink" />
-                <span className="flex-1 text-sm"><b className="block">{it.name}</b>מידה {it.size} · ×{it.qty}</span>
+                <span className="flex-1 text-sm"><b className="block">{it.name}</b>{it.colorName ? `${it.colorName} · ` : ""}מידה {it.size} · ×{it.qty}</span>
                 <b>{shekel(it.price * it.qty)}</b>
               </div>
             ))}

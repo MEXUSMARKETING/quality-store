@@ -11,6 +11,7 @@ import { getAttributes, getCategoriesAll } from "@/lib/catalog";
 import { bulkUpdateProducts, deleteProduct, duplicateProduct, getProductById, saveProduct, type BulkProductOp, type ProductInput } from "@/lib/store";
 import type { Product } from "@/lib/types";
 import { slugify } from "./shared";
+import { aggregateStock, colorTotal, normVariants, type Variants } from "@/lib/variants";
 
 export type SaveState = { error?: string; tab?: string } | null;
 
@@ -95,6 +96,21 @@ async function auditChanges(id: number, before: Product | null, after: ProductIn
       summary: `עדכון מלאי – ${after.name}: ${diffs.join(", ")} (סה״כ ${tb}→${ta})`,
       before: { stock: sb },
       after: { stock: sa },
+    });
+  }
+
+  // colours × sizes: one readable line per colour
+  const vb = before.variants || null;
+  const va = after.variants || null;
+  if (!same(vb, va)) {
+    const line = (v: Variants | null) => (v ? v.colors.map((c) => `${c.key}: ${colorTotal(v, c.key)}`).join(", ") : "צבע אחד");
+    await audit({
+      action: "stock",
+      entity: "product",
+      entityId: id,
+      summary: `צבעים ומלאי לפי צבע – ${after.name}: ${line(vb)} ← ${line(va)}`,
+      before: { variants: vb },
+      after: { variants: va },
     });
   }
 
@@ -185,7 +201,37 @@ export async function saveProductAction(_: SaveState, fd: FormData): Promise<Sav
     images.push(url);
   }
 
-  const color = String(fd.get("color") || "black");
+  // variants: colours × sizes (validated colours, per-colour uploads)
+  let variants: Variants | null = null;
+  if (fd.get("variants_on") === "1") {
+    let raw: any;
+    try {
+      raw = JSON.parse(String(fd.get("variants") || "{}"));
+    } catch {
+      return { error: "נתוני הצבעים לא תקינים. רענני את הדף ונסי שוב.", tab: "stock" };
+    }
+    const known = (k: string) => attrs.colors.some((c) => c.key === k) || !!before?.variants?.colors.some((c) => c.key === k);
+    raw.colors = (Array.isArray(raw?.colors) ? raw.colors : []).filter((c: any) => known(String(c?.key || "")));
+    for (const c of raw.colors) {
+      const vf = fd.getAll(`vfiles_${c.key}`).filter((f): f is File => typeof f === "object" && f !== null && "size" in f && (f as File).size > 0);
+      if (!vf.length) continue;
+      if (!imageStorageReady()) return { error: "אחסון התמונות עדיין לא מחובר. בינתיים אפשר להדביק קישור לתמונה של הצבע.", tab: "stock" };
+      c.images = Array.isArray(c.images) ? c.images : [];
+      for (const f of vf) {
+        try {
+          c.images.push(await uploadProductImage(f));
+        } catch (e: any) {
+          console.error(e);
+          const msg = String(e?.message || "");
+          return { error: /^הקובץ/.test(msg) ? msg : "העלאת תמונות הצבע נכשלה. נסי שוב.", tab: "stock" };
+        }
+      }
+    }
+    variants = normVariants(raw);
+    if (!variants) return { error: "במצב „כמה צבעים” צריך לבחור לפחות צבע אחד", tab: "stock" };
+  }
+
+  const color = variants ? variants.colors[0].key : String(fd.get("color") || before?.color || "black");
   const category = String(fd.get("category") || "boots");
 
   const input: ProductInput = {
@@ -200,7 +246,9 @@ export async function saveProductAction(_: SaveState, fd: FormData): Promise<Sav
     color: attrs.colors.some((c) => c.key === color) || color === before?.color ? color : attrs.colors.some((c) => c.key === "other") ? "other" : attrs.colors[0].key,
     category: cats.some((c) => c.key === category) || category === before?.category ? category : "boots",
     images: Array.from(new Set(images)),
-    stock,
+    baseImages: Array.from(new Set(images)),
+    stock: variants ? aggregateStock(variants) : stock,
+    variants,
     low_stock: low_stock ?? 2,
     featured: fd.get("featured") === "on",
     active: fd.get("active") === "on",

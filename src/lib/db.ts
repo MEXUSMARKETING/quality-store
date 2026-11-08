@@ -98,7 +98,7 @@ function client(): Sql {
 /** Bump when init() gains new DDL. Once the database is at this version, cold starts skip the DDL
  *  entirely (ALTER TABLE takes exclusive locks even when it changes nothing, and instances that
  *  start together would otherwise queue behind each other's locks). */
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 async function schemaCurrent(sql: Sql): Promise<boolean> {
   // No errors on purpose: this also runs inside the migration transaction, where an error would abort it.
@@ -376,6 +376,9 @@ async function migrate(sql: Sql) {
     )`;
   await sql`alter table orders add column if not exists promo_discount integer not null default 0`;
   await sql`alter table orders add column if not exists promotions jsonb not null default '[]'::jsonb`;
+
+  // product variants: colours × sizes (v5)
+  await sql`alter table products add column if not exists variants jsonb`;
 
   // Lock every table against Supabase's public API (the store talks to Postgres directly from its server).
   for (const t of ["settings", "categories", "pages", "reviews", "automation_rules", "automation_runs", "admin_users", "login_history", "promotions"]) {
