@@ -42,6 +42,8 @@ export function parseStockText(text: string, colors: ParseColor[], sizes: string
   const unknown: string[] = [];
   const sizeSet = new Set(sizes.map(String));
   const isSize = (n: number) => sizeSet.has(String(n)) || (n >= 33 && n <= 46);
+  // letter sizes the store uses (S, M, L, XL, OS…), matched case-insensitively
+  const letterSizes = new Map(sizes.filter((x) => !/^\d+(\.\d+)?$/.test(String(x))).map((x) => [String(x).toLowerCase(), String(x)]));
 
   // colour names (longest first so "חום כהה" wins over "חום")
   const colorNames = colors
@@ -75,6 +77,15 @@ export function parseStockText(text: string, colors: ParseColor[], sizes: string
       color = hit.key;
       pendingQty = null;
       if (hit.name.includes(" ") && stems(two).includes(hit.name)) i++;
+      continue;
+    }
+    // a letter size ("M", "xl")
+    const letter = letterSizes.get(tok);
+    if (letter) {
+      if (pendingQty !== null) {
+        put(letter, pendingQty);
+        pendingQty = null;
+      } else pendingSize = letter;
       continue;
     }
     // number (digits or word, with Hebrew prefixes like "ו5" / "ושש")

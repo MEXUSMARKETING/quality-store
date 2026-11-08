@@ -518,7 +518,7 @@ export default function AiWizard({
                 )}
               </div>
               <div className="pointer-events-none absolute bottom-[30px] inset-x-0 text-center text-[13px] text-[#EDE6DF] px-6 [text-shadow:0_1px_6px_rgba(0,0,0,.6)]">
-                צלמו מהצד, באור טבעי. הרקע לא משנה.
+                צלמו כל מוצר, באור טבעי. הרקע לא משנה.
               </div>
             </div>
 
@@ -560,7 +560,7 @@ export default function AiWizard({
           <>
             <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 flex flex-col gap-3">
               {aiNote && <div className="px-3.5 py-2.5 rounded-[14px] bg-[#FFD27A]/10 border border-[#FFD27A]/35 text-[13px] text-[#FFE3A8]">{aiNote}</div>}
-              {analysis && !analysis.isProduct && <div className="px-3.5 py-2.5 rounded-[14px] bg-[#FFD27A]/10 border border-[#FFD27A]/35 text-[13px] text-[#FFE3A8]">ה־AI לא בטוח שבתמונות יש נעל. בדקי את הפרטים.</div>}
+              {analysis && !analysis.isProduct && <div className="px-3.5 py-2.5 rounded-[14px] bg-[#FFD27A]/10 border border-[#FFD27A]/35 text-[13px] text-[#FFE3A8]">ה־AI לא בטוח שבתמונות יש מוצר. בדקי את הפרטים.</div>}
 
               <div className="flex gap-3 items-center">
                 <div className="w-[104px] h-[104px] shrink-0 rounded-[18px] bg-[#F4F2EE] overflow-hidden flex items-center justify-center">
@@ -643,7 +643,7 @@ export default function AiWizard({
                 <>
                   <label className="flex flex-col gap-1.5 text-[13px] text-[#DDD8F5] font-semibold">
                     שם המוצר
-                    <input value={name} onChange={(e) => setName(e.target.value)} maxLength={160} placeholder="למשל: מגפון בוקרים חום" className={`${field} h-12 font-medium`} />
+                    <input value={name} onChange={(e) => setName(e.target.value)} maxLength={160} placeholder="למשל: תיק צד מעור בצבע שמנת" className={`${field} h-12 font-medium`} />
                   </label>
                   <label className="flex flex-col gap-1.5 text-[13px] text-[#DDD8F5] font-semibold">
                     תיאור
@@ -667,7 +667,7 @@ export default function AiWizard({
                       </select>
                     </label>
                     <label className="flex flex-col gap-1.5 text-[13px] text-[#DDD8F5] font-semibold">
-                      עקב (ס״מ)
+                      עקב (ס״מ, לנעליים)
                       <input value={heel} onChange={(e) => setHeel(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))} inputMode="numeric" className={`${field} h-12 text-center`} />
                     </label>
                   </div>
@@ -779,7 +779,7 @@ export default function AiWizard({
                 ) : (
                   <b className="text-[#DDD8F5]">טבלת מלאי</b>
                 )}
-                <span className="ms-auto text-[#B4AED6]">{total} זוגות</span>
+                <span className="ms-auto text-[#B4AED6]">{total} יחידות</span>
               </div>
 
               <div className="mx-4 p-3 rounded-[18px] bg-white/[.05] border border-white/[.12] overflow-x-auto">
@@ -893,7 +893,7 @@ export default function AiWizard({
                 {[
                   { ok: urls.length > 0, text: <>{urls.length} תמונות{bg !== "original" && !mainCutFailed ? <> על רקע <b>{bgName(bg)}</b></> : ""}</> },
                   mode === "addColor" && match ? { ok: true, text: <>נוסף כצבע <b>{label(color)}</b> לדגם „{match.name}”</> } : null,
-                  { ok: total > 0, text: total > 0 ? <>{total} זוגות {stockedColors.length > 1 ? `ב־${stockedColors.length} צבעים` : `ב${label(stockedColors[0] || color)}`}{mode === "addColor" ? " (נוספים למלאי הקיים)" : ""}</> : "אין מלאי – המוצר יוצג כאזל" },
+                  { ok: total > 0, text: total > 0 ? <>{total} יחידות {stockedColors.length > 1 ? `ב־${stockedColors.length} צבעים` : `ב${label(stockedColors[0] || color)}`}{mode === "addColor" ? " (נוספים למלאי הקיים)" : ""}</> : "אין מלאי – המוצר יוצג כאזל" },
                   mode === "new" ? { ok: !!name.trim(), text: <>שם, תיאור{seoTitle ? " וטקסט לגוגל" : ""}</> } : null,
                   ...lowCells.slice(0, 2).map((l) => ({ ok: false, text: <>במידה {l.s} ב{label(l.c)} נשארו {l.n} בלבד</> })),
                 ]

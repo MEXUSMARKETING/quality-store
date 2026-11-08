@@ -28,7 +28,7 @@ export default async function AiQuickAdd({ searchParams }: { searchParams: { pro
     <>
       <h1 className="sr-only">{focusP ? "צבע חדש מצילום" : "הוספה מהירה עם AI"}</h1>
       <AiWizard
-        colors={attrs.colors.filter((c) => c.key !== "other")}
+        colors={attrs.colors}
         sizes={attrs.sizes}
         categories={cats.filter((c) => c.active !== false).map((c) => ({ key: c.key, name: c.name }))}
         products={products.map(toWiz)}

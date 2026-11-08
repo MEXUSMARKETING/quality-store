@@ -29,10 +29,10 @@ export type Analysis = {
   background: "white" | "studio" | "quality" | "wood" | "street";
 };
 
-const STORE_VOICE = `את/ה קופירייטר/ית ומומחה/ית מוצר של "Quality" – חנות נעלי נשים (בעיקר מגפונים) בטמרה. כותבים בעברית טבעית, חמה ומדויקת, בלשון נקבה כלפי הלקוחה.
+const STORE_VOICE = `את/ה קופירייטר/ית ומומחה/ית מוצר של חנות אונליין ("Quality", טמרה). החנות יכולה למכור כל סוג מוצר: נעליים, תיקים, ביגוד, אקססוריז, תכשיטים, קוסמטיקה, מוצרים לבית, אלקטרוניקה ועוד. כותבים בעברית טבעית, חמה ומדויקת, בגוף שמתאים לקהל של המוצר.
 כללי אמת:
-- תאר/י רק מה שרואים בתמונות. אל תמציא/י חומר: אם לא ברור שזה עור אמיתי כתוב/י "מראה עור" או "דמוי עור". אל תמציא/י מידות, מותגים, אחריות או נתונים.
-- גובה עקב: הערכה בס״מ שלמים לפי הפרופורציות, או null אם לא רואים.
+- תאר/י רק מה שרואים בתמונות. אל תמציא/י חומר: אם לא ברור שזה עור אמיתי כתוב/י "מראה עור" או "דמוי עור". אל תמציא/י מידות, מותגים, מפרט טכני, אחריות או נתונים.
+- heelCm/heelType רלוונטיים רק לנעליים: הערכה בס״מ שלמים לפי הפרופורציות. לכל מוצר אחר: heelCm=null ו־heelType="".
 - בלי אימוג׳י, בלי Markdown, בלי סימני קריאה מוגזמים.`;
 
 const clamp01 = (n: unknown) => Math.max(0, Math.min(1, Number(n) || 0));
@@ -53,19 +53,20 @@ export async function analyzeProductPhotos(opts: {
   const system = `${STORE_VOICE}
 
 המשימה: לזהות את המוצר בתמונות ולהכין טיוטה למוצר בחנות. ענה/י ב־JSON בלבד, בלי טקסט נוסף, בדיוק במבנה:
-{"isProduct":true,"productType":"מגפון","category":"<מפתח>","color":"<מפתח>","colorConfidence":0.0,"colorAlternatives":["<מפתח>"],"material":"","heelCm":null,"heelType":"","features":[""],"title":"","description":"","seoTitle":"","seoDescription":"","matchProductId":null,"matchConfidence":0.0,"matchReason":"","photoNotes":[""],"background":"quality"}
+{"isProduct":true,"productType":"<סוג המוצר>","category":"<מפתח>","color":"<מפתח>","colorConfidence":0.0,"colorAlternatives":["<מפתח>"],"material":"","heelCm":null,"heelType":"","features":[""],"title":"","description":"","seoTitle":"","seoDescription":"","matchProductId":null,"matchConfidence":0.0,"matchReason":"","photoNotes":[""],"background":"quality"}
 
 הנחיות לשדות:
-- category: אחד מהמפתחות: ${opts.categories.map((c) => `${c.key} (${c.name})`).join(", ")}.
+- category: הקטגוריה הכי מתאימה מבין המפתחות: ${opts.categories.map((c) => `${c.key} (${c.name})`).join(", ")}.
 - color: אחד מהמפתחות: ${opts.colors.map((c) => `${c.key} (${c.label})`).join(", ")}. colorConfidence בין 0 ל־1. אם יש שני צבעים סבירים, שים/י את השני ב־colorAlternatives.
-- title: שם קצר ומושך למוצר (עד 60 תווים), למשל "מגפון בוקרים חום עם תפרים".
-- description: 2–4 משפטים לדף המוצר: מראה, נוחות, עם מה משלבים. בלי המצאות.
+- title: שם קצר ומושך למוצר (עד 60 תווים), למשל "מגפון בוקרים חום עם תפרים" או "תיק צד קטן מעור בצבע שמנת".
+- description: 2–4 משפטים לדף המוצר שמתאימים לסוג המוצר: מראה, שימוש, יתרונות ועם מה משלבים. בלי המצאות.
 - seoTitle עד 60 תווים, seoDescription עד 155 תווים.
-- features: עד 5 פרטים שרואים (סוג עקב, תפרים, רוכסן, אבזם, סוליה...).
-- matchProductId: אם זה אותו דגם בדיוק כמו מוצר קיים מהרשימה אבל בצבע אחר (או אותו צבע) – המזהה שלו, אחרת null. matchConfidence בין 0 ל־1, matchReason משפט קצר. היה/י שמרני/ת: רק כשהצורה, העקב והפרטים זהים.
+- features: עד 5 פרטים שרואים (למשל: רוכסן, אבזם, כיסים, הדפס, גימור, ידית, עקב...).
+- matchProductId: אם זה אותו דגם בדיוק כמו מוצר קיים מהרשימה אבל בצבע אחר (או אותו צבע) – המזהה שלו, אחרת null. matchConfidence בין 0 ל־1, matchReason משפט קצר. היה/י שמרני/ת: רק כשהצורה והפרטים זהים.
 - photoNotes: הערות קצרות על איכות הצילום אם יש בעיה (חשוך, מטושטש, חתוך), אחרת [].
-- background: הרקע שיחמיא הכי הרבה למוצר בתמונת החנות, אחד מ: white (לבן נקי), studio (סטודיו אפור בהיר), quality (כהה יוקרתי, מתאים לנעליים בהירות/צבעוניות/מבריקות), wood (רצפת עץ חמימה, מתאים לחום/קוניאק/בז׳), street (רחוב עירוני, מתאים לסניקרס ונעליים יומיומיות). נעל שחורה – לא על רקע כהה.
-- isProduct=false אם בתמונה אין נעל/מוצר אופנה.
+- background: הרקע שיחמיא הכי הרבה למוצר בתמונת החנות, אחד מ: white (לבן נקי), studio (סטודיו אפור בהיר), quality (כהה יוקרתי, מתאים למוצרים בהירים/צבעוניים/מבריקים), wood (רצפת עץ חמימה, מתאים לחום/קוניאק/בז׳), street (רחוב עירוני, מתאים לאופנה יומיומית). מוצר שחור או כהה – לא על רקע כהה.
+- isProduct=false רק אם בתמונה אין שום מוצר שאפשר למכור (למשל צילום מסך, נוף או אדם בלי מוצר בולט).
+- color: הצבע הדומיננטי של המוצר. אם אף צבע מהרשימה לא מתאים, בחר/י את הקרוב ביותר והורד/י את colorConfidence.
 
 מוצרים קיימים בחנות (מזהה | שם | קטגוריה | צבעים | עקב | מחיר):
 ${catalog || "אין מוצרים"}`;
@@ -134,9 +135,9 @@ export async function rewriteCopy(opts: { title: string; description: string; to
 
 /** For text the quick parser couldn't fully read. */
 export async function parseStockWithAi(opts: { text: string; colors: ParseColor[]; sizes: string[]; defaultColor: string }): Promise<{ data?: Record<string, Record<string, number>>; error?: string }> {
-  const system = `את/ה מפרש/ת הודעות מלאי של חנות נעליים. המשתמש/ת מתאר/ת בחופשיות כמה זוגות יש מכל צבע ומידה.
+  const system = `את/ה מפרש/ת הודעות מלאי של חנות. המשתמש/ת מתאר/ת בחופשיות כמה יחידות יש מכל צבע ומידה.
 צבעים מותרים (מפתח: שם): ${opts.colors.map((c) => `${c.key}: ${c.label}`).join(", ")}. צבע ברירת מחדל אם לא נאמר: ${opts.defaultColor}.
-מידות אפשריות: ${opts.sizes.join(", ")} (וגם מידות 33–46 אם נאמרו במפורש).
+מידות אפשריות: ${opts.sizes.join(", ")} (השתמש/י בדיוק בכתיב הזה; מידות נעליים 33–46 מותרות גם אם לא ברשימה).
 ענה/י ב־JSON בלבד: {"stock":{"<מפתח צבע>":{"<מידה>":<כמות>}}}. כמויות במספרים שלמים. אל תנחש/י: מה שלא נאמר לא נכנס.`;
   const r = await callClaudeJson<any>({ system, messages: [{ role: "user", content: opts.text.slice(0, 800) }], maxTokens: 600 });
   if (r.error) return { error: r.error };
@@ -147,7 +148,7 @@ export async function parseStockWithAi(opts: { text: string; colors: ParseColor[
     for (const [s, q] of Object.entries(row as Record<string, unknown>)) {
       const size = String(s).trim();
       const n = Math.round(Number(q));
-      if (!/^\d{2}(\.5)?$/.test(size) || !Number.isFinite(n) || n <= 0) continue;
+      if (!(opts.sizes.includes(size) || /^\d{2}(\.5)?$/.test(size)) || !Number.isFinite(n) || n <= 0) continue;
       out[c] = out[c] || {};
       out[c][size] = Math.min(9999, n);
     }

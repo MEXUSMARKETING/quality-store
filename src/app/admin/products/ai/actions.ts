@@ -53,7 +53,7 @@ export async function analyzePhotosAction(fd: FormData): Promise<AnalyzeResult> 
       const r = await analyzeProductPhotos({
         images,
         categories: cats.map((c) => ({ key: c.key, name: c.name })),
-        colors: attrs.colors.filter((c) => c.key !== "other"),
+        colors: attrs.colors,
         products,
         hint,
         focusProductId: focus,
@@ -97,7 +97,7 @@ export async function parseStockAction(input: { text: string; defaultColor: stri
   const text = String(input?.text || "").slice(0, 800);
   if (!text.trim()) return { error: "אין טקסט" };
   const attrs = await getAttributes();
-  const colors = attrs.colors.filter((c) => c.key !== "other").map((c) => ({ key: c.key, label: c.label }));
+  const colors = attrs.colors.map((c) => ({ key: c.key, label: c.label }));
   const def = colors.some((c) => c.key === input?.defaultColor) ? input.defaultColor : colors[0]?.key || "black";
   const local = parseStockText(text, colors, attrs.sizes, def);
   if (local.total > 0 && !local.unknown.length) return { stock: local.stock, source: "local" };
@@ -138,13 +138,13 @@ async function uniqueSlug(base: string): Promise<string> {
   return slug;
 }
 
-const cleanStock = (s: Record<string, Record<string, number>>, allowed: Set<string>) => {
+const cleanStock = (s: Record<string, Record<string, number>>, allowed: Set<string>, sizes: string[]) => {
   const out: Record<string, Record<string, number>> = {};
   for (const [c, row] of Object.entries(s || {})) {
     if (!allowed.has(c) || !row || typeof row !== "object") continue;
     for (const [size, q] of Object.entries(row)) {
       const n = Math.round(Number(q));
-      if (!/^\d{2}(\.5)?$/.test(String(size)) || !Number.isFinite(n) || n <= 0) continue;
+      if (!(sizes.includes(String(size)) || /^\d{2}(\.5)?$/.test(String(size))) || !Number.isFinite(n) || n <= 0) continue;
       out[c] = out[c] || {};
       out[c][String(size)] = Math.min(9999, n);
     }
@@ -160,7 +160,7 @@ export async function createFromAiAction(p: CreatePayload): Promise<{ ok?: boole
   const color = colorKeys.has(p?.color) ? p.color : "";
   if (!color) return { error: "יש לבחור צבע" };
   const images = (Array.isArray(p?.images) ? p.images : []).map(String).filter((u) => /^(https?:\/\/|\/)/.test(u)).slice(0, MAX_PHOTOS);
-  const stock = cleanStock(p?.stock || {}, colorKeys);
+  const stock = cleanStock(p?.stock || {}, colorKeys, attrs.sizes);
   const price = Math.round(Number(p?.price));
   const heel = p?.heel === null || p?.heel === undefined || (p.heel as any) === "" ? null : Math.max(0, Math.min(30, Math.round(Number(p.heel))));
   const cost = p?.cost === null || p?.cost === undefined || (p.cost as any) === "" ? null : Math.max(0, Math.round(Number(p.cost)));
@@ -201,7 +201,7 @@ export async function createFromAiAction(p: CreatePayload): Promise<{ ok?: boole
       action: "update",
       entity: "product",
       entityId: target.id,
-      summary: `הוספה מהירה עם AI – ${target.name}: צבע ${attrs.colors.find((c) => c.key === color)?.label || color}${images.length ? `, ${images.length} תמונות` : ""}${added ? `, +${added} זוגות` : ""}`,
+      summary: `הוספה מהירה עם AI – ${target.name}: צבע ${attrs.colors.find((c) => c.key === color)?.label || color}${images.length ? `, ${images.length} תמונות` : ""}${added ? `, +${added} יח׳` : ""}`,
       before: { variants: target.variants || null, stock: target.stock },
       after: { variants: nv },
     });
@@ -257,7 +257,7 @@ export async function createFromAiAction(p: CreatePayload): Promise<{ ok?: boole
     action: "create",
     entity: "product",
     entityId: id,
-    summary: `מוצר חדש בהוספה מהירה עם AI: ${name} (${shekel(price)}, ${pairs} זוגות${multi ? `, ${colorsInStock.length} צבעים` : ""})${input.active ? "" : " · טיוטה"}`,
+    summary: `מוצר חדש בהוספה מהירה עם AI: ${name} (${shekel(price)}, ${pairs} יח׳${multi ? `, ${colorsInStock.length} צבעים` : ""})${input.active ? "" : " · טיוטה"}`,
     after: { name, slug: input.slug, price, active: input.active },
   });
   revalidatePath("/", "layout");
