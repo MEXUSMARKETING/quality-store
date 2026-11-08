@@ -68,6 +68,7 @@ export default async function AttributesAdmin() {
             <h2 id="conv-title" className="text-[16px] font-bold text-adm-navy">טבלת המרת מידות (נשים)</h2>
             <p className="text-[13px] text-adm-muted leading-5">לעיון בלבד – לשימוש במענה ללקוחות. ההמרה משתנה מעט בין מותגים.</p>
           </div>
+          <div className="overflow-x-auto -mx-1 px-1">
           <table className="a-table text-center">
             <thead>
               <tr><th className="!text-center">EU</th><th className="!text-center">US</th><th className="!text-center">UK</th><th className="!text-center">אורך כף רגל (ס״מ)</th></tr>
@@ -80,6 +81,7 @@ export default async function AttributesAdmin() {
               ))}
             </tbody>
           </table>
+          </div>
         </section>
       </div>
     </>

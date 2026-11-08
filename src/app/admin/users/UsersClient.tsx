@@ -214,7 +214,7 @@ export function UserDrawer({ initial, isOwner, myPerms, isSelf, canReset }: { in
                 <input type="checkbox" name="custom" checked={custom} disabled={isSelf} onChange={(e) => toggleCustom(e.target.checked)} className="w-[18px] h-[18px] accent-[#6C1CF5]" />
                 הרשאות מותאמות אישית למשתמש הזה
               </label>
-              <div className="border border-adm-line rounded-xl overflow-hidden">
+              <div className="border border-adm-line rounded-xl overflow-x-auto">
                 <table className="a-table">
                   <caption className="sr-only">הרשאות לפי מודול</caption>
                   <thead><tr><th scope="col">מודול</th>{LEVELS.map((l) => <th key={l.v} scope="col" className="text-center">{l.label}</th>)}</tr></thead>

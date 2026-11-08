@@ -59,6 +59,14 @@ export default function Shell({ newOrders, alerts, logoutAction, perms, userName
 
   // close the mobile drawer on navigation
   useEffect(() => setOpen(false), [path]);
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.documentElement.style.overflow = prev;
+    };
+  }, [open]);
 
   // Ctrl/Cmd+K focuses search; Escape closes popovers
   useEffect(() => {
@@ -139,50 +147,56 @@ export default function Shell({ newOrders, alerts, logoutAction, perms, userName
   );
 
   return (
-    <div className="adm min-h-screen flex font-sans">
+    <div className="adm min-h-screen flex font-sans overflow-x-clip">
       {/* desktop sidebar */}
       <aside className="hidden lg:block w-[248px] shrink-0 bg-[#0B0820] bg-[radial-gradient(120%_60%_at_100%_0%,rgba(122,18,255,.28),transparent_60%),radial-gradient(90%_50%_at_0%_100%,rgba(0,106,255,.18),transparent_60%)] sticky top-0 h-screen overflow-y-auto adm-noprint">{sidebar}</aside>
 
       {/* mobile drawer */}
       {open && (
-        <div className="lg:hidden fixed inset-0 z-50 flex adm-noprint">
-          <div className="w-[272px] max-w-[85vw] bg-[#0B0820] bg-[radial-gradient(120%_60%_at_100%_0%,rgba(122,18,255,.28),transparent_60%)] h-full overflow-y-auto shadow-2xl">{sidebar}</div>
-          <button aria-label="סגירת התפריט" className="flex-1 bg-black/40" onClick={() => setOpen(false)} />
+        <div className="lg:hidden fixed inset-0 z-50 flex adm-noprint" role="dialog" aria-modal="true" aria-label="תפריט ניהול">
+          <div className="nx-drawer relative w-[284px] max-w-[86vw] bg-[#0B0820] bg-[radial-gradient(120%_60%_at_100%_0%,rgba(122,18,255,.28),transparent_60%)] h-full overflow-y-auto overscroll-contain shadow-2xl">
+            <button type="button" aria-label="סגירת התפריט" onClick={() => setOpen(false)} className="absolute top-3 left-3 z-10 w-10 h-10 rounded-[11px] bg-white/[.08] border border-white/15 text-white flex items-center justify-center hover:bg-white/15">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
+            {sidebar}
+          </div>
+          <button aria-label="סגירת התפריט" tabIndex={-1} className="nx-fade flex-1 bg-[#07051A]/55 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
         </div>
       )}
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-0 z-30 bg-white border-b border-adm-line px-4 md:px-7 py-3 flex items-center gap-3 adm-noprint">
-          <button className="lg:hidden w-11 h-11 rounded-[11px] border border-adm-line flex items-center justify-center" aria-label="פתיחת התפריט" onClick={() => setOpen(true)}>
+        <header className="sticky top-0 z-30 bg-white border-b border-adm-line px-3 sm:px-4 md:px-7 py-2.5 sm:py-3 flex items-center gap-2 sm:gap-3 adm-noprint">
+          <button className="lg:hidden shrink-0 w-11 h-11 rounded-[11px] border border-adm-line bg-white flex items-center justify-center active:bg-adm-bg" aria-label="פתיחת התפריט" aria-expanded={open} onClick={() => setOpen(true)}>
             <Icon name="menu" />
           </button>
           <Link href="/admin" className="lg:hidden shrink-0" aria-label="NEXSHOP – לוח הבקרה">
             <img src="/brand/nexshop-compact-dark.png" alt="NEXSHOP" width={640} height={180} className="hidden sm:block h-8 w-auto" />
-            <img src="/brand/nexshop-mark-v2.png" alt="NEXSHOP" width={256} height={256} className="sm:hidden w-10 h-10" />
+            <img src="/brand/nexshop-mark-v2.png" alt="NEXSHOP" width={256} height={256} className="sm:hidden w-9 h-9" />
           </Link>
           <form
             role="search"
-            className="flex-1 max-w-[560px]"
+            className="flex-1 min-w-0 max-w-[560px]"
             onSubmit={(e) => {
               e.preventDefault();
               if (q.trim()) router.push(`/admin/search?q=${encodeURIComponent(q.trim())}`);
             }}
           >
-            <label className="flex items-center gap-2.5 h-11 px-3.5 border border-adm-line rounded-[11px] bg-adm-bg">
-              <Icon name="search" className="text-adm-muted" />
+            <label className="flex items-center gap-2 sm:gap-2.5 h-11 px-3 sm:px-3.5 border border-adm-line rounded-[11px] bg-adm-bg min-w-0">
+              <Icon name="search" className="text-adm-muted shrink-0" />
               <span className="sr-only">חיפוש בכל המערכת</span>
               <input
                 ref={searchRef}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 type="search"
-                placeholder="חיפוש מוצר, הזמנה, לקוח או קופון…"
+                placeholder="חיפוש…"
+                title="חיפוש מוצר, הזמנה, לקוח או קופון"
                 className="flex-1 min-w-0 bg-transparent outline-none text-[14px]"
               />
               <span className="hidden md:inline text-[12px] text-adm-muted border border-adm-field rounded-md px-1.5 bg-white" dir="ltr">Ctrl K</span>
             </label>
           </form>
-          <div className="ms-auto flex items-center gap-2 relative" ref={bellRef}>
+          <div className="ms-auto shrink-0 flex items-center gap-2 relative" ref={bellRef}>
             <button
               className="relative w-11 h-11 rounded-[11px] border border-adm-line bg-white flex items-center justify-center"
               aria-label={alerts.length ? `התראות – ${alerts.length}` : "התראות"}
@@ -216,7 +230,7 @@ export default function Shell({ newOrders, alerts, logoutAction, perms, userName
             </span>
           </div>
         </header>
-        <main className="p-4 md:p-7 flex flex-col gap-5 w-full max-w-[1280px] mx-auto">{children}</main>
+        <main className="p-4 md:p-7 flex flex-col gap-5 w-full min-w-0 max-w-[1280px] mx-auto">{children}</main>
         {can(perms, "products", "edit") && !path.startsWith("/admin/products/ai") && !/^\/admin\/products\/(new|\d+)/.test(path) && (
           <Link
             href="/admin/products/ai"

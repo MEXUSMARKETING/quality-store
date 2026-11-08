@@ -107,3 +107,12 @@ select.a-input { padding: 0 10px; }
 @keyframes nx-mic-ring { 0% { box-shadow: 0 0 0 0 rgba(255, 1, 187, .55), 0 18px 40px -12px rgba(255, 1, 187, .6); } 100% { box-shadow: 0 0 0 22px rgba(255, 1, 187, 0), 0 18px 40px -12px rgba(255, 1, 187, .6); } }
 .nx-mic-on { animation: nx-mic-ring 1.2s infinite; }
 @media (prefers-reduced-motion: reduce) { .nx-pulse, .nx-wave, .nx-mic-on { animation: none; } }
+
+/* Mobile: never let the page slide sideways (tables scroll inside their own box) */
+body { overflow-x: hidden; }
+@supports (overflow: clip) { body { overflow-x: clip; } }
+@keyframes nx-drawer-in { from { transform: translateX(100%); } to { transform: none; } }
+.nx-drawer { animation: nx-drawer-in .22s cubic-bezier(.2, .8, .2, 1); }
+@keyframes nx-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.nx-fade { animation: nx-fade-in .2s ease-out; }
+@media (prefers-reduced-motion: reduce) { .nx-drawer, .nx-fade { animation: none; } }
