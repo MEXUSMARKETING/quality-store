@@ -3,6 +3,7 @@ import { aiConfigured } from "@/lib/ai";
 import { imageStorageReady } from "@/lib/storage";
 import { getAttributes, getCategoriesAll } from "@/lib/catalog";
 import { listProducts } from "@/lib/store";
+import { getStoreInfo } from "@/lib/site";
 import AiWizard, { type WizProduct } from "./AiWizard";
 import type { Product } from "@/lib/types";
 
@@ -21,7 +22,12 @@ const toWiz = (p: Product): WizProduct => ({
 
 export default async function AiQuickAdd({ searchParams }: { searchParams: { product?: string } }) {
   if (!isAdmin()) return null;
-  const [cats, attrs, products] = await Promise.all([getCategoriesAll(), getAttributes(), listProducts({ includeInactive: true }).catch(() => [] as Product[])]);
+  const [cats, attrs, products, store] = await Promise.all([
+    getCategoriesAll(),
+    getAttributes(),
+    listProducts({ includeInactive: true }).catch(() => [] as Product[]),
+    getStoreInfo().catch(() => ({ name: "" }) as { name: string }),
+  ]);
   const focusId = Number(searchParams.product) || 0;
   const focusP = focusId ? products.find((p) => p.id === focusId) : undefined;
   return (
@@ -35,6 +41,7 @@ export default async function AiQuickAdd({ searchParams }: { searchParams: { pro
         focus={focusP ? toWiz(focusP) : null}
         aiReady={aiConfigured()}
         storageReady={imageStorageReady()}
+        storeName={store.name || ""}
       />
     </>
   );

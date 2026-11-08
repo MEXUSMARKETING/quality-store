@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseStockText } from "@/lib/stock-parse";
 import type { Analysis } from "@/lib/ai-product";
-import { BACKGROUNDS, compose, cutOut, preloadCutout, type BgId, type Cutout } from "@/lib/bg-remove";
+import { BACKGROUNDS, PROMO_FORMATS, compose, cutOut, makePromo, preloadCutout, type BgId, type Cutout, type PromoFormat } from "@/lib/bg-remove";
 import { analyzePhotosAction, createFromAiAction, parseStockAction, rewriteAction, uploadPhotosAction, type AnalyzeResult } from "./actions";
 
 /* Quick add with AI – full-screen, mobile-first, 5 steps exactly like the NEXSHOP mockup:
@@ -16,7 +16,7 @@ export type WizProduct = { id: number; name: string; image: string; price: numbe
 
 type Photo = { id: string; file: File; url: string };
 type Step = 0 | 1 | 2 | 3 | 4;
-const STEP_NAMES = ["צילום", "זיהוי", "רקע", "מלאי", "אישור"];
+const STEP_NAMES = ["צילום", "זיהוי", "תמונות", "מלאי", "אישור"];
 const STEP_DONE = ["#006AFF", "#3B3DFF", "#5A28FF", "#9A0EE8", "#FF01BB"];
 const STEP_NOW = [
   "linear-gradient(90deg,#006AFF,#7A12FF)",
@@ -84,6 +84,7 @@ export default function AiWizard({
   focus,
   aiReady,
   storageReady,
+  storeName = "",
 }: {
   colors: WizColor[];
   sizes: string[];
@@ -92,6 +93,7 @@ export default function AiWizard({
   focus: WizProduct | null;
   aiReady: boolean;
   storageReady: boolean;
+  storeName?: string;
 }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>(0);
@@ -121,6 +123,12 @@ export default function AiWizard({
   const [applyAll, setApplyAll] = useState(true);
   const [cut, setCut] = useState<Record<string, Cutout | "error">>({});
   const [bgPreview, setBgPreview] = useState<string | null>(null);
+  const [improve, setImprove] = useState(true);
+  const [split, setSplit] = useState(55);
+  const [mainFile, setMainFile] = useState<File | null>(null);
+  // marketing
+  const [headline, setHeadline] = useState("חדש בחנות");
+  const [promos, setPromos] = useState<{ id: PromoFormat; name: string; url: string; file: File }[]>([]);
   const [cutting, setCutting] = useState(false);
 
   // stock
@@ -283,13 +291,13 @@ export default function AiWizard({
   useEffect(() => {
     if (step !== 2 || !main) return;
     const c = cut[main.id];
-    if (bg === "original" || !c || c === "error") {
+    if ((bg === "original" && !improve) || !c || c === "error") {
       setBgPreview(null);
       return;
     }
     let alive = true;
     let made: string | null = null;
-    compose(c, bg, 700).then(({ url }) => {
+    compose(c, bg, 900, "preview", improve).then(({ url }) => {
       made = url;
       if (alive) setBgPreview(url);
       else URL.revokeObjectURL(url);
@@ -298,19 +306,19 @@ export default function AiWizard({
       alive = false;
       if (made) setTimeout(() => URL.revokeObjectURL(made!), 2000);
     };
-  }, [step, bg, cut, main?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [step, bg, improve, cut, main?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mainCutFailed = main && cut[main.id] === "error";
 
   async function finishBackground() {
     if (!storageReady) return setError("אחסון התמונות לא מחובר, ולכן אי אפשר לשמור צילומים.");
     setError(null);
-    setBusy(bg === "original" || mainCutFailed ? "שומרת את התמונות…" : "מניחה את המוצר על הרקע…");
+    setBusy(mainCutFailed || (bg === "original" && !improve) ? "שומרת את התמונות…" : "מכינה תמונות ברמת סטודיו…");
     try {
       const fd = new FormData();
       for (let i = 0; i < photos.length; i++) {
         const p = photos[i];
-        const wantsBg = bg !== "original" && (applyAll || i === 0);
+        const wantsBg = (bg !== "original" || improve) && (applyAll || i === 0);
         let file: File | null = null;
         if (wantsBg) {
           try {
@@ -319,12 +327,14 @@ export default function AiWizard({
               c = await cutOut(p.file).catch(() => "error" as const);
               setCut((m) => ({ ...m, [p.id]: c! }));
             }
-            if (c && c !== "error") file = (await compose(c, bg, 1200, `p${i + 1}`)).file;
+            if (c && c !== "error") file = (await compose(c, bg, 1600, `p${i + 1}`, improve)).file;
           } catch (e) {
             console.error(e);
           }
         }
-        fd.append("photos", file || (await shrink(p.file, 1600, `p${i + 1}`)));
+        const final = file || (await shrink(p.file, 1600, `p${i + 1}`));
+        if (i === 0) setMainFile(final);
+        fd.append("photos", final);
       }
       setBusy("שומרת את התמונות…");
       const r = await uploadPhotosAction(fd);
@@ -334,6 +344,33 @@ export default function AiWizard({
     } finally {
       setBusy(null);
     }
+  }
+
+  async function makePromos() {
+    const src = mainFile || main?.file;
+    if (!src) return;
+    setBusy("מכינה תמונות שיווק…");
+    try {
+      promos.forEach((p) => URL.revokeObjectURL(p.url));
+      const title = mode === "addColor" ? match?.name || name : name;
+      const out: { id: PromoFormat; name: string; url: string; file: File }[] = [];
+      for (const f of PROMO_FORMATS) {
+        const r = await makePromo(src, f.id, { headline: headline.trim(), name: title || "", price: Number(price) > 0 ? sh(Number(price)) : "", store: storeName, cta: "לקנייה באתר" });
+        out.push({ id: f.id, name: f.name, url: r.url, file: r.file });
+      }
+      setPromos(out);
+    } catch (e) {
+      console.error(e);
+      setError("לא הצלחתי להכין את תמונות השיווק");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function sharePromo(file: File) {
+    try {
+      if ((navigator as any).canShare?.({ files: [file] })) await (navigator as any).share({ files: [file] });
+    } catch {}
   }
 
   /* ================= 4. stock ================= */
@@ -455,7 +492,7 @@ export default function AiWizard({
   const bgName = (id: BgId) => BACKGROUNDS.find((b) => b.id === id)?.name || "";
   const lowCells = colorRows.flatMap((c) => allSizes.filter((s) => q(c, s) > 0 && q(c, s) <= LOW).map((s) => ({ c, s, n: q(c, s) })));
 
-  const TITLES = [focus ? `צבע חדש ל"${focus.name}"` : "מוצר חדש עם AI", analysis ? "ה־AI זיהה את המוצר" : "פרטי המוצר", "רקע לתמונה", "כמה יש במלאי?", "הכל מוכן לפרסום"];
+  const TITLES = [focus ? `צבע חדש ל"${focus.name}"` : "מוצר חדש עם AI", analysis ? "ה־AI זיהה את המוצר" : "פרטי המוצר", "תמונות למוצר", "כמה יש במלאי?", "הכל מוכן לפרסום"];
 
   /* ================= UI ================= */
 
@@ -683,30 +720,84 @@ export default function AiWizard({
           </>
         )}
 
-        {/* ---------------- 3. background ---------------- */}
+        {/* ---------------- 3. photos (studio quality) ---------------- */}
         {step === 2 && (
           <>
             <div className="flex-1 min-h-0 overflow-y-auto pb-3">
-              <div className="relative mx-4 h-[330px] max-h-[42vh] rounded-3xl overflow-hidden bg-[#1A1730]">
-                {bg === "original" || mainCutFailed || !bgPreview ? (
-                  main && <img src={main.url} alt="תצוגה מקדימה" className="w-full h-full object-cover" />
-                ) : (
-                  <img src={bgPreview} alt="תצוגה מקדימה על הרקע שנבחר" className="w-full h-full object-cover" />
+              <div role="tablist" aria-label="סוג תמונה" className="mx-4 grid grid-cols-2 gap-1 p-1 rounded-[14px] bg-white/[.07]">
+                <button type="button" role="tab" aria-selected="true" className="h-10 rounded-[11px] bg-white text-[#07051A] text-[14px] font-bold">תמונה אמיתית</button>
+                <button type="button" role="tab" aria-selected="false" aria-disabled="true" title="יתאפשר אחרי חיבור ספק תמונות" className="h-10 rounded-[11px] text-[14px] font-semibold text-[#8F89B3] flex items-center justify-center gap-1.5 cursor-not-allowed">
+                  הדמיה על דוגמנית <span className="px-1.5 py-0.5 rounded-md bg-white/10 text-[10px] font-bold text-[#C7B4FF]">בקרוב</span>
+                </button>
+              </div>
+
+              <div className="relative mx-4 mt-3 h-[300px] max-h-[40vh] rounded-3xl overflow-hidden bg-[#1A1730] select-none">
+                {main && <img src={main.url} alt="הצילום המקורי" className="absolute inset-0 w-full h-full object-cover" />}
+                {bgPreview && !mainCutFailed && (
+                  <img
+                    src={bgPreview}
+                    alt="אחרי: תמונה ברמת סטודיו"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ clipPath: `inset(0 0 0 ${100 - split}%)` }}
+                  />
                 )}
-                {cutting && bg !== "original" && (
+                {bgPreview && !mainCutFailed && (
+                  <>
+                    <span className="absolute inset-y-0 w-0.5 bg-white -translate-x-px pointer-events-none" style={{ left: `${100 - split}%` }} />
+                    <span className="absolute top-1/2 w-9 h-9 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white text-[#07051A] flex items-center justify-center shadow-[0_6px_16px_rgba(0,0,0,.35)] pointer-events-none" style={{ left: `${100 - split}%` }}>
+                      <Ico d="M9 7l-5 5 5 5M15 7l5 5-5 5" size={18} sw={2.2} />
+                    </span>
+                    <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-[#07051A]/70 text-[12px] font-bold">לפני</span>
+                    <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-white text-[#07051A] text-[12px] font-extrabold">אחרי · {bgName(bg)}</span>
+                    <span className="absolute bottom-3 inset-x-3 flex justify-center pointer-events-none">
+                      <span className="px-3 py-1.5 rounded-full bg-[#07051A]/80 text-[12px] flex items-center gap-1.5">
+                        <Ico d={I.check} size={14} sw={2.6} className="text-[#7CF3B5]" /> המוצר מקורי מהצילום, לא נוצר ב־AI
+                      </span>
+                    </span>
+                  </>
+                )}
+                {cutting && (
                   <div className="absolute inset-0 bg-[#07051A]/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3" role="status" aria-live="polite">
                     <span className="w-8 h-8 rounded-full border-[3px] border-white/25 border-t-white animate-spin" aria-hidden="true" />
-                    <b className="text-[14px]">ה־AI גוזר את המוצר…</b>
+                    <b className="text-[14px]">מכינה תמונה ברמת סטודיו…</b>
                     <span className="text-[12px] text-[#B4AED6]">בפעם הראשונה זה לוקח כמה שניות</span>
                   </div>
                 )}
-                <span className="absolute top-3.5 right-3.5 px-3 py-1.5 rounded-full bg-[#07051A]/70 text-[13px] font-bold">{bgName(bg)}</span>
               </div>
 
+              {bgPreview && !mainCutFailed && (
+                <label className="mx-4 mt-2.5 flex items-center gap-2.5 text-[12px] text-[#B4AED6]">
+                  השוואה
+                  <input type="range" min={5} max={95} value={split} onChange={(e) => setSplit(Number(e.target.value))} className="flex-1 accent-[#8F5BFF]" aria-label="השוואה בין לפני לאחרי" />
+                </label>
+              )}
+
               {mainCutFailed ? (
-                <p className="mx-[18px] mt-3 text-[13px] text-[#FFE3A8] leading-normal">לא הצלחתי לגזור את המוצר מהתמונה הזו (אולי חסר חיבור, או שהמוצר לא ברור). אפשר להמשיך עם התמונה המקורית.</p>
+                <p className="mx-[18px] mt-3 text-[13px] text-[#FFE3A8] leading-normal">לא הצלחתי לעבד את התמונה הזו (אולי חסר חיבור, או שהמוצר לא ברור). אפשר להמשיך עם התמונה המקורית.</p>
               ) : (
-                <p className="mx-[18px] mt-3 text-[13px] text-[#B4AED6] leading-normal">המוצר עצמו לא משתנה: ה־AI רק גוזר אותו ומניח על הרקע עם צל טבעי, כדי שהצבע והפרטים יישארו אמיתיים.</p>
+                <ul className="mx-4 mt-3 px-3.5 py-3 rounded-2xl bg-white/[.05] border border-white/[.12] flex flex-col gap-2 text-[13px]">
+                  {[
+                    ["גזירה מדויקת", "שוליים נקיים, בלי שאריות רקע"],
+                    ["תיקון אור ואיזון לבן", "מסיר את הגוון של התאורה בחנות"],
+                    ["חידוד", "פרטים ותפרים חדים יותר"],
+                    ["סגנון Quality", "אותו גודל, מיקום וצל בכל הקטלוג"],
+                  ].map(([t, sub], k) => (
+                    <li key={t} className={`flex items-center gap-2.5 ${k > 0 && !improve && k < 3 ? "opacity-40" : ""}`}>
+                      <span className="w-[22px] h-[22px] rounded-[7px] bg-[#7CF3B5]/15 text-[#7CF3B5] flex items-center justify-center shrink-0">
+                        <Ico d={I.check} size={13} sw={2.8} />
+                      </span>
+                      <span><b>{t}</b> <span className="text-[#B4AED6]">{sub}</span></span>
+                    </li>
+                  ))}
+                  <li className="pt-1.5 mt-0.5 border-t border-white/10">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <span className="flex-1"><b>שיפור אוטומטי</b> <span className="text-[#B4AED6]">אור, צבע וחדות</span></span>
+                      <button type="button" role="switch" aria-checked={improve} aria-label="שיפור אוטומטי" onClick={() => setImprove((v) => !v)} className={`w-[50px] h-[30px] rounded-full p-[3px] flex ${improve ? "justify-start bg-[linear-gradient(90deg,#7A12FF,#C412A6)]" : "justify-end bg-white/20"}`}>
+                        <span className="w-6 h-6 rounded-full bg-white block" />
+                      </button>
+                    </label>
+                  </li>
+                </ul>
               )}
 
               <div className="grid grid-cols-3 gap-2.5 px-4 pt-3.5" role="radiogroup" aria-label="רקע">
@@ -715,7 +806,7 @@ export default function AiWizard({
                   const ai = o.id === recommended && !!analysis;
                   return (
                     <button key={o.id} type="button" role="radio" aria-checked={on} onClick={() => setBg(o.id)} disabled={o.id !== "original" && !!mainCutFailed} className="relative flex flex-col gap-1.5 text-[12px] font-medium text-center disabled:opacity-35">
-                      <span className={`h-[74px] rounded-[14px] box-border ${on ? "border-[3px] border-white" : "border border-white/20"}`} style={{ background: o.id === "original" && main ? `center/cover url(${main.url})` : o.swatch }} />
+                      <span className={`h-[64px] rounded-[14px] box-border ${on ? "border-[3px] border-white" : "border border-white/20"}`} style={{ background: o.id === "original" && main ? `center/cover url(${main.url})` : o.swatch }} />
                       <span>{o.name}</span>
                       {ai && <span className="absolute top-1.5 left-1.5 px-[7px] py-0.5 rounded-full bg-[#FF01BB] text-[10px] font-extrabold">AI</span>}
                     </button>
@@ -731,13 +822,13 @@ export default function AiWizard({
               </div>
             </div>
             <footer className="px-4 pt-3 pb-[max(26px,env(safe-area-inset-bottom))] flex gap-2">
-              {photos.length > 1 && bg !== "original" && (
+              {photos.length > 1 && (bg !== "original" || improve) && (
                 <button type="button" onClick={() => setApplyAll((v) => !v)} aria-pressed={applyAll} className={`h-[54px] px-3.5 rounded-2xl text-[14px] font-semibold flex items-center gap-1.5 ${applyAll ? "border border-white bg-white/10" : "border border-white/20"}`}>
                   {applyAll && <Ico d={I.check} size={16} sw={2.6} className="text-[#7CF3B5]" />}
-                  להחיל על כל התמונות
+                  לכל התמונות
                 </button>
               )}
-              <button type="button" onClick={finishBackground} disabled={!!busy || (cutting && bg !== "original")} className="flex-1 h-[54px] rounded-2xl text-white text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-40" style={{ background: GRAD }}>
+              <button type="button" onClick={finishBackground} disabled={!!busy || cutting} className="flex-1 h-[54px] rounded-2xl text-white text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-40" style={{ background: GRAD }}>
                 המשך למלאי <Ico d={I.next} size={18} sw={2.2} />
               </button>
             </footer>
@@ -907,6 +998,45 @@ export default function AiWizard({
                     </li>
                   ))}
               </ul>
+
+              {/* marketing images */}
+              <section aria-labelledby="promo-title" className="mx-4 mt-4 p-3.5 rounded-[18px] bg-white/[.05] border border-white/[.12] flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <Ico d={I.sparkle} size={18} sw={1.8} className="text-[#E3D6FF]" />
+                  <b id="promo-title" className="text-[15px]">תמונות שיווק</b>
+                  <span className="text-[12px] text-[#B4AED6]">פוסט, סטורי ומודעה</span>
+                </div>
+                <div className="flex gap-1.5 flex-wrap">
+                  {["חדש בחנות", "קולקציה חדשה", "מהדורה מוגבלת"].map((t) => (
+                    <button key={t} type="button" aria-pressed={headline === t} onClick={() => setHeadline(t)} className={`h-[34px] px-3 rounded-full text-[13px] font-semibold ${headline === t ? "bg-white text-[#07051A]" : "border border-white/20 text-[#E3D6FF]"}`}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                <label className="flex flex-col gap-1.5 text-[12px] text-[#B4AED6]">
+                  כותרת על התמונה
+                  <input value={headline} onChange={(e) => setHeadline(e.target.value.slice(0, 40))} className={`${field} h-11`} />
+                </label>
+                <button type="button" onClick={makePromos} disabled={!!busy || !(mainFile || main)} className="h-11 rounded-[14px] bg-white text-[#07051A] text-[14px] font-bold disabled:opacity-40">
+                  {promos.length ? "עדכון תמונות השיווק" : "יצירת תמונות שיווק"}
+                </button>
+                {promos.length > 0 && (
+                  <div className="flex gap-2.5 items-start overflow-x-auto pb-1">
+                    {promos.map((p) => (
+                      <figure key={p.id} className="shrink-0 w-[104px] flex flex-col gap-1.5 m-0">
+                        <img src={p.url} alt={`תמונת שיווק – ${p.name}`} className="w-full rounded-xl border border-white/10" />
+                        <figcaption className="text-[11px] text-[#B4AED6] text-center">{p.name}</figcaption>
+                        <a href={p.url} download={`${(name || "product").replace(/[\\/:*?"<>|]+/g, "")}-${p.id}.jpg`} className="h-8 rounded-lg border border-white/20 text-[12px] font-semibold flex items-center justify-center gap-1 text-white hover:bg-white/10">
+                          <Ico d="M12 4v11M7 10l5 5 5-5M5 20h14" size={14} sw={2} /> הורדה
+                        </a>
+                        {typeof navigator !== "undefined" && "share" in navigator && (
+                          <button type="button" onClick={() => sharePromo(p.file)} className="h-8 rounded-lg border border-white/20 text-[12px] font-semibold text-white hover:bg-white/10">שיתוף</button>
+                        )}
+                      </figure>
+                    ))}
+                  </div>
+                )}
+              </section>
             </div>
             <footer className="px-4 pt-3 pb-[max(26px,env(safe-area-inset-bottom))] flex flex-col gap-2">
               <button type="button" onClick={() => save(true)} disabled={!!busy} className="h-14 rounded-2xl text-white text-[17px] font-extrabold flex items-center justify-center gap-2 disabled:opacity-50" style={{ background: GRAD }}>
