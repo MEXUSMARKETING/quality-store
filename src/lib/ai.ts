@@ -4,7 +4,10 @@ import { CATEGORIES, COLORS, STORE } from "./config";
 /* AI assistant – Anthropic Messages API, called from the server only (the key never reaches the browser).
    Env: ANTHROPIC_API_KEY (required), AI_MODEL (optional, default below). */
 
-export const DEFAULT_AI_MODEL = "claude-sonnet-4-5";
+export const DEFAULT_AI_MODEL = "claude-sonnet-5-5";
+/** Tried in order when a model isn't available on the account; the first that answers is remembered. */
+const FALLBACK_MODELS = ["claude-sonnet-5-5", "claude-sonnet-5", "claude-opus-5-5", "claude-haiku-5-5", "claude-sonnet-4-6", "claude-sonnet-4-5"];
+let workingModel: string | null = null;
 export const AI_HOURLY_LIMIT = 30;
 
 /** The Anthropic key. Also accepts a variable whose name was pasted twice by mistake. */
@@ -17,7 +20,7 @@ export function aiConfigured(): boolean {
 }
 
 export function aiModel(): string {
-  return (process.env.AI_MODEL || "").trim() || DEFAULT_AI_MODEL;
+  return workingModel || (process.env.AI_MODEL || "").trim() || DEFAULT_AI_MODEL;
 }
 
 /** Text, or content blocks (text + images) for vision requests. */
@@ -31,33 +34,39 @@ export type AiResult = { text: string; error?: undefined } | { text?: undefined;
 export async function callClaude(opts: { system: string; messages: AiMessage[]; maxTokens?: number; timeoutMs?: number }): Promise<AiResult> {
   const key = aiKey();
   if (!key) return { error: "עוזר ה־AI עדיין לא מחובר: יש להוסיף ב־Vercel את המשתנה ANTHROPIC_API_KEY ולפרוס מחדש." };
+  const candidates = Array.from(new Set([aiModel(), ...FALLBACK_MODELS]));
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs || 25_000);
   try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model: aiModel(), max_tokens: opts.maxTokens || 1500, system: opts.system, messages: opts.messages }),
-      signal: ctrl.signal,
-      cache: "no-store",
-    });
-    if (!r.ok) {
-      const body = await r.text().catch(() => "");
-      console.error("anthropic error", r.status, body.slice(0, 500));
-      if (r.status === 401 || r.status === 403) return { error: "מפתח ה־API של Anthropic לא תקין או חסרות לו הרשאות. בדקו את ANTHROPIC_API_KEY ב־Vercel." };
-      if (r.status === 404 || (r.status === 400 && /model/i.test(body))) return { error: `המודל "${aiModel()}" לא זמין בחשבון. בדקו את המשתנה AI_MODEL ב־Vercel.` };
-      if (r.status === 429) return { error: "חרגנו ממגבלת הקריאות של Anthropic. נסו שוב בעוד דקה." };
-      if (r.status === 529 || r.status >= 500) return { error: "שירות ה־AI עמוס כרגע. נסו שוב בעוד רגע." };
-      return { error: "הבקשה לשירות ה־AI נכשלה. נסו לקצר את ההודעה ולשלוח שוב." };
+    for (const model of candidates) {
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        body: JSON.stringify({ model, max_tokens: opts.maxTokens || 1500, system: opts.system, messages: opts.messages }),
+        signal: ctrl.signal,
+        cache: "no-store",
+      });
+      if (!r.ok) {
+        const body = await r.text().catch(() => "");
+        console.error("anthropic error", model, r.status, body.slice(0, 500));
+        if (r.status === 404 || (r.status === 400 && /model/i.test(body))) continue; // try the next model
+        if (r.status === 401 || r.status === 403) return { error: "מפתח ה־API של Anthropic לא תקין או חסרות לו הרשאות. בדקו את ANTHROPIC_API_KEY ב־Vercel." };
+        if (r.status === 429) return { error: "חרגנו ממגבלת הקריאות של Anthropic. נסו שוב בעוד דקה." };
+        if (r.status === 529 || r.status >= 500) return { error: "שירות ה־AI עמוס כרגע. נסו שוב בעוד רגע." };
+        if (r.status === 400 && /credit|billing|balance/i.test(body)) return { error: "נגמר הקרדיט בחשבון Anthropic. יש לטעון קרדיט ב־Billing." };
+        return { error: "הבקשה לשירות ה־AI נכשלה. נסו לקצר את ההודעה ולשלוח שוב." };
+      }
+      workingModel = model;
+      const data = await r.json();
+      const text = Array.isArray(data?.content)
+        ? data.content.filter((b: any) => b?.type === "text").map((b: any) => String(b.text || "")).join("\n").trim()
+        : "";
+      if (!text) return { error: "לא התקבלה תשובה מה־AI. נסו שוב." };
+      return { text };
     }
-    const data = await r.json();
-    const text = Array.isArray(data?.content)
-      ? data.content.filter((b: any) => b?.type === "text").map((b: any) => String(b.text || "")).join("\n").trim()
-      : "";
-    if (!text) return { error: "לא התקבלה תשובה מה־AI. נסו שוב." };
-    return { text };
+    return { error: "אף מודל AI לא זמין בחשבון Anthropic. בדקו את החשבון או את המשתנה AI_MODEL ב־Vercel." };
   } catch (e: any) {
-    if (e?.name === "AbortError") return { error: "התשובה מה־AI התעכבה יותר מדי. נסו בקשה קצרה יותר." };
+    if (e?.name === "AbortError") return { error: "התשובה מה־AI התעכבה יותר מדי. נסו שוב." };
     console.error("anthropic fetch failed", e);
     return { error: "לא הצלחנו להתחבר לשירות ה־AI. נסו שוב." };
   } finally {
