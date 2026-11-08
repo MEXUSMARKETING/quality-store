@@ -121,7 +121,7 @@ export default async function CategoriesAdmin({ searchParams }: { searchParams: 
                     </thead>
                     <tbody>
                       {filtered.map((c) => (
-                        <tr key={c.key} className={editing?.key === c.key ? "[&>td]:!bg-[#EEF4FF]" : ""}>
+                        <tr key={c.key} className={editing?.key === c.key ? "[&>td]:!bg-[#F1ECFF]" : ""}>
                           <td>
                             <Link href={base({ edit: c.key })} className="flex items-center gap-2.5 group">
                               {c.image ? <img src={c.image} alt="" className="w-10 h-10 rounded-lg object-cover border border-adm-line bg-adm-bg" /> : <span className="w-10 h-10 rounded-lg bg-adm-bg border border-adm-line flex items-center justify-center text-adm-muted"><Icon name="image" size={16} /></span>}

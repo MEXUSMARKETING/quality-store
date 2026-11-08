@@ -108,9 +108,9 @@ export default async function ReviewsAdmin({ searchParams }: { searchParams: SP 
             const n = dist[s - 1];
             const w = approvedTotal ? Math.round((n / approvedTotal) * 100) : 0;
             return (
-              <Link key={s} href={qs({ star: star === s ? "" : String(s), tab: "approved" })} className={`flex items-center gap-2.5 text-[13px] rounded-lg px-1.5 min-h-[28px] hover:bg-adm-bg ${star === s ? "bg-[#EEF4FF]" : ""}`}>
+              <Link key={s} href={qs({ star: star === s ? "" : String(s), tab: "approved" })} className={`flex items-center gap-2.5 text-[13px] rounded-lg px-1.5 min-h-[28px] hover:bg-adm-bg ${star === s ? "bg-[#F1ECFF]" : ""}`}>
                 <span className="w-9 flex items-center gap-0.5 font-semibold tabular-nums">{s}<Icon name="star" size={13} className="text-[#C98A00] fill-current" /></span>
-                <span className="flex-1 h-2.5 rounded-full bg-[#EEF1F6] overflow-hidden"><span className="block h-full rounded-full bg-[#C98A00]" style={{ width: `${w}%` }} /></span>
+                <span className="flex-1 h-2.5 rounded-full bg-[#F0EEF6] overflow-hidden"><span className="block h-full rounded-full bg-[#C98A00]" style={{ width: `${w}%` }} /></span>
                 <span className="w-16 text-adm-muted tabular-nums text-end">{n} · {w}%</span>
               </Link>
             );
@@ -154,7 +154,7 @@ export default async function ReviewsAdmin({ searchParams }: { searchParams: SP 
           </select>
         </label>
         <label className="flex items-center gap-2 min-h-[42px] text-[14px] font-semibold">
-          <input type="checkbox" name="reported" value="1" defaultChecked={reported} className="w-5 h-5 accent-[#3478F6]" /> רק מדווחות
+          <input type="checkbox" name="reported" value="1" defaultChecked={reported} className="w-5 h-5 accent-[#6C1CF5]" /> רק מדווחות
         </label>
         <div className="flex gap-2">
           <button className="a-btn a-btn-dark">סינון</button>

@@ -121,7 +121,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Repo
                         </tbody>
                         {report.totals && (
                           <tfoot>
-                            <tr className="bg-[#F8FAFD] font-bold">
+                            <tr className="bg-[#F9F8FD] font-bold">
                               {report.columns.map((c) => {
                                 const raw = report.totals![c.key];
                                 const num = !(c.type === "text" || c.type === "date");

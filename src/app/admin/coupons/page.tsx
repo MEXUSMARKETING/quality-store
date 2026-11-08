@@ -162,7 +162,7 @@ export default async function CouponsPage({ searchParams }: { searchParams: { st
                         <span className="text-[14px] font-semibold">{c.used}</span>
                         <span className="text-[13px] text-adm-muted"> / {c.usage_limit ?? "∞"}</span>
                         {c.usage_limit !== null && (
-                          <div className="mt-1.5 h-1.5 w-[90px] bg-[#EEF1F6] rounded overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={c.usage_limit} aria-valuenow={c.used} aria-label={`נוצל ${c.used} מתוך ${c.usage_limit}`}>
+                          <div className="mt-1.5 h-1.5 w-[90px] bg-[#F0EEF6] rounded overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={c.usage_limit} aria-valuenow={c.used} aria-label={`נוצל ${c.used} מתוך ${c.usage_limit}`}>
                             <div className={`h-full rounded ${pctUsed >= 100 ? "bg-[#5B3FC4]" : pctUsed >= 80 ? "bg-[#D08A00]" : "bg-adm-blue"}`} style={{ width: `${pctUsed}%` }} />
                           </div>
                         )}

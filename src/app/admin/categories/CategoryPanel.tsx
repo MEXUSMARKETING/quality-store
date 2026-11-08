@@ -151,12 +151,12 @@ export default function CategoryPanel({ cat, all, canEdit, storageReady, closeHr
 
         <div className="flex flex-col gap-2.5">
           <label className="flex items-center gap-2.5 min-h-[36px] text-[14px]">
-            <input type="checkbox" name="active" defaultChecked={cat ? cat.active : true} disabled={isDefault && cat?.active} className="w-5 h-5 accent-[#3478F6]" />
+            <input type="checkbox" name="active" defaultChecked={cat ? cat.active : true} disabled={isDefault && cat?.active} className="w-5 h-5 accent-[#6C1CF5]" />
             {isDefault && cat?.active && <input type="hidden" name="active" value="on" />}
             <span><b>פעילה באתר</b> <span className="text-adm-muted">– מוסתרת לא מופיעה בחנות (גם תתי־הקטגוריות שלה)</span></span>
           </label>
           <label className="flex items-center gap-2.5 min-h-[36px] text-[14px]">
-            <input type="checkbox" name="featured" defaultChecked={cat?.featured || false} className="w-5 h-5 accent-[#3478F6]" />
+            <input type="checkbox" name="featured" defaultChecked={cat?.featured || false} className="w-5 h-5 accent-[#6C1CF5]" />
             <span><b>קטגוריה מומלצת</b> <span className="text-adm-muted">– לשימוש בדף הבית ובתפריטים</span></span>
           </label>
         </div>

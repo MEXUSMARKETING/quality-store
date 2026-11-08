@@ -91,7 +91,7 @@ function MessageEditor({ a, onChange, channel }: { a: Action; onChange: (a: Acti
         </label>
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="הוספת משתנה להודעה">
           {VARIABLES.map((v) => (
-            <button key={v.token} type="button" onClick={() => insert(v.token)} className="h-9 px-2.5 rounded-full border border-[#D6E4FD] bg-[#EEF4FF] text-[#1F5FD6] text-[13px] font-semibold hover:bg-[#E0EBFF]" title={v.label}>
+            <button key={v.token} type="button" onClick={() => insert(v.token)} className="h-9 px-2.5 rounded-full border border-[#E2D6FD] bg-[#F1ECFF] text-[#5414D6] text-[13px] font-semibold hover:bg-[#E0EBFF]" title={v.label}>
               {v.token}
             </button>
           ))}
@@ -172,7 +172,7 @@ export default function Builder({ initial, channels, templateTitle }: { initial:
             const t = TRIGGERS[k];
             const on = r.trigger === k;
             return (
-              <button key={k} type="button" role="radio" aria-checked={on} onClick={() => setTrigger(k)} className={`text-right p-3 rounded-xl border flex gap-2.5 items-start min-h-[64px] ${on ? "border-adm-blue bg-[#EEF4FF] ring-1 ring-adm-blue" : "border-adm-line bg-white hover:bg-adm-bg"}`}>
+              <button key={k} type="button" role="radio" aria-checked={on} onClick={() => setTrigger(k)} className={`text-right p-3 rounded-xl border flex gap-2.5 items-start min-h-[64px] ${on ? "border-adm-blue bg-[#F1ECFF] ring-1 ring-adm-blue" : "border-adm-line bg-white hover:bg-adm-bg"}`}>
                 <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${on ? "bg-adm-blue text-white" : "bg-adm-bg text-adm-muted"}`}><Icon name={t.icon} size={16} /></span>
                 <span className="flex flex-col gap-0.5">
                   <b className="text-[14px]">{t.label}</b>

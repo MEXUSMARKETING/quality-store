@@ -146,8 +146,8 @@ export function UserDrawer({ initial, isOwner, myPerms, isSelf, canReset }: { in
   if (state?.created) {
     return (
       <div className="fixed inset-0 z-50 flex">
-        <Link href={close} aria-label="סגירת החלונית" className="flex-1 bg-[#17243A]/40" tabIndex={-1} />
-        <div role="dialog" aria-modal="true" aria-labelledby="user-created-title" className="w-full max-w-[560px] h-full bg-adm-bg shadow-[0_0_40px_rgba(23,36,58,.25)] flex flex-col">
+        <Link href={close} aria-label="סגירת החלונית" className="flex-1 bg-[#14102E]/40" tabIndex={-1} />
+        <div role="dialog" aria-modal="true" aria-labelledby="user-created-title" className="w-full max-w-[560px] h-full bg-adm-bg shadow-[0_0_40px_rgba(20,16,46,.25)] flex flex-col">
           <div className="flex items-center justify-between gap-3 px-5 py-4 bg-white border-b border-adm-line">
             <h2 id="user-created-title" className="text-[18px] font-extrabold text-adm-navy">המשתמש נוסף</h2>
             <Link href={close} className="a-btn a-btn-sm !px-2.5" aria-label="סגירה"><Icon name="close" /></Link>
@@ -164,8 +164,8 @@ export function UserDrawer({ initial, isOwner, myPerms, isSelf, canReset }: { in
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      <Link href={close} aria-label="סגירת החלונית" className="flex-1 bg-[#17243A]/40" tabIndex={-1} />
-      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="user-drawer-title" className="w-full max-w-[560px] h-full bg-adm-bg shadow-[0_0_40px_rgba(23,36,58,.25)] flex flex-col">
+      <Link href={close} aria-label="סגירת החלונית" className="flex-1 bg-[#14102E]/40" tabIndex={-1} />
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="user-drawer-title" className="w-full max-w-[560px] h-full bg-adm-bg shadow-[0_0_40px_rgba(20,16,46,.25)] flex flex-col">
         <div className="flex items-center justify-between gap-3 px-5 py-4 bg-white border-b border-adm-line">
           <h2 id="user-drawer-title" className="text-[18px] font-extrabold text-adm-navy">{editing ? "עריכת משתמש" : "משתמש חדש"}</h2>
           <Link href={close} className="a-btn a-btn-sm !px-2.5" aria-label="סגירה"><Icon name="close" /></Link>
@@ -211,7 +211,7 @@ export function UserDrawer({ initial, isOwner, myPerms, isSelf, canReset }: { in
                 {isSelf && <span className="text-[12px] font-normal text-adm-muted">אי אפשר לשנות את התפקיד וההרשאות של עצמך.</span>}
               </label>
               <label className="flex items-center gap-2.5 min-h-[36px] text-[14px] font-semibold">
-                <input type="checkbox" name="custom" checked={custom} disabled={isSelf} onChange={(e) => toggleCustom(e.target.checked)} className="w-[18px] h-[18px] accent-[#3478F6]" />
+                <input type="checkbox" name="custom" checked={custom} disabled={isSelf} onChange={(e) => toggleCustom(e.target.checked)} className="w-[18px] h-[18px] accent-[#6C1CF5]" />
                 הרשאות מותאמות אישית למשתמש הזה
               </label>
               <div className="border border-adm-line rounded-xl overflow-hidden">
@@ -234,7 +234,7 @@ export function UserDrawer({ initial, isOwner, myPerms, isSelf, canReset }: { in
                                 disabled={!custom || isSelf || !levelAllowed(m, l.v)}
                                 onChange={() => setPerms((p) => ({ ...p, [m]: l.v === "none" ? undefined : l.v }))}
                                 aria-label={`${MODULES[m]}: ${l.label}`}
-                                className="w-[18px] h-[18px] accent-[#3478F6]"
+                                className="w-[18px] h-[18px] accent-[#6C1CF5]"
                               />
                             </td>
                           ))}

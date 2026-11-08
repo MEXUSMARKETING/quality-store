@@ -159,7 +159,7 @@ export default function ProductEditor({
   const total = SIZES.reduce((a, s) => a + qty(s), 0);
   const low = toInt(lowStock) ?? 2;
 
-  const levelCls = (n: number) => (n === 0 ? "border-[#E5EAF2] bg-[#F8FAFD]" : n <= 1 ? "border-[#F5DFB3] bg-[#FFF8EB]" : "border-[#C6EADB] bg-[#F1FAF6]");
+  const levelCls = (n: number) => (n === 0 ? "border-[#E8E5F3] bg-[#F9F8FD]" : n <= 1 ? "border-[#F5DFB3] bg-[#FFF8EB]" : "border-[#C6EADB] bg-[#F1FAF6]");
 
   const moveImage = (i: number, d: -1 | 1) =>
     setImages((arr) => {
@@ -516,8 +516,8 @@ export default function ProductEditor({
             </label>
             <label className="a-field">
               כתובת הדף
-              <span className="flex items-center rounded-[10px] border border-[#D5DCE8] overflow-hidden focus-within:outline focus-within:outline-2 focus-within:outline-adm-blue" dir="ltr">
-                <span className="px-3 h-[42px] flex items-center bg-adm-bg text-adm-muted text-[13px] font-normal border-e border-[#D5DCE8] whitespace-nowrap">/product/</span>
+              <span className="flex items-center rounded-[10px] border border-[#D8D3EA] overflow-hidden focus-within:outline focus-within:outline-2 focus-within:outline-adm-blue" dir="ltr">
+                <span className="px-3 h-[42px] flex items-center bg-adm-bg text-adm-muted text-[13px] font-normal border-e border-[#D8D3EA] whitespace-nowrap">/product/</span>
                 <input
                   value={effectiveSlug}
                   onChange={(e) => {

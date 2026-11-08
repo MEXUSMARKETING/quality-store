@@ -77,8 +77,8 @@ function SaveToProduct({ text, products, defaultId }: { text: string; products: 
         </label>
         <fieldset className="flex gap-3 text-[13px] min-h-[42px] items-center">
           <legend className="sr-only">אופן השמירה</legend>
-          <label className="flex items-center gap-1.5"><input type="radio" name="mode" checked={mode === "replace"} onChange={() => setMode("replace")} className="w-4 h-4 accent-[#3478F6]" /> החלפת התיאור</label>
-          <label className="flex items-center gap-1.5"><input type="radio" name="mode" checked={mode === "append"} onChange={() => setMode("append")} className="w-4 h-4 accent-[#3478F6]" /> הוספה בסוף</label>
+          <label className="flex items-center gap-1.5"><input type="radio" name="mode" checked={mode === "replace"} onChange={() => setMode("replace")} className="w-4 h-4 accent-[#6C1CF5]" /> החלפת התיאור</label>
+          <label className="flex items-center gap-1.5"><input type="radio" name="mode" checked={mode === "append"} onChange={() => setMode("append")} className="w-4 h-4 accent-[#6C1CF5]" /> הוספה בסוף</label>
         </fieldset>
       </div>
       <p className="text-[12px] text-adm-muted">הטקסט ייכנס לשדה התיאור בלבד. מצב התצוגה של המוצר באתר לא משתנה. מומלץ לעבור על הטקסט לפני השמירה.</p>

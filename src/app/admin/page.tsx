@@ -187,11 +187,11 @@ export default async function Dashboard({ searchParams }: { searchParams: { rang
           </div>
           <div dir="ltr">
             <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="220" preserveAspectRatio="none" role="img" aria-label={`הכנסות: ${shekel(rev)} בתקופה, לעומת ${shekel(prevRev)} בתקופה הקודמת`}>
-              <path d={`M0 ${H * 0.25}H${W}M0 ${H * 0.5}H${W}M0 ${H * 0.75}H${W}`} stroke="#EEF1F6" />
-              <path d={area} fill="#3478F6" fillOpacity="0.08" />
+              <path d={`M0 ${H * 0.25}H${W}M0 ${H * 0.5}H${W}M0 ${H * 0.75}H${W}`} stroke="#F0EEF6" />
+              <path d={area} fill="#6C1CF5" fillOpacity="0.08" />
               <path d={pt(prevSeries)} stroke="#9AA6B8" strokeWidth="2" strokeDasharray="5 5" fill="none" vectorEffect="non-scaling-stroke" />
-              <path d={line} stroke="#3478F6" strokeWidth="2.5" fill="none" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-              <path d={`M0 ${H}H${W}`} stroke="#E5EAF2" />
+              <path d={line} stroke="#6C1CF5" strokeWidth="2.5" fill="none" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+              <path d={`M0 ${H}H${W}`} stroke="#E8E5F3" />
             </svg>
           </div>
           <div className="flex justify-between text-[12px] text-adm-muted" dir="ltr">{axis.map((a, i) => <span key={i}>{a}</span>)}</div>
@@ -202,7 +202,7 @@ export default async function Dashboard({ searchParams }: { searchParams: { rang
           {cats.length ? cats.map((c) => (
             <div key={c.name} className="flex flex-col gap-1.5">
               <div className="flex justify-between text-[14px]"><span>{c.name}</span><b>{c.pct}% · {shekel(c.value)}</b></div>
-              <div className="h-2 bg-[#EEF1F6] rounded overflow-hidden"><div className="h-full bg-adm-blue rounded" style={{ width: `${c.pct}%` }} /></div>
+              <div className="h-2 bg-[#F0EEF6] rounded overflow-hidden"><div className="h-full bg-adm-blue rounded" style={{ width: `${c.pct}%` }} /></div>
             </div>
           )) : <p className="text-[14px] text-adm-muted py-6 text-center">אין מכירות בתקופה</p>}
         </div>
@@ -241,7 +241,7 @@ export default async function Dashboard({ searchParams }: { searchParams: { rang
             <Link href="/admin/products?stock=low" className="text-[14px] font-semibold text-adm-link">הכל</Link>
           </div>
           {lowSizes.length ? lowSizes.map(({ p, sizes, total }) => (
-            <Link key={p.id} href={`/admin/products/${p.id}`} className="flex gap-3 items-start pb-3 border-b border-[#EEF1F6] last:border-0">
+            <Link key={p.id} href={`/admin/products/${p.id}`} className="flex gap-3 items-start pb-3 border-b border-[#F0EEF6] last:border-0">
               {p.images[0] ? <img src={p.images[0]} alt="" className="w-11 h-11 rounded-[10px] object-cover bg-adm-bg shrink-0" /> : <span className="w-11 h-11 rounded-[10px] bg-adm-bg shrink-0" />}
               <span className="flex flex-col gap-1.5 min-w-0">
                 <b className="text-[14px]">{p.name}</b>

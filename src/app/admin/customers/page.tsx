@@ -115,7 +115,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: SP
                     <td>
                       {c.marketing_consent
                         ? <span role="img" aria-label="מאשרת דיוור" className="inline-flex w-7 h-7 rounded-full bg-[#E6F6F0] text-[#0F7A57] items-center justify-center"><Icon name="check" size={16} /></span>
-                        : <span role="img" aria-label="לא אישרה דיוור" className="inline-flex w-7 h-7 rounded-full bg-[#EEF1F6] text-[#5E6B80] items-center justify-center"><Icon name="close" size={14} /></span>}
+                        : <span role="img" aria-label="לא אישרה דיוור" className="inline-flex w-7 h-7 rounded-full bg-[#F0EEF6] text-[#615C7A] items-center justify-center"><Icon name="close" size={14} /></span>}
                     </td>
                   </tr>
                 ))}

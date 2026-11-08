@@ -92,7 +92,7 @@ export default async function OrderPage({ params, searchParams }: { params: { id
           <Card title={`פריטים (${pairs})`}>
             <ul className="flex flex-col">
               {o.items.map((it, i) => (
-                <li key={`${it.productId}-${it.size}-${i}`} className="flex gap-3 items-center py-3 border-b border-[#EEF1F6] last:border-0">
+                <li key={`${it.productId}-${it.size}-${i}`} className="flex gap-3 items-center py-3 border-b border-[#F0EEF6] last:border-0">
                   {it.image ? <img src={it.image} alt="" className="w-14 h-14 rounded-[10px] object-cover bg-adm-bg shrink-0" /> : <span className="w-14 h-14 rounded-[10px] bg-adm-bg shrink-0" aria-hidden="true" />}
                   <span className="flex-1 min-w-0 flex flex-col gap-0.5">
                     <Link href={`/admin/products/${it.productId}`} className="font-semibold text-[15px] hover:underline">{it.name}</Link>

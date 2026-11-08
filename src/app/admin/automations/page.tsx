@@ -135,7 +135,7 @@ export default async function AutomationsPage({ searchParams: sp }: { searchPara
                   const warn = r.actions.map((a) => ACTION_META[a.type]?.channel).filter((c): c is Channel => !!c && !status[c].configured);
                   const trigText = [t?.label || r.trigger, r.trigger === "order_status_changed" ? (r.trigger_config.status ? `ל״${ORDER_STATUSES[r.trigger_config.status]}״` : "כל סטטוס") : "", r.trigger === "inactive_customer" ? `${r.trigger_config.days} ימים` : "", r.trigger === "coupon_expiring" ? `${r.trigger_config.days} ימים לפני` : "", !t?.daily && r.delay_minutes ? delayLabel(r.delay_minutes) : ""].filter(Boolean).join(" · ");
                   return (
-                    <article key={r.id} className={`rounded-xl border p-4 flex flex-col gap-3 ${r.active ? "border-adm-line bg-white" : "border-dashed border-[#C9D2DF] bg-[#FAFBFD]"}`}>
+                    <article key={r.id} className={`rounded-xl border p-4 flex flex-col gap-3 ${r.active ? "border-adm-line bg-white" : "border-dashed border-[#C9D2DF] bg-[#FBFAFE]"}`}>
                       <div className="flex justify-between items-start gap-3 flex-wrap">
                         <div className="flex flex-col gap-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -162,7 +162,7 @@ export default async function AutomationsPage({ searchParams: sp }: { searchPara
                         </div>
                       </div>
                       <div className="flex items-stretch gap-2 flex-wrap text-[13px]">
-                        <span className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#EEF4FF] text-[#1F3F7A]"><Icon name={t?.icon || "zap"} size={15} /> <b>טריגר:</b> {trigText}</span>
+                        <span className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#F1ECFF] text-[#3A1C7A]"><Icon name={t?.icon || "zap"} size={15} /> <b>טריגר:</b> {trigText}</span>
                         <span className="flex items-center text-adm-muted" aria-hidden="true">←</span>
                         <span className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-adm-bg">
                           <b>תנאים:</b> {r.conditions.length ? r.conditions.map(describeCondition).join(" · ") : "ללא"}
@@ -191,7 +191,7 @@ export default async function AutomationsPage({ searchParams: sp }: { searchPara
               const chs = Array.from(new Set(t.rule.actions.map((a) => ACTION_META[a.type].channel).filter(Boolean))) as Channel[];
               return (
                 <article key={t.key} className="rounded-xl border border-adm-line p-4 flex flex-col gap-2.5">
-                  <span className="w-9 h-9 rounded-lg bg-[#EEF4FF] text-adm-blue flex items-center justify-center"><Icon name={TRIGGERS[t.rule.trigger].icon} size={18} /></span>
+                  <span className="w-9 h-9 rounded-lg bg-[#F1ECFF] text-adm-blue flex items-center justify-center"><Icon name={TRIGGERS[t.rule.trigger].icon} size={18} /></span>
                   <h3 className="text-[16px] font-bold">{t.title}</h3>
                   <p className="text-[13px] text-adm-muted leading-5 flex-1">{t.desc}</p>
                   <p className="text-[12px] text-adm-muted">{TRIGGERS[t.rule.trigger].label} ← {t.rule.actions.map(describeAction).join(" · ")}</p>

@@ -124,9 +124,9 @@ export default async function CustomerPage({ params, searchParams }: { params: {
                       <input type="hidden" name="id" value={c.id} />
                       <input type="hidden" name="op" value="remove" />
                       <input type="hidden" name="tag" value={t} />
-                      <span className="a-chip bg-[#EEF4FF] text-[#1F5FD6] !pl-1">
+                      <span className="a-chip bg-[#F1ECFF] text-[#5414D6] !pl-1">
                         {t}
-                        <button type="submit" aria-label={`הסרת התגית ${t}`} className="w-9 h-9 -my-2.5 -ml-1.5 rounded-full flex items-center justify-center hover:bg-[#D6E4FD]">
+                        <button type="submit" aria-label={`הסרת התגית ${t}`} className="w-9 h-9 -my-2.5 -ml-1.5 rounded-full flex items-center justify-center hover:bg-[#E2D6FD]">
                           <Icon name="close" size={13} />
                         </button>
                       </span>

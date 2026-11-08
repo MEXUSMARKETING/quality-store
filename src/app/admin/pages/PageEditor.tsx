@@ -137,7 +137,7 @@ export default function PageEditor({ initial, storageReady, canSave }: { initial
           </label>
           <label className="a-field">
             כתובת הדף
-            <span className="flex items-center gap-0 rounded-[10px] border border-[#D5DCE8] bg-adm-bg overflow-hidden focus-within:outline focus-within:outline-2 focus-within:outline-[#3478F6]" dir="ltr">
+            <span className="flex items-center gap-0 rounded-[10px] border border-[#D8D3EA] bg-adm-bg overflow-hidden focus-within:outline focus-within:outline-2 focus-within:outline-[#6C1CF5]" dir="ltr">
               <span className="px-3 text-[13px] text-adm-muted font-normal whitespace-nowrap">/info/</span>
               <input
                 name="slug"
@@ -197,8 +197,8 @@ export default function PageEditor({ initial, storageReady, canSave }: { initial
               ["published", "מפורסם", "מוצג באתר עכשיו"],
               ["scheduled", "מתוזמן", "יתפרסם לבד בתאריך שנבחר"],
             ] as const).map(([k, t, s]) => (
-              <label key={k} className={`rounded-xl border-[1.5px] p-2.5 flex gap-2.5 items-start cursor-pointer ${v.status === k ? "border-adm-blue bg-[#EEF4FF]" : "border-adm-line bg-white hover:bg-adm-bg"}`}>
-                <input type="radio" name="status" value={k} checked={v.status === k} onChange={() => set("status", k)} className="w-[18px] h-[18px] mt-0.5 accent-[#3478F6]" />
+              <label key={k} className={`rounded-xl border-[1.5px] p-2.5 flex gap-2.5 items-start cursor-pointer ${v.status === k ? "border-adm-blue bg-[#F1ECFF]" : "border-adm-line bg-white hover:bg-adm-bg"}`}>
+                <input type="radio" name="status" value={k} checked={v.status === k} onChange={() => set("status", k)} className="w-[18px] h-[18px] mt-0.5 accent-[#6C1CF5]" />
                 <span className="flex flex-col"><b className="text-[14px]">{t}</b><span className="text-[12px] text-adm-muted">{s}</span></span>
               </label>
             ))}
@@ -229,7 +229,7 @@ export default function PageEditor({ initial, storageReady, canSave }: { initial
           </label>
           <div className="rounded-xl border border-adm-line p-3 flex flex-col gap-0.5" aria-label="תצוגה בגוגל">
             <span className="text-[11px] text-adm-muted">כך זה ייראה בגוגל</span>
-            <span dir="ltr" className="text-[12px] text-[#3B475C] text-right truncate">quality.co.il › info › {v.slug || "…"}</span>
+            <span dir="ltr" className="text-[12px] text-[#3D3858] text-right truncate">quality.co.il › info › {v.slug || "…"}</span>
             <span className="text-[16px] text-[#1A0DAB] leading-snug truncate">{(seoTitle || "כותרת הדף") + " · Quality"}</span>
             <span className="text-[13px] text-[#4D5156] leading-5 line-clamp-2">{seoDesc || "תיאור הדף יופיע כאן."}</span>
           </div>

@@ -60,7 +60,7 @@ export default function CategoryTree({ cats, canEdit, editKey }: { cats: Cat[]; 
     const sel = editKey === c.key;
     return (
       <li key={c.key}>
-        <div className={`flex items-center gap-2 px-3 py-2 border-b border-[#EEF1F6] min-h-[60px] ${sel ? "bg-[#EEF4FF]" : "hover:bg-[#FAFBFD]"}`} style={{ paddingInlineStart: 12 + depth * 26 }}>
+        <div className={`flex items-center gap-2 px-3 py-2 border-b border-[#F0EEF6] min-h-[60px] ${sel ? "bg-[#F1ECFF]" : "hover:bg-[#FBFAFE]"}`} style={{ paddingInlineStart: 12 + depth * 26 }}>
           {kids.length ? (
             <button type="button" className="w-8 h-8 rounded-lg flex items-center justify-center text-adm-mid hover:bg-adm-bg" aria-expanded={isOpen} aria-label={`${isOpen ? "כיווץ" : "הרחבה"} ${c.name}`} onClick={() => setOpen((o) => ({ ...o, [c.key]: !isOpen }))}>
               <Icon name={isOpen ? "down" : "arrowLeft"} size={16} />
@@ -117,7 +117,7 @@ export default function CategoryTree({ cats, canEdit, editKey }: { cats: Cat[]; 
           <Link href={`/admin/categories?edit=${encodeURIComponent(c.key)}`} className="a-btn a-btn-sm !px-2.5" aria-label={`עריכת ${c.name}`}><Icon name="edit" size={15} /></Link>
         </div>
         {adding === c.key && (
-          <div className="px-3 py-2 border-b border-[#EEF1F6]" style={{ paddingInlineStart: 12 + (depth + 1) * 26 }}>
+          <div className="px-3 py-2 border-b border-[#F0EEF6]" style={{ paddingInlineStart: 12 + (depth + 1) * 26 }}>
             <AddInline parent={c.key} parentName={c.name} onDone={() => setAdding(null)} />
           </div>
         )}

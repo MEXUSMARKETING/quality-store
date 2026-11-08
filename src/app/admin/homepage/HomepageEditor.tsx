@@ -200,7 +200,7 @@ export default function HomepageEditor({ initial, published, initialHasDraft, te
                   const isLive = sectionLive(s, today);
                   const active = s.id === selected;
                   return (
-                    <li key={s.id} className={`flex items-center gap-2 px-3 py-2.5 ${active ? "bg-[#EEF4FF]" : ""}`}>
+                    <li key={s.id} className={`flex items-center gap-2 px-3 py-2.5 ${active ? "bg-[#F1ECFF]" : ""}`}>
                       <span className="w-6 text-center text-[13px] text-adm-muted font-semibold" aria-hidden="true">{i + 1}</span>
                       <button type="button" onClick={() => setSelected(active ? null : s.id)} aria-expanded={active} className="flex-1 min-w-0 text-right py-1">
                         <span className="flex items-center gap-2 flex-wrap">
@@ -458,7 +458,7 @@ function SectionForm({ s, onChange, categories, canEdit, storageReady }: { s: Ho
       {/* common: visibility + dates */}
       <div className="border-t border-adm-line pt-4 flex flex-col gap-3">
         <label className="flex items-center gap-2.5 min-h-[40px] text-[14px] font-semibold cursor-pointer">
-          <input type="checkbox" checked={s.visible} onChange={(e) => onChange({ visible: e.target.checked })} disabled={dis} className="w-5 h-5 accent-[#3478F6]" />
+          <input type="checkbox" checked={s.visible} onChange={(e) => onChange({ visible: e.target.checked })} disabled={dis} className="w-5 h-5 accent-[#6C1CF5]" />
           המקטע מוצג באתר
         </label>
         <div className="grid grid-cols-2 gap-3">
@@ -541,8 +541,8 @@ function Preview({ sections, products, selected, onSelect, mobile, today }: { se
       {sections.map((s) => {
         const live = sectionLive(s, today);
         const wrap = (child: React.ReactNode) => (
-          <div key={s.id} onClick={() => onSelect(s.id)} className={`relative cursor-pointer outline-offset-[-2px] ${s.id === selected ? "outline outline-2 outline-[#3478F6]" : "hover:outline hover:outline-1 hover:outline-[#9EC2FF]"} ${live ? "" : "opacity-40"}`}>
-            {!live && <span className="absolute top-1 left-1 z-10 text-[10px] font-bold bg-white text-[#3B475C] rounded px-1.5 py-0.5">{s.visible ? "מחוץ לתאריכים" : "מוסתר"}</span>}
+          <div key={s.id} onClick={() => onSelect(s.id)} className={`relative cursor-pointer outline-offset-[-2px] ${s.id === selected ? "outline outline-2 outline-[#6C1CF5]" : "hover:outline hover:outline-1 hover:outline-[#9EC2FF]"} ${live ? "" : "opacity-40"}`}>
+            {!live && <span className="absolute top-1 left-1 z-10 text-[10px] font-bold bg-white text-[#3D3858] rounded px-1.5 py-0.5">{s.visible ? "מחוץ לתאריכים" : "מוסתר"}</span>}
             {child}
           </div>
         );

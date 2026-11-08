@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { adminPasswordSet, currentAdmin } from "@/lib/auth";
 import { can, moduleForPath, ROLES } from "@/lib/permissions";
 import { hasDb } from "@/lib/db";
+import { getStoreInfo } from "@/lib/site";
 import { listOrders, listProducts, totalStock } from "@/lib/store";
 import LoginForm from "./LoginForm";
 import { logout } from "./actions";
@@ -10,11 +11,16 @@ import { DbMissing } from "./_components/ui";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
-export const metadata = { title: "ניהול", robots: { index: false, follow: false } };
+export const metadata = {
+  title: { default: "NEXSHOP · ניהול החנות", template: "%s · NEXSHOP" },
+  robots: { index: false, follow: false },
+  icons: { icon: "/brand/nexshop-icon-64.png", apple: "/brand/nexshop-mark.png" },
+};
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const me = await currentAdmin();
-  if (!me) return <LoginForm configured={adminPasswordSet()} />;
+  const storeName = await getStoreInfo().then((x) => x.name).catch(() => "");
+  if (!me) return <LoginForm configured={adminPasswordSet()} storeName={storeName} />;
   const path = headers().get("x-admin-path") || "/admin";
   const mod = moduleForPath(path);
   const allowed = !mod || can(me.perms, mod, "view");
@@ -37,7 +43,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <Shell newOrders={newOrders} alerts={can(me.perms, "orders") || can(me.perms, "products") ? alerts.slice(0, 8) : []} logoutAction={logout} perms={me.perms} userName={me.name} roleLabel={ROLES[me.role]?.label || me.role}>
+    <Shell newOrders={newOrders} alerts={can(me.perms, "orders") || can(me.perms, "products") ? alerts.slice(0, 8) : []} logoutAction={logout} storeName={storeName} perms={me.perms} userName={me.name} roleLabel={ROLES[me.role]?.label || me.role}>
       {!hasDb() && <DbMissing />}
       {allowed ? (
         children

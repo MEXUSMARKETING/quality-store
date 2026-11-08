@@ -90,11 +90,11 @@ function ScopePicker({ scope, onChange, categories, products, title, allowAll = 
         <span className="sr-only">חיפוש מוצר</span>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="חיפוש מוצר…" className="flex-1 bg-transparent outline-none text-[14px]" />
       </label>
-      <ul aria-label={label} className="max-h-[300px] overflow-y-auto rounded-xl border border-adm-line divide-y divide-[#EEF1F6]">
+      <ul aria-label={label} className="max-h-[300px] overflow-y-auto rounded-xl border border-adm-line divide-y divide-[#F0EEF6]">
         {filtered.map((p) => (
           <li key={p.id}>
             <label className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-adm-bg">
-              <input type="checkbox" checked={selected.includes(p.id)} onChange={() => onToggle(p.id)} className="w-[18px] h-[18px] accent-[#3478F6]" />
+              <input type="checkbox" checked={selected.includes(p.id)} onChange={() => onToggle(p.id)} className="w-[18px] h-[18px] accent-[#6C1CF5]" />
               {p.image ? <img src={p.image} alt="" className="w-10 h-10 rounded-lg object-cover bg-adm-bg" /> : <span className="w-10 h-10 rounded-lg bg-adm-bg" />}
               <span className="flex-1 min-w-0">
                 <span className="block text-[14px] font-semibold truncate">{p.name}{!p.active && <span className="text-adm-muted font-normal"> (מוסתר)</span>}</span>
@@ -121,7 +121,7 @@ function ScopePicker({ scope, onChange, categories, products, title, allowAll = 
         <div className="grid gap-1 [grid-template-columns:repeat(auto-fill,minmax(200px,1fr))]">
           {categories.map((c) => (
             <label key={c.key} className="flex items-center gap-2.5 min-h-[40px] px-2.5 rounded-lg hover:bg-adm-bg cursor-pointer" style={{ paddingInlineStart: 10 + c.depth * 18 }}>
-              <input type="checkbox" checked={scope.categories.includes(c.key)} onChange={() => set({ categories: toggle(scope.categories, c.key) })} className="w-[18px] h-[18px] accent-[#3478F6]" />
+              <input type="checkbox" checked={scope.categories.includes(c.key)} onChange={() => set({ categories: toggle(scope.categories, c.key) })} className="w-[18px] h-[18px] accent-[#6C1CF5]" />
               <span className="text-[14px]">{c.name}{!c.active && <span className="text-adm-muted"> (מוסתרת)</span>}</span>
             </label>
           ))}
@@ -132,7 +132,7 @@ function ScopePicker({ scope, onChange, categories, products, title, allowAll = 
 
       <div className="flex flex-col gap-2 pt-1">
         <label className="flex items-center gap-2.5 text-[14px] cursor-pointer min-h-[36px]">
-          <input type="checkbox" checked={scope.excludeSale} onChange={(e) => set({ excludeSale: e.target.checked })} className="w-[18px] h-[18px] accent-[#3478F6]" />
+          <input type="checkbox" checked={scope.excludeSale} onChange={(e) => set({ excludeSale: e.target.checked })} className="w-[18px] h-[18px] accent-[#6C1CF5]" />
           לא לכלול מוצרים שכבר מוצגים במחיר מוזל
         </label>
         {scope.mode !== "products" && (
@@ -226,7 +226,7 @@ export default function PromoEditor({ initial, categories, products, others }: {
           <h2 id="s-type" className="text-[17px] font-bold text-adm-navy">1. סוג המבצע</h2>
           <div role="radiogroup" aria-labelledby="s-type" className="grid gap-2.5 [grid-template-columns:repeat(auto-fill,minmax(170px,1fr))]">
             {TYPES.map((t) => (
-              <button key={t} type="button" role="radio" aria-checked={v.type === t} onClick={() => set({ type: t, config: { ...c } })} className={`text-start rounded-xl border-2 p-3 flex flex-col gap-1 transition-colors ${v.type === t ? "border-adm-blue bg-[#F2F7FF]" : "border-adm-line hover:border-[#C9D3E3]"}`}>
+              <button key={t} type="button" role="radio" aria-checked={v.type === t} onClick={() => set({ type: t, config: { ...c } })} className={`text-start rounded-xl border-2 p-3 flex flex-col gap-1 transition-colors ${v.type === t ? "border-adm-blue bg-[#F4EFFF]" : "border-adm-line hover:border-[#D3CCE8]"}`}>
                 <span className={`w-10 h-10 rounded-lg flex items-center justify-center font-extrabold text-[14px] ${v.type === t ? "bg-adm-blue text-white" : "bg-adm-bg text-adm-navy"}`} dir="ltr">{TYPE_ICON[t]}</span>
                 <b className="text-[14px]">{TYPE_META[t].label}</b>
                 <span className="text-[12px] text-adm-muted leading-5">{TYPE_META[t].help}</span>
@@ -334,11 +334,11 @@ export default function PromoEditor({ initial, categories, products, others }: {
           </div>
           <div className="flex flex-col gap-1">
             <label className="flex items-center gap-2.5 text-[14px] cursor-pointer min-h-[40px]">
-              <input type="checkbox" checked={v.active} onChange={(e) => set({ active: e.target.checked })} className="w-[18px] h-[18px] accent-[#3478F6]" />
+              <input type="checkbox" checked={v.active} onChange={(e) => set({ active: e.target.checked })} className="w-[18px] h-[18px] accent-[#6C1CF5]" />
               המבצע פעיל (אפשר להשהות בכל רגע)
             </label>
             <label className="flex items-center gap-2.5 text-[14px] cursor-pointer min-h-[40px]">
-              <input type="checkbox" checked={v.allow_coupon} onChange={(e) => set({ allow_coupon: e.target.checked })} className="w-[18px] h-[18px] accent-[#3478F6]" />
+              <input type="checkbox" checked={v.allow_coupon} onChange={(e) => set({ allow_coupon: e.target.checked })} className="w-[18px] h-[18px] accent-[#6C1CF5]" />
               מצטבר עם קופונים (הקופון מחושב אחרי המבצע)
             </label>
           </div>
@@ -395,7 +395,7 @@ export default function PromoEditor({ initial, categories, products, others }: {
         {warnings.length > 0 && (
           <section aria-label="בדיקות חכמות" className="flex flex-col gap-2">
             {warnings.map((w, i) => (
-              <p key={i} className={`p-3 rounded-xl border text-[13px] leading-5 ${w.tone === "red" ? "bg-[#FDECEC] text-[#8A2626] border-[#F3D3D3]" : w.tone === "amber" ? "bg-[#FFF4E0] text-[#6B4600] border-[#F5DFB3]" : "bg-[#EEF4FF] text-[#1F3F7A] border-[#D6E4FD]"}`}>{w.text}</p>
+              <p key={i} className={`p-3 rounded-xl border text-[13px] leading-5 ${w.tone === "red" ? "bg-[#FDECEC] text-[#8A2626] border-[#F3D3D3]" : w.tone === "amber" ? "bg-[#FFF4E0] text-[#6B4600] border-[#F5DFB3]" : "bg-[#F1ECFF] text-[#3A1C7A] border-[#E2D6FD]"}`}>{w.text}</p>
             ))}
           </section>
         )}

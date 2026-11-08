@@ -46,7 +46,7 @@ function LineChart({ chart }: { chart: Extract<Chart, { kind: "line" }> }) {
           role="img"
           aria-label={`${chart.title}: ${chart.series.map((s) => `${s.name} ${fmtVal(total(s.values), chart.type as ValType)}`).join(", ")}`}
         >
-          <path d={`M0 ${H * 0.25}H${W}M0 ${H * 0.5}H${W}M0 ${H * 0.75}H${W}`} stroke="#EEF1F6" />
+          <path d={`M0 ${H * 0.25}H${W}M0 ${H * 0.5}H${W}M0 ${H * 0.75}H${W}`} stroke="#F0EEF6" />
           {area && <path d={area} fill={main.color} fillOpacity="0.08" />}
           {[...chart.series].reverse().map((s) => (
             <path
@@ -60,7 +60,7 @@ function LineChart({ chart }: { chart: Extract<Chart, { kind: "line" }> }) {
               vectorEffect="non-scaling-stroke"
             />
           ))}
-          <path d={`M0 ${H}H${W}`} stroke="#E5EAF2" />
+          <path d={`M0 ${H}H${W}`} stroke="#E8E5F3" />
         </svg>
       </div>
       <div className="flex justify-between text-[12px] text-adm-muted" dir="ltr">
@@ -97,7 +97,7 @@ function BarsChart({ chart }: { chart: Extract<Chart, { kind: "bars" }> }) {
         </div>
         <div dir="ltr">
           <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="220" role="img" aria-label={`${chart.title}: ${items.map((i) => `${i.label} ${fmtVal(i.value, chart.type)}`).join(", ")}`}>
-            <path d={`M0 ${H * 0.25}H${W}M0 ${H * 0.5}H${W}M0 ${H * 0.75}H${W}`} stroke="#EEF1F6" />
+            <path d={`M0 ${H * 0.25}H${W}M0 ${H * 0.5}H${W}M0 ${H * 0.75}H${W}`} stroke="#F0EEF6" />
             {/* RTL reading order: first item on the right */}
             {items.map((it, i) => {
               const cx = W - (i + 0.5) * slot;
@@ -106,16 +106,16 @@ function BarsChart({ chart }: { chart: Extract<Chart, { kind: "bars" }> }) {
               return (
                 <g key={i}>
                   {hasPrev && <rect x={cx + 2} y={H - ph} width={bw} height={ph} rx="3" fill="#C5CEDB"><title>{`${it.label} – תקופה קודמת: ${fmtVal(it.prev ?? 0, chart.type)}`}</title></rect>}
-                  <rect x={hasPrev ? cx - bw - 2 : cx - bw / 2} y={H - h} width={bw} height={h} rx="3" fill="#3478F6"><title>{`${it.label}: ${fmtVal(it.value, chart.type)}`}</title></rect>
+                  <rect x={hasPrev ? cx - bw - 2 : cx - bw / 2} y={H - h} width={bw} height={h} rx="3" fill="#6C1CF5"><title>{`${it.label}: ${fmtVal(it.value, chart.type)}`}</title></rect>
                   {it.value > 0 && (
-                    <text x={hasPrev ? cx - bw / 2 - 2 : cx} y={H - h - 6} textAnchor="middle" fontSize="12" fill="#18263C" fontWeight="600">
+                    <text x={hasPrev ? cx - bw / 2 - 2 : cx} y={H - h - 6} textAnchor="middle" fontSize="12" fill="#17142E" fontWeight="600">
                       {chart.type === "money" ? fmtVal(it.value, "money") : Math.round(it.value)}
                     </text>
                   )}
                 </g>
               );
             })}
-            <path d={`M0 ${H}H${W}`} stroke="#E5EAF2" />
+            <path d={`M0 ${H}H${W}`} stroke="#E8E5F3" />
           </svg>
         </div>
         <div className="flex text-[12px] text-adm-muted" dir="rtl">
@@ -140,8 +140,8 @@ function BarsChart({ chart }: { chart: Extract<Chart, { kind: "bars" }> }) {
               <b className="whitespace-nowrap">{fmtVal(it.value, chart.type)}{hasPrev && <span className="text-adm-muted font-normal text-[12px]"> · קודם {fmtVal(it.prev ?? 0, chart.type)}</span>}</b>
             </div>
             <svg viewBox="0 0 100 8" width="100%" height="8" preserveAspectRatio="none" aria-hidden="true">
-              <rect x="0" y="0" width="100" height={hasPrev ? 4 : 8} rx="2" fill="#EEF1F6" />
-              <rect x={100 - (Math.max(0, it.value) / maxV) * 100} y="0" width={(Math.max(0, it.value) / maxV) * 100} height={hasPrev ? 4 : 8} rx="2" fill="#3478F6" />
+              <rect x="0" y="0" width="100" height={hasPrev ? 4 : 8} rx="2" fill="#F0EEF6" />
+              <rect x={100 - (Math.max(0, it.value) / maxV) * 100} y="0" width={(Math.max(0, it.value) / maxV) * 100} height={hasPrev ? 4 : 8} rx="2" fill="#6C1CF5" />
               {hasPrev && <rect x={100 - (Math.max(0, Number(it.prev) || 0) / maxV) * 100} y="5" width={(Math.max(0, Number(it.prev) || 0) / maxV) * 100} height="3" rx="1.5" fill="#9AA6B8" />}
             </svg>
           </li>

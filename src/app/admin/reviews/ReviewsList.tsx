@@ -36,7 +36,7 @@ function Card({ r, canEdit, selected, onSelect, run, pending }: { r: AdminReview
         {canEdit && (
           <label className="pt-0.5">
             <span className="sr-only">בחירת ביקורת של {r.name}</span>
-            <input type="checkbox" checked={selected} onChange={onSelect} className="w-5 h-5 accent-[#3478F6]" />
+            <input type="checkbox" checked={selected} onChange={onSelect} className="w-5 h-5 accent-[#6C1CF5]" />
           </label>
         )}
         <div className="flex flex-col gap-1 flex-1 min-w-0">
@@ -82,7 +82,7 @@ function Card({ r, canEdit, selected, onSelect, run, pending }: { r: AdminReview
       )}
 
       {canEdit && (
-        <footer className="flex flex-wrap gap-1.5 border-t border-[#EEF1F6] pt-3">
+        <footer className="flex flex-wrap gap-1.5 border-t border-[#F0EEF6] pt-3">
           {r.status !== "approved" && <button type="button" className={`${btn} !border-[#C6EADB] !text-[#0F7A57]`} disabled={pending} onClick={() => run(() => reviewAction(r.id, "approved"))}><Icon name="check" size={15} /> אישור</button>}
           {r.status !== "rejected" && <button type="button" className={btn} disabled={pending} onClick={() => run(() => reviewAction(r.id, "rejected"))}><Icon name="close" size={15} /> דחייה</button>}
           {r.status !== "hidden" && <button type="button" className={btn} disabled={pending} onClick={() => run(() => reviewAction(r.id, "hidden"))}><Icon name="eye" size={15} /> הסתרה</button>}
@@ -124,7 +124,7 @@ export default function ReviewsList({ reviews, canEdit }: { reviews: AdminReview
       {canEdit && (
         <div className="a-card !py-2.5 flex flex-wrap items-center gap-2 sticky top-2 z-10">
           <label className="flex items-center gap-2 text-[14px] font-semibold min-h-[36px]">
-            <input type="checkbox" checked={all} onChange={() => setSelected(all ? [] : reviews.map((r) => r.id))} className="w-5 h-5 accent-[#3478F6]" />
+            <input type="checkbox" checked={all} onChange={() => setSelected(all ? [] : reviews.map((r) => r.id))} className="w-5 h-5 accent-[#6C1CF5]" />
             {selected.length ? `${selected.length} נבחרו` : "בחירת הכל"}
           </label>
           <span className="flex-1" />

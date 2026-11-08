@@ -50,10 +50,10 @@ function SizesCard({ initial, use, canEdit }: { initial: string[]; use: Record<s
         {sizes.map((s, i) => {
           const n = use[s] || 0;
           return (
-            <li key={s} className="flex items-center gap-2 px-3 py-1.5 border-b border-[#EEF1F6] last:border-0 min-h-[52px]">
+            <li key={s} className="flex items-center gap-2 px-3 py-1.5 border-b border-[#F0EEF6] last:border-0 min-h-[52px]">
               <b className="w-14 text-[16px] tabular-nums text-adm-navy" dir="ltr">{s}</b>
               <span className={`flex-1 text-[13px] ${n ? "text-[#0F7A57] font-semibold" : "text-adm-muted"}`}>{n ? `במלאי ב־${n} מוצרים` : "אין מלאי"}</span>
-              {!initial.includes(s) && <span className="a-chip bg-[#EEF4FF] text-[#1F5FD6]">חדשה</span>}
+              {!initial.includes(s) && <span className="a-chip bg-[#F1ECFF] text-[#5414D6]">חדשה</span>}
               <button type="button" className={iconBtn} disabled={!canEdit || i === 0} onClick={() => setSizes(swap(sizes, i, -1))} aria-label={`הזזת מידה ${s} למעלה`}><Icon name="up" size={16} /></button>
               <button type="button" className={iconBtn} disabled={!canEdit || i === sizes.length - 1} onClick={() => setSizes(swap(sizes, i, 1))} aria-label={`הזזת מידה ${s} למטה`}><Icon name="down" size={16} /></button>
               <button

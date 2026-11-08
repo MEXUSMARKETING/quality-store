@@ -15,7 +15,7 @@ function isActive(path: string, href: string) {
   return path === href || path.startsWith(href + "/");
 }
 
-export default function Shell({ newOrders, alerts, logoutAction, perms, userName, roleLabel, children }: { newOrders: number; alerts: Alert[]; logoutAction: () => Promise<void>; perms: PermissionMap; userName: string; roleLabel: string; children: React.ReactNode }) {
+export default function Shell({ newOrders, alerts, logoutAction, perms, userName, roleLabel, storeName = "", children }: { newOrders: number; alerts: Alert[]; logoutAction: () => Promise<void>; perms: PermissionMap; userName: string; roleLabel: string; storeName?: string; children: React.ReactNode }) {
   const path = usePathname() || "/admin";
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -87,7 +87,7 @@ export default function Shell({ newOrders, alerts, logoutAction, perms, userName
     <nav aria-label="ניווט ראשי" className="flex flex-col gap-4">
       {groups.map((g, gi) => (
         <div key={gi} className="flex flex-col gap-0.5">
-          {g.label && <span className="text-[11px] font-semibold text-[#AEB9CC] px-2.5 pb-1 tracking-wide">{g.label}</span>}
+          {g.label && <span className="text-[11px] font-semibold text-[#ABA5CC] px-2.5 pb-1 tracking-wide">{g.label}</span>}
           {g.items.map((it) => {
             const on = isActive(path, it.href);
             return (
@@ -95,11 +95,11 @@ export default function Shell({ newOrders, alerts, logoutAction, perms, userName
                 key={it.href}
                 href={it.href}
                 aria-current={on ? "page" : undefined}
-                className={`flex items-center gap-2.5 min-h-[40px] px-2.5 rounded-[9px] text-[14px] transition-colors ${on ? "bg-adm-blue text-white font-semibold hover:text-white" : "text-[#D3DBE8] hover:bg-white/10 hover:text-white"}`}
+                className={`flex items-center gap-2.5 min-h-[40px] px-2.5 rounded-[9px] text-[14px] transition-colors ${on ? "nx-grad text-white font-semibold shadow-[0_8px_20px_-10px_rgba(122,18,255,.8)] hover:text-white" : "text-[#D9D4F0] hover:bg-white/10 hover:text-white"}`}
               >
                 <Icon name={it.icon} />
                 <span className="flex-1">{it.label}</span>
-                {it.badge ? <span className={`min-w-[22px] h-5 px-1.5 rounded-full text-[12px] font-bold flex items-center justify-center ${on ? "bg-adm-navy text-white" : "bg-adm-blue text-white"}`}>{it.badge}</span> : null}
+                {it.badge ? <span className={`min-w-[22px] h-5 px-1.5 rounded-full text-[12px] font-bold flex items-center justify-center ${on ? "bg-white/25 text-white" : "bg-[#FF01BB] text-white"}`}>{it.badge}</span> : null}
               </Link>
             );
           })}
@@ -110,20 +110,27 @@ export default function Shell({ newOrders, alerts, logoutAction, perms, userName
 
   const sidebar = (
     <div className="h-full flex flex-col gap-5 p-3.5 pt-5">
-      <Link href="/admin" className="flex items-center gap-2.5 px-2 hover:text-white">
-        <span className="w-[38px] h-[38px] rounded-[10px] bg-adm-blue flex items-center justify-center font-extrabold text-[20px] text-white">Q</span>
-        <span className="flex flex-col leading-tight">
-          <b className="text-[17px] text-white" dir="ltr">Quality</b>
-          <span className="text-[12px] text-[#AEB9CC]">ניהול החנות</span>
-        </span>
-      </Link>
+      <div className="flex flex-col gap-3 px-1.5">
+        <Link href="/admin" className="block hover:opacity-90" aria-label="NEXSHOP – לוח הבקרה">
+          <img src="/brand/nexshop-logo.png" alt="NEXSHOP" width={1100} height={335} className="w-[188px] h-auto" />
+        </Link>
+        {storeName && (
+          <a href="/" target="_blank" rel="noopener" className="flex items-center gap-2 rounded-xl px-2.5 py-2 bg-white/[.06] border border-white/10 hover:bg-white/10 hover:text-white">
+            <span className="w-7 h-7 rounded-lg nx-grad flex items-center justify-center text-[13px] font-extrabold text-white" aria-hidden="true">{storeName.trim().charAt(0).toUpperCase()}</span>
+            <span className="flex flex-col leading-tight min-w-0">
+              <span className="text-[11px] text-[#ABA5CC]">החנות שלך</span>
+              <b className="text-[14px] text-white truncate" dir="auto">{storeName}</b>
+            </span>
+          </a>
+        )}
+      </div>
       {nav}
       <div className="mt-auto flex flex-col gap-0.5 pt-4 border-t border-white/10">
-        <a href="/" target="_blank" rel="noopener" className="flex items-center gap-2.5 min-h-[40px] px-2.5 rounded-[9px] text-[14px] text-[#D3DBE8] hover:bg-white/10 hover:text-white">
+        <a href="/" target="_blank" rel="noopener" className="flex items-center gap-2.5 min-h-[40px] px-2.5 rounded-[9px] text-[14px] text-[#D9D4F0] hover:bg-white/10 hover:text-white">
           <Icon name="external" /> צפייה באתר
         </a>
         <form action={logoutAction}>
-          <button className="w-full flex items-center gap-2.5 min-h-[40px] px-2.5 rounded-[9px] text-[14px] text-[#D3DBE8] hover:bg-white/10 hover:text-white">
+          <button className="w-full flex items-center gap-2.5 min-h-[40px] px-2.5 rounded-[9px] text-[14px] text-[#D9D4F0] hover:bg-white/10 hover:text-white">
             <Icon name="logout" /> יציאה
           </button>
         </form>
@@ -134,12 +141,12 @@ export default function Shell({ newOrders, alerts, logoutAction, perms, userName
   return (
     <div className="adm min-h-screen flex font-sans">
       {/* desktop sidebar */}
-      <aside className="hidden lg:block w-[248px] shrink-0 bg-adm-navy sticky top-0 h-screen overflow-y-auto adm-noprint">{sidebar}</aside>
+      <aside className="hidden lg:block w-[248px] shrink-0 bg-[#0B0820] bg-[radial-gradient(120%_60%_at_100%_0%,rgba(122,18,255,.28),transparent_60%),radial-gradient(90%_50%_at_0%_100%,rgba(0,106,255,.18),transparent_60%)] sticky top-0 h-screen overflow-y-auto adm-noprint">{sidebar}</aside>
 
       {/* mobile drawer */}
       {open && (
         <div className="lg:hidden fixed inset-0 z-50 flex adm-noprint">
-          <div className="w-[272px] max-w-[85vw] bg-adm-navy h-full overflow-y-auto shadow-2xl">{sidebar}</div>
+          <div className="w-[272px] max-w-[85vw] bg-[#0B0820] bg-[radial-gradient(120%_60%_at_100%_0%,rgba(122,18,255,.28),transparent_60%)] h-full overflow-y-auto shadow-2xl">{sidebar}</div>
           <button aria-label="סגירת התפריט" className="flex-1 bg-black/40" onClick={() => setOpen(false)} />
         </div>
       )}
@@ -182,7 +189,7 @@ export default function Shell({ newOrders, alerts, logoutAction, perms, userName
               {alerts.length > 0 && <span className="absolute top-2 left-2 w-2.5 h-2.5 rounded-full bg-[#E05252] border-2 border-white" />}
             </button>
             {bell && (
-              <div className="absolute top-[52px] left-0 w-[340px] max-w-[calc(100vw-32px)] bg-white border border-adm-line rounded-xl shadow-[0_12px_32px_rgba(23,36,58,.14)] p-2.5 flex flex-col gap-1">
+              <div className="absolute top-[52px] left-0 w-[340px] max-w-[calc(100vw-32px)] bg-white border border-adm-line rounded-xl shadow-[0_12px_32px_rgba(20,16,46,.14)] p-2.5 flex flex-col gap-1">
                 <b className="px-2 py-1.5 text-[15px]">התראות</b>
                 {alerts.length === 0 && <p className="px-2 py-3 text-[14px] text-adm-muted">אין התראות חדשות. הכל תקין.</p>}
                 {alerts.map((a, i) => (
@@ -197,7 +204,7 @@ export default function Shell({ newOrders, alerts, logoutAction, perms, userName
               </div>
             )}
             <span className="hidden sm:flex items-center gap-2.5 ps-1">
-              <span className="w-9 h-9 rounded-full bg-adm-navy text-white flex items-center justify-center font-bold">{(userName || "מ").trim().charAt(0)}</span>
+              <span className="w-9 h-9 rounded-full nx-grad text-white flex items-center justify-center font-bold">{(userName || "מ").trim().charAt(0)}</span>
               <span className="flex flex-col leading-tight">
                 <span className="text-[14px] font-semibold">{userName}</span>
                 <span className="text-[12px] text-adm-muted">{roleLabel}</span>

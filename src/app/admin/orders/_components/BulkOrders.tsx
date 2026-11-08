@@ -39,7 +39,7 @@ export default function BulkOrders({ ids, children }: { ids: number[]; children:
       }}
       className="flex flex-col"
     >
-      <div className="flex flex-wrap items-center gap-2.5 px-[18px] py-3 border-b border-adm-line bg-[#F8FAFD] adm-noprint">
+      <div className="flex flex-wrap items-center gap-2.5 px-[18px] py-3 border-b border-adm-line bg-[#F9F8FD] adm-noprint">
         <label className="flex items-center gap-2 min-h-[36px] text-[14px] cursor-pointer">
           <input
             type="checkbox"

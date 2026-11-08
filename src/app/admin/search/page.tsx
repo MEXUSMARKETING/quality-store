@@ -41,7 +41,7 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
     ) : null;
 
   const Row = ({ href, title, meta, extra }: { href: string; title: React.ReactNode; meta?: React.ReactNode; extra?: React.ReactNode }) => (
-    <li className="border-t border-[#EEF1F6]">
+    <li className="border-t border-[#F0EEF6]">
       <Link href={href} className="flex items-center justify-between gap-3 px-[18px] py-3 hover:bg-adm-bg">
         <span className="flex flex-col"><b className="text-[14px]">{title}</b>{meta && <span className="text-[13px] text-adm-muted">{meta}</span>}</span>
         {extra}

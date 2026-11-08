@@ -84,8 +84,8 @@ const TONES = {
   green: "bg-[#E6F6F0] text-[#0F7A57]",
   amber: "bg-[#FFF4E0] text-[#8A5A00]",
   red: "bg-[#FDECEC] text-[#B03A3A]",
-  blue: "bg-[#EEF4FF] text-[#1F5FD6]",
-  gray: "bg-[#EEF1F6] text-[#3B475C]",
+  blue: "bg-[#F1ECFF] text-[#5414D6]",
+  gray: "bg-[#F0EEF6] text-[#3D3858]",
   purple: "bg-[#F1EDFD] text-[#5B3FC4]",
 } as const;
 export type Tone = keyof typeof TONES;
@@ -104,11 +104,11 @@ function MapChip({ s }: { s: { label: string; color: string } }) {
   );
 }
 export function OrderStatusChip({ status }: { status: string }) {
-  return <MapChip s={ORDER_STATUS[status] || { label: status, color: "#5E6B80" }} />;
+  return <MapChip s={ORDER_STATUS[status] || { label: status, color: "#615C7A" }} />;
 }
 export function PaymentStatusChip({ status }: { status?: string }) {
   const k = status || "pending";
-  return <MapChip s={PAYMENT_STATUS[k] || { label: k, color: "#5E6B80" }} />;
+  return <MapChip s={PAYMENT_STATUS[k] || { label: k, color: "#615C7A" }} />;
 }
 
 export function Empty({ title, text, children }: { title: string; text?: string; children?: React.ReactNode }) {
@@ -123,7 +123,7 @@ export function Empty({ title, text, children }: { title: string; text?: string;
 }
 
 export function Notice({ tone = "amber", children }: { tone?: "amber" | "blue" | "red" | "green"; children: React.ReactNode }) {
-  const t = { amber: "bg-[#FFF4E0] text-[#6B4600] border-[#F5DFB3]", blue: "bg-[#EEF4FF] text-[#1F3F7A] border-[#D6E4FD]", red: "bg-[#FDECEC] text-[#8A2626] border-[#F3D3D3]", green: "bg-[#E6F6F0] text-[#0B5E43] border-[#C6EADB]" }[tone];
+  const t = { amber: "bg-[#FFF4E0] text-[#6B4600] border-[#F5DFB3]", blue: "bg-[#F1ECFF] text-[#3A1C7A] border-[#E2D6FD]", red: "bg-[#FDECEC] text-[#8A2626] border-[#F3D3D3]", green: "bg-[#E6F6F0] text-[#0B5E43] border-[#C6EADB]" }[tone];
   return <div className={`p-4 rounded-xl border text-[14px] leading-6 ${t}`}>{children}</div>;
 }
 

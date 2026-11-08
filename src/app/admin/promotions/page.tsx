@@ -101,7 +101,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: {
         </div>
         <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fill,minmax(190px,1fr))]">
           {PRESETS.map((t) => (
-            <Link key={t.key} href={`/admin/promotions/new?preset=${t.key}`} className="group rounded-xl border border-adm-line p-3.5 flex flex-col gap-1.5 hover:border-adm-blue hover:bg-[#F7FAFF] transition-colors">
+            <Link key={t.key} href={`/admin/promotions/new?preset=${t.key}`} className="group rounded-xl border border-adm-line p-3.5 flex flex-col gap-1.5 hover:border-adm-blue hover:bg-[#F8F5FF] transition-colors">
               <span className="self-start text-[13px] font-extrabold px-2.5 py-1 rounded-full bg-[#FFF4E0] text-[#6B4600]">{autoBadge(t.type, t.config)}</span>
               <b className="text-[15px]">{t.title}</b>
               <span className="text-[13px] text-adm-muted leading-5">{t.text}</span>

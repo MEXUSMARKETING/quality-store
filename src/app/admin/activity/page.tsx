@@ -176,8 +176,8 @@ export default async function ActivityPage({ searchParams }: { searchParams: SP 
                   const meta = ACTIONS[a.action] || { label: a.action, icon: "edit" as const, tone: "gray" as const };
                   const href = entityHref(a.entity, a.entity_id);
                   return (
-                    <li key={a.id} className="flex gap-3 px-4 py-3.5 border-b border-[#EEF1F6] last:border-0">
-                      <span className={`w-9 h-9 rounded-[10px] shrink-0 flex items-center justify-center ${{ green: "bg-[#E6F6F0] text-[#0F7A57]", blue: "bg-[#EEF4FF] text-[#1F5FD6]", red: "bg-[#FDECEC] text-[#B03A3A]", purple: "bg-[#F1EDFD] text-[#5B3FC4]", amber: "bg-[#FFF4E0] text-[#8A5A00]", gray: "bg-[#EEF1F6] text-[#3B475C]" }[meta.tone]}`} aria-hidden="true">
+                    <li key={a.id} className="flex gap-3 px-4 py-3.5 border-b border-[#F0EEF6] last:border-0">
+                      <span className={`w-9 h-9 rounded-[10px] shrink-0 flex items-center justify-center ${{ green: "bg-[#E6F6F0] text-[#0F7A57]", blue: "bg-[#F1ECFF] text-[#5414D6]", red: "bg-[#FDECEC] text-[#B03A3A]", purple: "bg-[#F1EDFD] text-[#5B3FC4]", amber: "bg-[#FFF4E0] text-[#8A5A00]", gray: "bg-[#F0EEF6] text-[#3D3858]" }[meta.tone]}`} aria-hidden="true">
                         <Icon name={meta.icon} size={17} />
                       </span>
                       <div className="flex-1 min-w-0">

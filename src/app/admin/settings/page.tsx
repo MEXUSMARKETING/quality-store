@@ -63,7 +63,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: { s
               key={s.key}
               href={`/admin/settings?section=${s.key}`}
               aria-current={section === s.key ? "page" : undefined}
-              className={`flex items-center gap-2.5 min-h-[40px] px-3 rounded-[9px] text-[14px] whitespace-nowrap ${section === s.key ? "bg-[#EEF4FF] text-adm-navy font-bold" : "text-adm-text hover:bg-adm-bg"}`}
+              className={`flex items-center gap-2.5 min-h-[40px] px-3 rounded-[9px] text-[14px] whitespace-nowrap ${section === s.key ? "bg-[#F1ECFF] text-adm-navy font-bold" : "text-adm-text hover:bg-adm-bg"}`}
             >
               <Icon name={s.icon} size={17} /> {s.label}
             </Link>
@@ -91,7 +91,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: { s
                         <span className="text-[12px] text-adm-muted">{it.note}</span>
                         <span className="flex flex-wrap gap-1.5">
                           {it.env.map((k) => (
-                            <span key={k} dir="ltr" className={`a-chip font-mono !font-semibold ${env(k) ? "bg-[#E6F6F0] text-[#0F7A57]" : "bg-[#EEF1F6] text-[#3B475C]"}`}>
+                            <span key={k} dir="ltr" className={`a-chip font-mono !font-semibold ${env(k) ? "bg-[#E6F6F0] text-[#0F7A57]" : "bg-[#F0EEF6] text-[#3D3858]"}`}>
                               {env(k) ? "✓ " : ""}{k}
                             </span>
                           ))}

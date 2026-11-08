@@ -38,7 +38,7 @@ function SettingsForm({ action, canEdit, children, encType }: { action: (s: Sett
       <fieldset disabled={!canEdit} className="flex flex-col gap-4 min-w-0">{children}</fieldset>
       {state?.error && <div role="alert" className="p-3 rounded-xl border bg-[#FDECEC] text-[#8A2626] border-[#F3D3D3] text-[14px]">{state.error}</div>}
       {canEdit ? (
-        <div className="sticky bottom-0 z-10 -mx-1 px-4 py-3 rounded-xl bg-white border border-adm-line shadow-[0_-6px_18px_rgba(23,36,58,.06)] flex flex-wrap items-center justify-between gap-3">
+        <div className="sticky bottom-0 z-10 -mx-1 px-4 py-3 rounded-xl bg-white border border-adm-line shadow-[0_-6px_18px_rgba(20,16,46,.06)] flex flex-wrap items-center justify-between gap-3">
           <span className="text-[13px]" role="status" aria-live="polite">
             {dirty ? <b className="text-[#8A5A00]">יש שינויים שלא נשמרו</b> : state?.ok ? <b className="text-[#0B5E43]">השינויים נשמרו ✓</b> : <span className="text-adm-muted">אין שינויים</span>}
           </span>
@@ -121,9 +121,9 @@ export function SeoForm({ v, canEdit, storageReady, host }: { v: SeoSettings; ca
         </Field>
         <section aria-label="תצוגה מקדימה בגוגל" className="rounded-xl border border-adm-line p-3.5 flex flex-col gap-1">
           <span className="text-[12px] text-adm-muted">כך זה ייראה בגוגל (עמוד מוצר לדוגמה)</span>
-          <span dir="ltr" className="text-[12px] text-[#3B475C] text-right">{host}</span>
+          <span dir="ltr" className="text-[12px] text-[#3D3858] text-right">{host}</span>
           <span className="text-[17px] text-[#1A0DAB] leading-6">{sample}</span>
-          <span className="text-[13px] text-[#3B475C] leading-5">{desc.slice(0, 160) || "—"}</span>
+          <span className="text-[13px] text-[#3D3858] leading-5">{desc.slice(0, 160) || "—"}</span>
         </section>
       </div>
       <div className="a-card flex flex-col gap-4">
@@ -146,7 +146,7 @@ export function SeoForm({ v, canEdit, storageReady, host }: { v: SeoSettings; ca
       <div className="a-card flex flex-col gap-3">
         <h2 className="text-[16px] font-bold text-adm-navy">מנועי חיפוש</h2>
         <label className="flex items-start gap-3 min-h-[36px] cursor-pointer">
-          <input type="checkbox" name="robotsAllow" checked={robots} onChange={(e) => setRobots(e.target.checked)} className="w-[18px] h-[18px] mt-0.5 accent-[#3478F6]" />
+          <input type="checkbox" name="robotsAllow" checked={robots} onChange={(e) => setRobots(e.target.checked)} className="w-[18px] h-[18px] mt-0.5 accent-[#6C1CF5]" />
           <span className="flex flex-col">
             <b className="text-[14px]">לאפשר לגוגל ולמנועי חיפוש לאנדקס את האתר</b>
             <span className="text-[12px] text-adm-muted">כיבוי יוסיף לכל העמודים הוראת noindex. מתאים רק לזמן בנייה או תחזוקה.</span>
@@ -176,7 +176,7 @@ export function TrackingForm({ v, canEdit }: { v: TrackingSettings; canEdit: boo
           <Field key={k} label={TRACKING_FORMATS[k].label} hint={help[k]}>
             <span className="flex gap-2 items-center">
               <input name={k} defaultValue={v[k]} dir="ltr" maxLength={40} autoComplete="off" spellCheck={false} className="a-input text-left font-mono" placeholder={TRACKING_FORMATS[k].example} />
-              {v[k] ? <span className="a-chip bg-[#E6F6F0] text-[#0F7A57] shrink-0">פעיל</span> : <span className="a-chip bg-[#EEF1F6] text-[#3B475C] shrink-0">כבוי</span>}
+              {v[k] ? <span className="a-chip bg-[#E6F6F0] text-[#0F7A57] shrink-0">פעיל</span> : <span className="a-chip bg-[#F0EEF6] text-[#3D3858] shrink-0">כבוי</span>}
             </span>
           </Field>
         ))}

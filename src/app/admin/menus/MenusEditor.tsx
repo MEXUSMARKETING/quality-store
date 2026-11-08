@@ -118,7 +118,7 @@ export default function MenusEditor({ initial, defaults, categories, pages, canE
           {tab === "announcement" && (
             <div className="flex flex-col gap-3 max-w-[640px]">
               <label className="flex items-center gap-2.5 min-h-[40px] text-[14px] font-semibold cursor-pointer">
-                <input type="checkbox" checked={m.announcement.enabled} onChange={(e) => setM({ ...m, announcement: { ...m.announcement, enabled: e.target.checked } })} disabled={!canEdit} className="w-5 h-5 accent-[#3478F6]" />
+                <input type="checkbox" checked={m.announcement.enabled} onChange={(e) => setM({ ...m, announcement: { ...m.announcement, enabled: e.target.checked } })} disabled={!canEdit} className="w-5 h-5 accent-[#6C1CF5]" />
                 הצגת פס ההודעה בראש האתר
               </label>
               <label className="a-field">
@@ -127,7 +127,7 @@ export default function MenusEditor({ initial, defaults, categories, pages, canE
                 <span className="text-[12px] font-normal text-adm-muted">הפרידו בין הודעות עם | – יוצג ביניהן ✦ בזהב.</span>
               </label>
               <label className="flex items-center gap-2.5 min-h-[40px] text-[14px] cursor-pointer">
-                <input type="checkbox" checked={m.announcement.showPhone !== false} onChange={(e) => setM({ ...m, announcement: { ...m.announcement, showPhone: e.target.checked } })} disabled={!canEdit} className="w-5 h-5 accent-[#3478F6]" />
+                <input type="checkbox" checked={m.announcement.showPhone !== false} onChange={(e) => setM({ ...m, announcement: { ...m.announcement, showPhone: e.target.checked } })} disabled={!canEdit} className="w-5 h-5 accent-[#6C1CF5]" />
                 להוסיף את מספר הוואטסאפ ({phone}) במחשב
               </label>
             </div>
@@ -210,7 +210,7 @@ function TreeEditor({ title, hint, items, maxDepth, max, onChange, categories, p
     const bad = !it.label.trim() || !validHref(it.href);
     return (
       <li key={k}>
-        <div className={`flex items-center gap-2 px-2.5 py-2 rounded-lg ${active ? "bg-[#EEF4FF]" : "hover:bg-adm-bg"} ${p.length === 2 ? "ms-7 border-s-2 border-adm-line" : ""}`}>
+        <div className={`flex items-center gap-2 px-2.5 py-2 rounded-lg ${active ? "bg-[#F1ECFF]" : "hover:bg-adm-bg"} ${p.length === 2 ? "ms-7 border-s-2 border-adm-line" : ""}`}>
           <button type="button" onClick={() => setSel(active ? null : k)} aria-expanded={active} className="flex-1 min-w-0 text-right flex items-center gap-2 min-h-[36px]">
             <b className="text-[14px] truncate">{it.label || <span className="text-[#B03A3A]">ללא שם</span>}</b>
             <span dir="ltr" className="text-[12px] text-adm-muted truncate font-mono">{it.href}</span>
@@ -268,7 +268,7 @@ function ItemForm({ it, onChange, disabled, indent }: { it: MenuItem; onChange: 
         <input value={it.href} onChange={(e) => onChange({ ...it, href: e.target.value.trim() })} disabled={disabled} dir="ltr" aria-invalid={!ok || undefined} className={"a-input text-left font-mono" + (ok ? "" : " !border-[#B03A3A]")} />
       </label>
       <label className="flex items-center gap-2 h-[42px] text-[13px] cursor-pointer whitespace-nowrap">
-        <input type="checkbox" checked={!!it.newTab} onChange={(e) => onChange({ ...it, newTab: e.target.checked || undefined })} disabled={disabled} className="w-[18px] h-[18px] accent-[#3478F6]" />
+        <input type="checkbox" checked={!!it.newTab} onChange={(e) => onChange({ ...it, newTab: e.target.checked || undefined })} disabled={disabled} className="w-[18px] h-[18px] accent-[#6C1CF5]" />
         בלשונית חדשה
       </label>
       {!ok && <span className="sm:col-span-3 text-[12px] text-[#B03A3A]">הקישור צריך להתחיל ב־/ (עמוד באתר), https:// (אתר חיצוני), tel:, mailto: או wa:הודעה (וואטסאפ של החנות).</span>}
@@ -305,12 +305,12 @@ function AddItem({ onAdd, onCancel, categories, pages }: { onAdd: (it: MenuItem)
   };
 
   return (
-    <div className="rounded-xl border border-adm-blue bg-[#F7FAFF] p-3 flex flex-col gap-3">
+    <div className="rounded-xl border border-adm-blue bg-[#F8F5FF] p-3 flex flex-col gap-3">
       <fieldset className="flex gap-2 flex-wrap">
         <legend className="sr-only">סוג הקישור</legend>
         {([["category", "קטגוריה"], ["page", "דף תוכן"], ["custom", "קישור מותאם"]] as const).map(([k, l]) => (
-          <label key={k} className={`a-btn a-btn-sm cursor-pointer ${src === k ? "!border-adm-blue !bg-[#EEF4FF]" : ""}`}>
-            <input type="radio" name="src" checked={src === k} onChange={() => setSrc(k)} className="accent-[#3478F6]" /> {l}
+          <label key={k} className={`a-btn a-btn-sm cursor-pointer ${src === k ? "!border-adm-blue !bg-[#F1ECFF]" : ""}`}>
+            <input type="radio" name="src" checked={src === k} onChange={() => setSrc(k)} className="accent-[#6C1CF5]" /> {l}
           </label>
         ))}
       </fieldset>
@@ -338,7 +338,7 @@ function AddItem({ onAdd, onCancel, categories, pages }: { onAdd: (it: MenuItem)
       </div>
       {src === "custom" && (
         <label className="flex items-center gap-2 text-[13px] cursor-pointer">
-          <input type="checkbox" checked={newTab} onChange={(e) => setNewTab(e.target.checked)} className="w-[18px] h-[18px] accent-[#3478F6]" /> פתיחה בלשונית חדשה
+          <input type="checkbox" checked={newTab} onChange={(e) => setNewTab(e.target.checked)} className="w-[18px] h-[18px] accent-[#6C1CF5]" /> פתיחה בלשונית חדשה
         </label>
       )}
       {err && <p role="alert" className="text-[13px] text-[#B03A3A]">{err}</p>}

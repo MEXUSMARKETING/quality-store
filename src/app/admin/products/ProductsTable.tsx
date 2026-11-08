@@ -62,7 +62,7 @@ export default function ProductsTable({ products, canEdit, categoryNames, sizes 
 
       <div className="a-card !p-0 overflow-hidden">
         {canEdit && selected.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 px-4 py-3 bg-[#EEF4FF] border-b border-[#D6E4FD]" role="toolbar" aria-label="פעולות על המוצרים שנבחרו">
+          <div className="flex flex-wrap items-center gap-2 px-4 py-3 bg-[#F1ECFF] border-b border-[#E2D6FD]" role="toolbar" aria-label="פעולות על המוצרים שנבחרו">
             <b className="text-[14px] text-adm-navy me-2">{selected.length} נבחרו</b>
             {OPS.map((o) => (
               <button key={o.op} type="button" disabled={pending} onClick={() => run(o.op, o.label)} className="a-btn a-btn-sm">
@@ -145,7 +145,7 @@ export default function ProductsTable({ products, canEdit, categoryNames, sizes 
                         {t > 0 && (
                           <span className="flex flex-wrap gap-1" aria-label="מלאי לפי מידה">
                             {sizeList(p.stock).map((s) => (
-                              <span key={s} className={`text-[11px] leading-none rounded-md px-1.5 py-1 font-semibold ${Number(p.stock[s]) <= 1 ? "bg-[#FFF4E0] text-[#8A5A00]" : "bg-[#EEF1F6] text-[#3B475C]"}`} title={`מידה ${s}: ${p.stock[s]}`}>
+                              <span key={s} className={`text-[11px] leading-none rounded-md px-1.5 py-1 font-semibold ${Number(p.stock[s]) <= 1 ? "bg-[#FFF4E0] text-[#8A5A00]" : "bg-[#F0EEF6] text-[#3D3858]"}`} title={`מידה ${s}: ${p.stock[s]}`}>
                                 {s}<span className="font-normal">·{p.stock[s]}</span>
                               </span>
                             ))}

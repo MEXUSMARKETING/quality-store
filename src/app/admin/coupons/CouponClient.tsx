@@ -130,8 +130,8 @@ export function CouponDrawer({ initial }: { initial: CouponFormValues }) {
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      <Link href="/admin/coupons" aria-label="סגירת החלונית" className="flex-1 bg-[#17243A]/40" tabIndex={-1} />
-      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="coupon-drawer-title" className="w-full max-w-[520px] h-full bg-adm-bg shadow-[0_0_40px_rgba(23,36,58,.25)] flex flex-col">
+      <Link href="/admin/coupons" aria-label="סגירת החלונית" className="flex-1 bg-[#14102E]/40" tabIndex={-1} />
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="coupon-drawer-title" className="w-full max-w-[520px] h-full bg-adm-bg shadow-[0_0_40px_rgba(20,16,46,.25)] flex flex-col">
         <div className="flex items-center justify-between gap-3 px-5 py-4 bg-white border-b border-adm-line">
           <div className="flex flex-col">
             <h2 id="coupon-drawer-title" className="text-[18px] font-extrabold text-adm-navy">{editing ? "עריכת קופון" : "קופון חדש"}</h2>
@@ -152,7 +152,7 @@ export function CouponDrawer({ initial }: { initial: CouponFormValues }) {
                 ))}
               </p>
               {sampleDiscount > 0 && (
-                <span className="text-[13px] text-[#D3DBE8]">לדוגמה: בסל של {fmtShekel(sample)} ההנחה היא {fmtShekel(sampleDiscount)} והסכום לתשלום {fmtShekel(sample - sampleDiscount)}</span>
+                <span className="text-[13px] text-[#D9D4F0]">לדוגמה: בסל של {fmtShekel(sample)} ההנחה היא {fmtShekel(sampleDiscount)} והסכום לתשלום {fmtShekel(sample - sampleDiscount)}</span>
               )}
             </section>
 
@@ -181,8 +181,8 @@ export function CouponDrawer({ initial }: { initial: CouponFormValues }) {
                     ["percent", "אחוז הנחה", "למשל 15% מכל הסל"],
                     ["fixed", "סכום קבוע", "למשל ₪50 הנחה"],
                   ] as const).map(([k, t, s]) => (
-                    <label key={k} className={`rounded-xl border-[1.5px] p-3 flex gap-2.5 items-start cursor-pointer min-h-[64px] ${v.type === k ? "border-adm-blue bg-[#EEF4FF]" : "border-adm-line bg-white hover:bg-adm-bg"}`}>
-                      <input type="radio" name="type" value={k} checked={v.type === k} onChange={() => set("type", k)} className="w-[18px] h-[18px] mt-0.5 accent-[#3478F6]" />
+                    <label key={k} className={`rounded-xl border-[1.5px] p-3 flex gap-2.5 items-start cursor-pointer min-h-[64px] ${v.type === k ? "border-adm-blue bg-[#F1ECFF]" : "border-adm-line bg-white hover:bg-adm-bg"}`}>
+                      <input type="radio" name="type" value={k} checked={v.type === k} onChange={() => set("type", k)} className="w-[18px] h-[18px] mt-0.5 accent-[#6C1CF5]" />
                       <span className="flex flex-col"><b className="text-[14px]">{t}</b><span className="text-[12px] text-adm-muted">{s}</span></span>
                     </label>
                   ))}
@@ -228,7 +228,7 @@ export function CouponDrawer({ initial }: { initial: CouponFormValues }) {
               </div>
               <span className="text-[12px] text-adm-muted -mt-1">התאריכים לפי שעון ישראל. ריק = ללא הגבלה. לקוחה מזוהה לפי מספר הטלפון.</span>
               <label className="flex items-center gap-2.5 min-h-[40px] text-[14px] font-semibold cursor-pointer">
-                <input type="checkbox" name="active" checked={v.active} onChange={(e) => set("active", e.target.checked)} className="w-5 h-5 accent-[#3478F6]" />
+                <input type="checkbox" name="active" checked={v.active} onChange={(e) => set("active", e.target.checked)} className="w-5 h-5 accent-[#6C1CF5]" />
                 הקופון פעיל
                 <span className="text-[12px] font-normal text-adm-muted">(קופון מושבת לא יתקבל בקופה)</span>
               </label>

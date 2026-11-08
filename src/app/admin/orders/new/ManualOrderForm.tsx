@@ -41,7 +41,7 @@ export default function ManualOrderForm({ products }: { products: PickProduct[] 
               const max = p && l.size ? Math.max(0, Number(p.stock[l.size] || 0) - used(l)) : 0;
               const over = !!p && !!l.size && l.qty > max;
               return (
-                <li key={l.key} className="flex flex-wrap gap-2.5 items-end p-3 rounded-xl border border-adm-line bg-[#FAFBFD]">
+                <li key={l.key} className="flex flex-wrap gap-2.5 items-end p-3 rounded-xl border border-adm-line bg-[#FBFAFE]">
                   {p?.image ? <img src={p.image} alt="" className="w-[42px] h-[42px] rounded-lg object-cover bg-adm-bg" /> : <span className="w-[42px] h-[42px] rounded-lg bg-adm-bg" aria-hidden="true" />}
                   <label className="a-field flex-[3_1_200px]">
                     מוצר {idx + 1}
@@ -112,7 +112,7 @@ export default function ManualOrderForm({ products }: { products: PickProduct[] 
             <legend className="text-[13px] font-semibold pb-1.5">משלוח</legend>
             <div className="flex flex-wrap gap-2">
               {Object.entries(SHIPPING).map(([k, v]) => (
-                <label key={k} className={`flex items-center gap-2 min-h-[42px] px-3.5 rounded-[10px] border text-[14px] cursor-pointer ${shipping === k ? "border-adm-blue bg-[#EEF4FF] font-semibold" : "border-adm-line bg-white"}`}>
+                <label key={k} className={`flex items-center gap-2 min-h-[42px] px-3.5 rounded-[10px] border text-[14px] cursor-pointer ${shipping === k ? "border-adm-blue bg-[#F1ECFF] font-semibold" : "border-adm-line bg-white"}`}>
                   <input type="radio" name="shipping_method" value={k} checked={shipping === k} onChange={() => setShipping(k)} className="accent-adm-blue" />
                   {v}
                 </label>

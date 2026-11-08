@@ -39,7 +39,7 @@ export default function PeriodForm({ r, p, from, to, cmp, periods, canCompare }:
       )}
       {canCompare && (
         <label className="flex items-center gap-2 h-[42px] px-3 rounded-[10px] border border-adm-line bg-white text-[14px] cursor-pointer select-none">
-          <input type="checkbox" name="cmp" value="1" defaultChecked={cmp} onChange={() => setTimeout(submit, 0)} className="w-4 h-4 accent-[#3478F6]" />
+          <input type="checkbox" name="cmp" value="1" defaultChecked={cmp} onChange={() => setTimeout(submit, 0)} className="w-4 h-4 accent-[#6C1CF5]" />
           השוואה לתקופה קודמת
         </label>
       )}
