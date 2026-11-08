@@ -25,6 +25,8 @@ export type Analysis = {
   matchConfidence: number;
   matchReason: string;
   photoNotes: string[];
+  /** suggested background for the product photo */
+  background: "white" | "studio" | "quality" | "wood" | "street";
 };
 
 const STORE_VOICE = `את/ה קופירייטר/ית ומומחה/ית מוצר של "Quality" – חנות נעלי נשים (בעיקר מגפונים) בטמרה. כותבים בעברית טבעית, חמה ומדויקת, בלשון נקבה כלפי הלקוחה.
@@ -51,7 +53,7 @@ export async function analyzeProductPhotos(opts: {
   const system = `${STORE_VOICE}
 
 המשימה: לזהות את המוצר בתמונות ולהכין טיוטה למוצר בחנות. ענה/י ב־JSON בלבד, בלי טקסט נוסף, בדיוק במבנה:
-{"isProduct":true,"productType":"מגפון","category":"<מפתח>","color":"<מפתח>","colorConfidence":0.0,"colorAlternatives":["<מפתח>"],"material":"","heelCm":null,"heelType":"","features":[""],"title":"","description":"","seoTitle":"","seoDescription":"","matchProductId":null,"matchConfidence":0.0,"matchReason":"","photoNotes":[""]}
+{"isProduct":true,"productType":"מגפון","category":"<מפתח>","color":"<מפתח>","colorConfidence":0.0,"colorAlternatives":["<מפתח>"],"material":"","heelCm":null,"heelType":"","features":[""],"title":"","description":"","seoTitle":"","seoDescription":"","matchProductId":null,"matchConfidence":0.0,"matchReason":"","photoNotes":[""],"background":"quality"}
 
 הנחיות לשדות:
 - category: אחד מהמפתחות: ${opts.categories.map((c) => `${c.key} (${c.name})`).join(", ")}.
@@ -62,6 +64,7 @@ export async function analyzeProductPhotos(opts: {
 - features: עד 5 פרטים שרואים (סוג עקב, תפרים, רוכסן, אבזם, סוליה...).
 - matchProductId: אם זה אותו דגם בדיוק כמו מוצר קיים מהרשימה אבל בצבע אחר (או אותו צבע) – המזהה שלו, אחרת null. matchConfidence בין 0 ל־1, matchReason משפט קצר. היה/י שמרני/ת: רק כשהצורה, העקב והפרטים זהים.
 - photoNotes: הערות קצרות על איכות הצילום אם יש בעיה (חשוך, מטושטש, חתוך), אחרת [].
+- background: הרקע שיחמיא הכי הרבה למוצר בתמונת החנות, אחד מ: white (לבן נקי), studio (סטודיו אפור בהיר), quality (כהה יוקרתי, מתאים לנעליים בהירות/צבעוניות/מבריקות), wood (רצפת עץ חמימה, מתאים לחום/קוניאק/בז׳), street (רחוב עירוני, מתאים לסניקרס ונעליים יומיומיות). נעל שחורה – לא על רקע כהה.
 - isProduct=false אם בתמונה אין נעל/מוצר אופנה.
 
 מוצרים קיימים בחנות (מזהה | שם | קטגוריה | צבעים | עקב | מחיר):
@@ -102,6 +105,7 @@ ${catalog || "אין מוצרים"}`;
       matchProductId: ids.has(Number(d.matchProductId)) ? Number(d.matchProductId) : null,
       matchConfidence: clamp01(d.matchConfidence),
       matchReason: str(d.matchReason, 160),
+      background: ["white", "studio", "quality", "wood", "street"].includes(d.background) ? d.background : "quality",
       photoNotes: (Array.isArray(d.photoNotes) ? d.photoNotes : []).map((x: unknown) => str(x, 80)).filter(Boolean).slice(0, 3),
     },
   };

@@ -3,7 +3,6 @@ import { aiConfigured } from "@/lib/ai";
 import { imageStorageReady } from "@/lib/storage";
 import { getAttributes, getCategoriesAll } from "@/lib/catalog";
 import { listProducts } from "@/lib/store";
-import { PageHeader } from "../../_components/ui";
 import AiWizard, { type WizProduct } from "./AiWizard";
 import type { Product } from "@/lib/types";
 
@@ -27,13 +26,9 @@ export default async function AiQuickAdd({ searchParams }: { searchParams: { pro
   const focusP = focusId ? products.find((p) => p.id === focusId) : undefined;
   return (
     <>
-      <PageHeader
-        crumbs={[{ href: "/admin/products", label: "מוצרים ומלאי" }, { label: "הוספה מהירה עם AI" }]}
-        title={focusP ? "צבע חדש מצילום" : "הוספה מהירה עם AI"}
-        sub="מצלמים, ה־AI כותב, אומרים את המלאי, ומאשרים. הכל ניתן לעריכה לפני הפרסום."
-      />
+      <h1 className="sr-only">{focusP ? "צבע חדש מצילום" : "הוספה מהירה עם AI"}</h1>
       <AiWizard
-        colors={attrs.colors}
+        colors={attrs.colors.filter((c) => c.key !== "other")}
         sizes={attrs.sizes}
         categories={cats.filter((c) => c.active !== false).map((c) => ({ key: c.key, name: c.name }))}
         products={products.map(toWiz)}

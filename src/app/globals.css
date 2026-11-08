@@ -98,3 +98,12 @@ select.a-input { padding: 0 10px; }
 @media (prefers-reduced-motion: reduce) { .nx-blob, .nx-rise, .nx-shake, .nx-spin { animation: none !important; } .nx-btn { transition: none; } }
 
 @keyframes fadeIn { from { opacity: .35; } to { opacity: 1; } }
+
+/* AI quick-add wizard */
+@keyframes nx-pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(255, 1, 187, .6); } 70% { box-shadow: 0 0 0 10px rgba(255, 1, 187, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 1, 187, 0); } }
+.nx-pulse { animation: nx-pulse-ring 1.6s infinite; }
+@keyframes nx-wave-bar { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
+.nx-wave { animation: nx-wave-bar 1s infinite ease-in-out; transform-origin: center; }
+@keyframes nx-mic-ring { 0% { box-shadow: 0 0 0 0 rgba(255, 1, 187, .55), 0 18px 40px -12px rgba(255, 1, 187, .6); } 100% { box-shadow: 0 0 0 22px rgba(255, 1, 187, 0), 0 18px 40px -12px rgba(255, 1, 187, .6); } }
+.nx-mic-on { animation: nx-mic-ring 1.2s infinite; }
+@media (prefers-reduced-motion: reduce) { .nx-pulse, .nx-wave, .nx-mic-on { animation: none; } }

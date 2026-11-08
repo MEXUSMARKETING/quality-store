@@ -30,24 +30,14 @@ async function quota(userId: number): Promise<string | null> {
   return q.ok ? null : `הגעת למגבלה של ${AI_HOURLY_LIMIT} בקשות AI בשעה. אפשר להמשיך ולמלא ידנית.`;
 }
 
-/** Upload the photos (already shrunk in the browser) and ask the AI what the product is. */
+/** Look at the photos (already shrunk in the browser) and say what the product is. Nothing is stored yet. */
 export async function analyzePhotosAction(fd: FormData): Promise<AnalyzeResult> {
   const me = await requireAdmin("products");
   if (!hasDb()) return { ok: false, error: "מסד הנתונים לא מחובר" };
-  if (!imageStorageReady()) return { ok: false, error: "אחסון התמונות עדיין לא מחובר, ולכן אי אפשר לשמור צילומים." };
   const files = fd.getAll("photos").filter((f): f is File => typeof f === "object" && f !== null && "size" in f && (f as File).size > 0).slice(0, MAX_PHOTOS);
   if (!files.length) return { ok: false, error: "צריך לפחות תמונה אחת" };
   const focus = Number(fd.get("focusProductId")) || null;
   const hint = String(fd.get("hint") || "").slice(0, 300);
-
-  let urls: string[];
-  try {
-    urls = await Promise.all(files.map((f) => uploadProductImage(f)));
-  } catch (e: any) {
-    console.error(e);
-    const msg = String(e?.message || "");
-    return { ok: false, error: /^הקובץ/.test(msg) ? msg : "העלאת התמונות נכשלה. נסי שוב." };
-  }
 
   const [attrs, cats, products] = await Promise.all([getAttributes(), getCategoriesAll(), listProducts({ includeInactive: true })]);
   let analysis: Analysis | null = null;
@@ -74,7 +64,22 @@ export async function analyzePhotosAction(fd: FormData): Promise<AnalyzeResult> 
   }
   const matchId = analysis?.matchProductId ?? focus;
   const price = suggestPrice(products, analysis?.category || products.find((p) => p.id === focus)?.category || "boots", matchId);
-  return { ok: true, urls, analysis, aiError, price };
+  return { ok: true, urls: [], analysis, aiError, price };
+}
+
+/** Store the final photos (after the background step). */
+export async function uploadPhotosAction(fd: FormData): Promise<{ urls?: string[]; error?: string }> {
+  await requireAdmin("products");
+  if (!imageStorageReady()) return { error: "אחסון התמונות עדיין לא מחובר, ולכן אי אפשר לשמור צילומים." };
+  const files = fd.getAll("photos").filter((f): f is File => typeof f === "object" && f !== null && "size" in f && (f as File).size > 0).slice(0, MAX_PHOTOS);
+  if (!files.length) return { error: "אין תמונות לשמירה" };
+  try {
+    return { urls: await Promise.all(files.map((f) => uploadProductImage(f))) };
+  } catch (e: any) {
+    console.error(e);
+    const msg = String(e?.message || "");
+    return { error: /^הקובץ/.test(msg) ? msg : "העלאת התמונות נכשלה. נסי שוב." };
+  }
 }
 
 export async function rewriteAction(input: { title: string; description: string; tone: string; facts: string }): Promise<{ title?: string; description?: string; error?: string }> {
