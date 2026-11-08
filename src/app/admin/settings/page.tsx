@@ -31,6 +31,7 @@ function integrations(): Integration[] {
     { title: "שליחת אימיילים", ok: env("RESEND_API_KEY"), okText: "מוגדר", missingText: "לא מחובר – לא נשלחים מיילים ללקוחות", env: ["RESEND_API_KEY"], note: "מפתח API של Resend." },
     { title: "WhatsApp Business API", ok: env("WHATSAPP_TOKEN"), okText: "מוגדר", missingText: "לא מחובר – הודעות נשלחות ידנית בקישור wa.me", env: ["WHATSAPP_TOKEN"], note: "טוקן של WhatsApp Cloud API (Meta)." },
     { title: "עוזר AI", ok: env("ANTHROPIC_API_KEY") || env("ANTHROPIC_API_KEYANTHROPIC_API_KEY"), okText: `מחובר · ${process.env.AI_MODEL || "claude-sonnet-5-5"}`, missingText: "לא מחובר", env: ["ANTHROPIC_API_KEY", "AI_MODEL"], note: "מפתח Anthropic. AI_MODEL לא חובה." },
+    { title: "הדמיות AI (Gemini)", ok: env("GEMINI_API_KEY"), okText: `מחובר · ${process.env.GEMINI_IMAGE_MODEL || "gemini-nano-banana-2.1"}`, missingText: "לא מחובר – אין הדמיה על דוגמנית", env: ["GEMINI_API_KEY", "GEMINI_IMAGE_MODEL"], note: "מפתח מ־Google AI Studio. GEMINI_IMAGE_MODEL לא חובה." },
     { title: "משימות מתוזמנות (Cron)", ok: env("CRON_SECRET"), okText: "מוגדר", missingText: "לא מוגדר – אוטומציות מתוזמנות לא ירוצו", env: ["CRON_SECRET"], note: "מחרוזת סודית אקראית שמגנה על נתיבי ה־cron." },
     { title: "תשלומים אונליין", ok: false, na: true, okText: "", missingText: "אין סליקה באתר – תשלום מתבצע במזומן/Bit/טלפונית", env: [] },
     { title: "חשבוניות", ok: false, na: true, okText: "", missingText: "אין חיבור למערכת חשבוניות – מפיקים ידנית", env: [] },

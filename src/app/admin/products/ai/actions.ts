@@ -13,6 +13,7 @@ import { parseStockText } from "@/lib/stock-parse";
 import { normVariants, type Variants } from "@/lib/variants";
 import { shekel } from "@/lib/config";
 import { slugify } from "../shared";
+import { fidelityScore, generateImage, geminiConfigured, tryOnPrompt } from "@/lib/gemini-image";
 
 const MAX_PHOTOS = 6;
 
@@ -263,4 +264,45 @@ export async function createFromAiAction(p: CreatePayload): Promise<{ ok?: boole
   revalidatePath("/", "layout");
   revalidatePath("/admin/products");
   return { ok: true, id };
+}
+
+
+/* ---------------- mock-ups with Gemini ---------------- */
+
+export type TryOnImage = { data: string; mimeType: string; score: number; issue: string; ok: boolean };
+const PASS = 82;
+
+/** Generate 1–4 mock-ups from the real product photos, then let Claude check each against the real product. */
+export async function tryOnAction(fd: FormData): Promise<{ images?: TryOnImage[]; error?: string }> {
+  const me = await requireAdmin("products");
+  if (!geminiConfigured()) return { error: "Gemini עדיין לא מחובר: יש להוסיף ב־Vercel את המשתנה GEMINI_API_KEY ולפרוס מחדש." };
+  const files = fd.getAll("refs").filter((f): f is File => typeof f === "object" && f !== null && "size" in f && (f as File).size > 0).slice(0, 4);
+  if (!files.length) return { error: "חסרות תמונות של המוצר" };
+  const userText = String(fd.get("prompt") || "").trim().slice(0, 400);
+  if (!userText) return { error: "כתבי מה ליצור" };
+  const count = Math.max(1, Math.min(4, Number(fd.get("count")) || 2));
+  for (let i = 0; i < count; i++) {
+    const limited = await quota(me.id);
+    if (limited) return { error: limited };
+  }
+  const refs = await Promise.all(files.map(async (f) => ({ mimeType: f.type || "image/jpeg", data: Buffer.from(await f.arrayBuffer()).toString("base64") })));
+  const base = {
+    productType: String(fd.get("productType") || "").slice(0, 40),
+    colorName: String(fd.get("colorName") || "").slice(0, 30),
+    userText,
+    scene: String(fd.get("scene") || "").slice(0, 300),
+    skin: String(fd.get("skin") || "wheat"),
+    outfit: String(fd.get("outfit") || "jeans"),
+  };
+  const results = await Promise.all(
+    Array.from({ length: count }, async (_, i) => {
+      const g = await generateImage({ prompt: tryOnPrompt({ ...base, variant: i }), refs, aspect: "4:5", timeoutMs: 80_000 });
+      if (!g.image) return { error: g.error || "נכשל" };
+      const check = aiConfigured() ? await fidelityScore(refs[0], g.image) : { score: -1, issue: "" };
+      return { image: { data: g.image.data, mimeType: g.image.mimeType, score: check.score, issue: check.issue, ok: check.score < 0 || check.score >= PASS } as TryOnImage };
+    })
+  );
+  const images = results.map((r) => (r as any).image).filter(Boolean) as TryOnImage[];
+  if (!images.length) return { error: (results[0] as any)?.error || "לא נוצרו תמונות" };
+  return { images };
 }

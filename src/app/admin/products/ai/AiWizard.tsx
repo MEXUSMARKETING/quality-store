@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseStockText } from "@/lib/stock-parse";
 import type { Analysis } from "@/lib/ai-product";
 import { BACKGROUNDS, PROMO_FORMATS, compose, cutOut, makePromo, preloadCutout, type BgId, type Cutout, type PromoFormat } from "@/lib/bg-remove";
-import { analyzePhotosAction, createFromAiAction, parseStockAction, rewriteAction, uploadPhotosAction, type AnalyzeResult } from "./actions";
+import { analyzePhotosAction, createFromAiAction, parseStockAction, rewriteAction, tryOnAction, uploadPhotosAction, type AnalyzeResult } from "./actions";
 
 /* Quick add with AI – full-screen, mobile-first, 5 steps exactly like the NEXSHOP mockup:
    צילום → זיהוי → רקע → מלאי → אישור. Everything is editable; nothing goes live without "פרסום באתר". */
@@ -85,6 +85,7 @@ export default function AiWizard({
   aiReady,
   storageReady,
   storeName = "",
+  mockupReady = false,
 }: {
   colors: WizColor[];
   sizes: string[];
@@ -94,6 +95,7 @@ export default function AiWizard({
   aiReady: boolean;
   storageReady: boolean;
   storeName?: string;
+  mockupReady?: boolean;
 }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>(0);
@@ -126,6 +128,15 @@ export default function AiWizard({
   const [improve, setImprove] = useState(true);
   const [split, setSplit] = useState(55);
   const [mainFile, setMainFile] = useState<File | null>(null);
+  // mock-ups (Gemini)
+  const [photoTab, setPhotoTab] = useState<"real" | "mock">("real");
+  const [mockText, setMockText] = useState("");
+  const [mockScene, setMockScene] = useState("");
+  const [skin, setSkin] = useState("wheat");
+  const [outfit, setOutfit] = useState("jeans");
+  const [mockCount, setMockCount] = useState(4);
+  const [mocks, setMocks] = useState<{ id: string; url: string; file: File; score: number; issue: string; ok: boolean; picked: boolean }[]>([]);
+  const [aiUrls, setAiUrls] = useState<string[]>([]);
   // marketing
   const [headline, setHeadline] = useState("חדש בחנות");
   const [promos, setPromos] = useState<{ id: PromoFormat; name: string; url: string; file: File }[]>([]);
@@ -339,8 +350,94 @@ export default function AiWizard({
       setBusy("שומרת את התמונות…");
       const r = await uploadPhotosAction(fd);
       if (r.error || !r.urls) return setError(r.error || "העלאת התמונות נכשלה");
-      setUrls(r.urls);
+      setUrls([...r.urls, ...aiUrls]);
       setStep(3);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const isShoe = /boot|shoe|sandal|heel|נעל|מגפ|סנדל|כפכ|עקב/i.test(`${category} ${analysis?.productType || ""}`);
+  const SCENES = isShoe
+    ? [
+        { id: "closeup", name: "על הרגל, מקרוב", he: "תלביש את המוצר על רגל של בחורה, צילום מקרוב מהצד", en: "close-up side view of a woman's lower legs and feet wearing the product, clean light studio backdrop", bg: "linear-gradient(180deg,#E9E4DC,#CFC7BB)" },
+        { id: "street", name: "הולכת ברחוב", he: "בחורה הולכת ברחוב עירוני, המוצר במרכז התמונה", en: "a woman walking on a city sidewalk at golden hour, framed from the knees down, motion", bg: "linear-gradient(180deg,#9FB3C8 0,#D8DEE4 60%,#7D7F83 60%,#5D5F63 100%)" },
+        { id: "cafe", name: "בבית קפה", he: "בחורה יושבת בבית קפה, רגל על רגל, המוצר בפוקוס", en: "a woman sitting in a stylish cafe, legs crossed, the product in sharp focus", bg: "linear-gradient(180deg,#C9A27E 0,#E7D4BC 62%,#8A6A4E 62%,#6E523B 100%)" },
+        { id: "dress", name: "עם שמלה", he: "בחורה בשמלה ארוכה ואלגנטית, המוצר מציץ מתחת לשמלה", en: "an elegant long dress, the product visible beneath the hem, soft evening light", bg: "linear-gradient(180deg,#F1E6EC,#D9C3CF)" },
+        { id: "stairs", name: "על מדרגות", he: "בחורה עומדת על מדרגות אבן, צילום נמוך של הרגליים", en: "standing on stone stairs, low camera angle on the feet", bg: "repeating-linear-gradient(180deg,#CFCAC2 0 14px,#B9B3AA 14px 16px)" },
+        { id: "home", name: "בבית", he: "בחורה בסלון ביתי חמים, ליד ספה, אור טבעי", en: "a warm modern living room next to a sofa, natural window light", bg: "linear-gradient(180deg,#E8E1D6 0,#E8E1D6 58%,#A88B6C 58%,#8E7357 100%)" },
+      ]
+    : [
+        { id: "hand", name: "ביד של בחורה", he: "בחורה מחזיקה את המוצר ביד, צילום מקרוב", en: "a woman's hand holding or wearing the product, close-up, soft light", bg: "linear-gradient(180deg,#E9E4DC,#CFC7BB)" },
+        { id: "model", name: "על דוגמנית", he: "דוגמנית משתמשת במוצר, צילום אופנה", en: "a model using or wearing the product, fashion editorial, product in focus", bg: "linear-gradient(180deg,#F1E6EC,#D9C3CF)" },
+        { id: "cafe", name: "בבית קפה", he: "המוצר על שולחן בבית קפה מעוצב", en: "the product on a table in a stylish cafe, shallow depth of field", bg: "linear-gradient(180deg,#C9A27E 0,#E7D4BC 62%,#8A6A4E 62%,#6E523B 100%)" },
+        { id: "home", name: "בבית", he: "המוצר בסלון מעוצב, אור טבעי", en: "the product styled in a modern living room, natural window light", bg: "linear-gradient(180deg,#E8E1D6 0,#E8E1D6 58%,#A88B6C 58%,#8E7357 100%)" },
+        { id: "street", name: "בחוץ", he: "המוצר בחוץ ברחוב עירוני, אור יום", en: "outdoors on a city street in daylight, lifestyle", bg: "linear-gradient(180deg,#9FB3C8 0,#D8DEE4 60%,#7D7F83 60%,#5D5F63 100%)" },
+        { id: "flat", name: "פלאט־ליי", he: "צילום מלמעלה של המוצר עם אביזרים משלימים", en: "top-down flat lay of the product with a few tasteful complementary props", bg: "linear-gradient(135deg,#EFE9E1,#D8CFC2)" },
+      ];
+  const SKINS = [
+    { id: "light", name: "בהיר", c: "#F2D2BD" },
+    { id: "wheat", name: "חיטה", c: "#D9A882" },
+    { id: "tan", name: "שזוף", c: "#B07A55" },
+    { id: "dark", name: "כהה", c: "#7A4E33" },
+  ];
+  const OUTFITS = [
+    { id: "jeans", name: "ג׳ינס" },
+    { id: "dress", name: "שמלה" },
+    { id: "skirt", name: "חצאית" },
+    { id: "pants", name: "מכנסי בד" },
+    { id: "modest", name: "צנוע" },
+  ];
+
+  async function generateMocks() {
+    if (!main) return;
+    if (!mockText.trim()) return setError("כתבי מה ליצור, או בחרי סצנה");
+    setError(null);
+    setBusy(`ה־AI יוצר ${mockCount} הדמיות ובודק אותן מול המקור… (עד דקה)`);
+    try {
+      const fd = new FormData();
+      const c = cut[main.id];
+      // best reference: the clean product on white, plus the real photos
+      if (c && c !== "error") fd.append("refs", (await compose(c, "white", 1024, "ref", improve)).file);
+      for (const p of photos.slice(0, 3)) fd.append("refs", await shrink(p.file, 1024, "ref"));
+      fd.append("prompt", mockText.trim());
+      fd.append("scene", SCENES.find((x) => x.id === mockScene)?.en || "");
+      fd.append("skin", skin);
+      fd.append("outfit", outfit);
+      fd.append("count", String(mockCount));
+      fd.append("productType", analysis?.productType || catName(category));
+      fd.append("colorName", label(color));
+      const r = await tryOnAction(fd);
+      if (r.error || !r.images) return setError(r.error || "לא נוצרו הדמיות");
+      const made = await Promise.all(
+        r.images.map(async (im, k) => {
+          const blob = await fetch(`data:${im.mimeType};base64,${im.data}`).then((x) => x.blob());
+          const file = new File([blob], `ai-mockup-${Date.now()}-${k + 1}.jpg`, { type: im.mimeType || "image/jpeg" });
+          return { id: Math.random().toString(36).slice(2), url: URL.createObjectURL(blob), file, score: im.score, issue: im.issue, ok: im.ok, picked: im.ok };
+        })
+      );
+      setMocks((cur) => [...made, ...cur].slice(0, 12));
+    } catch (e) {
+      console.error(e);
+      setError("יצירת ההדמיות נכשלה. נסי שוב.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function addMocks() {
+    const chosen = mocks.filter((m) => m.picked && m.ok);
+    if (!chosen.length) return setError("בחרי לפחות הדמיה אחת");
+    if (!storageReady) return setError("אחסון התמונות לא מחובר");
+    setBusy("שומרת את ההדמיות…");
+    try {
+      const fd = new FormData();
+      for (const m of chosen) fd.append("photos", await shrink(m.file, 1600, m.file.name.replace(/\.jpg$/, "")));
+      const r = await uploadPhotosAction(fd);
+      if (r.error || !r.urls) return setError(r.error || "השמירה נכשלה");
+      setAiUrls((u) => [...u, ...r.urls!].slice(0, 6));
+      setMocks((cur) => cur.filter((m) => !chosen.includes(m)));
+      setPhotoTab("real");
     } finally {
       setBusy(null);
     }
@@ -725,11 +822,110 @@ export default function AiWizard({
           <>
             <div className="flex-1 min-h-0 overflow-y-auto pb-3">
               <div role="tablist" aria-label="סוג תמונה" className="mx-4 grid grid-cols-2 gap-1 p-1 rounded-[14px] bg-white/[.07]">
-                <button type="button" role="tab" aria-selected="true" className="h-10 rounded-[11px] bg-white text-[#07051A] text-[14px] font-bold">תמונה אמיתית</button>
-                <button type="button" role="tab" aria-selected="false" aria-disabled="true" title="יתאפשר אחרי חיבור ספק תמונות" className="h-10 rounded-[11px] text-[14px] font-semibold text-[#8F89B3] flex items-center justify-center gap-1.5 cursor-not-allowed">
-                  הדמיה על דוגמנית <span className="px-1.5 py-0.5 rounded-md bg-white/10 text-[10px] font-bold text-[#C7B4FF]">בקרוב</span>
+                <button type="button" role="tab" aria-selected={photoTab === "real"} onClick={() => setPhotoTab("real")} className={`h-10 rounded-[11px] text-[14px] ${photoTab === "real" ? "bg-white text-[#07051A] font-bold" : "text-[#E3D6FF] font-semibold"}`}>
+                  תמונה אמיתית
                 </button>
+                {mockupReady ? (
+                  <button type="button" role="tab" aria-selected={photoTab === "mock"} onClick={() => { setPhotoTab("mock"); if (!mockText && SCENES[0]) { setMockScene(SCENES[0].id); setMockText(SCENES[0].he); } }} className={`h-10 rounded-[11px] text-[14px] flex items-center justify-center gap-1.5 ${photoTab === "mock" ? "bg-white text-[#07051A] font-bold" : "text-[#E3D6FF] font-semibold"}`}>
+                    <Ico d={I.sparkle} size={15} sw={2} /> הדמיה על דוגמנית
+                  </button>
+                ) : (
+                  <button type="button" role="tab" aria-selected="false" aria-disabled="true" title="יתאפשר אחרי חיבור Gemini" className="h-10 rounded-[11px] text-[14px] font-semibold text-[#8F89B3] flex items-center justify-center gap-1.5 cursor-not-allowed">
+                    הדמיה על דוגמנית <span className="px-1.5 py-0.5 rounded-md bg-white/10 text-[10px] font-bold text-[#C7B4FF]">בקרוב</span>
+                  </button>
+                )}
               </div>
+              {aiUrls.length > 0 && photoTab === "real" && (
+                <p className="mx-4 mt-2 px-3 py-2 rounded-xl bg-[#FF01BB]/10 border border-[#FF01BB]/30 text-[13px] flex items-center gap-2">
+                  <Ico d={I.sparkle} size={15} sw={2} className="text-[#FFB3E8]" /> {aiUrls.length} הדמיות יתווספו לגלריה, אחרי התמונות האמיתיות
+                </p>
+              )}
+
+              {photoTab === "mock" && (
+                <div className="flex flex-col">
+                  <label htmlFor="mock-text" className="mx-4 mt-3 mb-1.5 text-[13px] font-bold text-[#DDD8F5]">מה ליצור? אפשר לכתוב חופשי</label>
+                  <textarea id="mock-text" value={mockText} onChange={(e) => setMockText(e.target.value.slice(0, 400))} rows={3} placeholder="למשל: תלביש את הנעל על רגל בחורה, ג׳ינס כהה, רחוב בערב" className={`${field} mx-4 py-2.5 text-[15px] leading-[1.5] resize-none font-normal`} />
+                  <span className="mx-[18px] mt-3 mb-2 text-[13px] font-bold text-[#DDD8F5]">או לבחור סצנה מוכנה</span>
+                  <div className="grid grid-cols-3 gap-2 px-4" role="radiogroup" aria-label="סצנה">
+                    {SCENES.map((sc) => (
+                      <button key={sc.id} type="button" role="radio" aria-checked={mockScene === sc.id} onClick={() => { setMockScene(sc.id); setMockText(sc.he); }} className="flex flex-col gap-1.5 text-[12px] font-medium text-center">
+                        <span className={`h-[58px] rounded-[14px] box-border ${mockScene === sc.id ? "border-[3px] border-white" : "border border-white/20"}`} style={{ background: sc.bg }} />
+                        {sc.name}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mx-4 mt-3.5 flex flex-col gap-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-[62px] text-[13px] text-[#B4AED6]">גוון עור</span>
+                      <div className="flex gap-2" role="radiogroup" aria-label="גוון עור">
+                        {SKINS.map((k) => (
+                          <button key={k.id} type="button" role="radio" aria-checked={skin === k.id} aria-label={k.name} title={k.name} onClick={() => setSkin(k.id)} className={`w-8 h-8 rounded-full box-border ${skin === k.id ? "border-[3px] border-white" : "border-2 border-white/20"}`} style={{ background: k.c }} />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-[62px] text-[13px] text-[#B4AED6] shrink-0">לבוש</span>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {OUTFITS.map((o) => (
+                          <button key={o.id} type="button" aria-pressed={outfit === o.id} onClick={() => setOutfit(o.id)} className={`h-8 px-3 rounded-full text-[12px] font-semibold ${outfit === o.id ? "bg-white text-[#07051A]" : "border border-white/20 text-[#E3D6FF]"}`}>
+                            {o.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-[62px] text-[13px] text-[#B4AED6]">כמה</span>
+                      <div className="flex gap-1.5">
+                        {[2, 4].map((n) => (
+                          <button key={n} type="button" aria-pressed={mockCount === n} onClick={() => setMockCount(n)} className={`h-8 w-12 rounded-full text-[13px] font-bold ${mockCount === n ? "bg-white text-[#07051A]" : "border border-white/20 text-[#E3D6FF]"}`}>
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {mocks.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2.5 px-4 pt-4">
+                      {mocks.map((m) => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          aria-pressed={m.picked}
+                          disabled={!m.ok}
+                          onClick={() => setMocks((cur) => cur.map((x) => (x.id === m.id ? { ...x, picked: !x.picked } : x)))}
+                          aria-label={m.score >= 0 ? `הדמיה, התאמה למקור ${m.score}%` : "הדמיה"}
+                          className={`relative aspect-[4/5] rounded-[18px] overflow-hidden box-border ${m.picked && m.ok ? "border-[3px] border-white" : "border border-white/15"}`}
+                        >
+                          <img src={m.url} alt="" className="w-full h-full object-cover" />
+                          {m.score >= 0 && (
+                            <span className={`absolute bottom-2 right-2 px-2 py-1 rounded-full text-[11px] font-extrabold ${m.ok ? "bg-[#07051A]/80 text-[#7CF3B5]" : "bg-[#FF4D7A]/90 text-white"}`}>
+                              התאמה למקור {m.score}%
+                            </span>
+                          )}
+                          {m.picked && m.ok && (
+                            <span className="absolute top-2 left-2 w-7 h-7 rounded-full bg-white text-[#07051A] flex items-center justify-center">
+                              <Ico d={I.check} size={16} sw={3} />
+                            </span>
+                          )}
+                          {!m.ok && (
+                            <span className="absolute inset-0 bg-[#07051A]/72 flex flex-col items-center justify-center gap-1.5 p-3 text-center text-[12px] font-semibold text-[#FFD0DC]">
+                              נפסלה אוטומטית
+                              <span className="font-normal text-[#B4AED6]">{m.issue || "שונה מהמוצר האמיתי"}</span>
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p className="mx-4 mt-3 px-3 py-2.5 rounded-[14px] bg-[#7A12FF]/15 border border-[#A078FF]/40 text-[12px] leading-normal flex gap-2">
+                    <Ico d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" size={17} sw={1.8} className="text-[#E3D6FF] shrink-0" />
+                    <span>ה־AI מקבל את הצילומים האמיתיים כרפרנס, וכל הדמיה נבדקת מול המוצר: צבע, צורה ופרטים. מה שסטה נפסל. ההדמיות נכנסות לגלריה אחרי התמונות האמיתיות.</span>
+                  </p>
+                </div>
+              )}
+
+              {photoTab === "real" && (<>
 
               <div className="relative mx-4 mt-3 h-[300px] max-h-[40vh] rounded-3xl overflow-hidden bg-[#1A1730] select-none">
                 {main && <img src={main.url} alt="הצילום המקורי" className="absolute inset-0 w-full h-full object-cover" />}
@@ -820,7 +1016,20 @@ export default function AiWizard({
                   {analysis ? <>מומלץ למוצר הזה: <b>{bgName(recommended)}</b> · </> : null}לשמור על אחידות בחנות: <b>רקע Quality</b>
                 </span>
               </div>
+              </>)}
             </div>
+            {photoTab === "mock" ? (
+              <footer className="px-4 pt-3 pb-[max(26px,env(safe-area-inset-bottom))] flex gap-2">
+                {mocks.some((m) => m.picked && m.ok) && (
+                  <button type="button" onClick={addMocks} disabled={!!busy} className="h-[54px] px-3.5 rounded-2xl bg-white text-[#07051A] text-[14px] font-bold disabled:opacity-40">
+                    הוספת {mocks.filter((m) => m.picked && m.ok).length} לגלריה
+                  </button>
+                )}
+                <button type="button" onClick={generateMocks} disabled={!!busy || cutting || !mockText.trim()} className="flex-1 h-[54px] rounded-2xl text-white text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-40" style={{ background: GRAD }}>
+                  <Ico d={I.sparkle} size={18} sw={2} /> {mocks.length ? "עוד הדמיות" : `יצירת ${mockCount} הדמיות`}
+                </button>
+              </footer>
+            ) : (
             <footer className="px-4 pt-3 pb-[max(26px,env(safe-area-inset-bottom))] flex gap-2">
               {photos.length > 1 && (bg !== "original" || improve) && (
                 <button type="button" onClick={() => setApplyAll((v) => !v)} aria-pressed={applyAll} className={`h-[54px] px-3.5 rounded-2xl text-[14px] font-semibold flex items-center gap-1.5 ${applyAll ? "border border-white bg-white/10" : "border border-white/20"}`}>
@@ -832,6 +1041,7 @@ export default function AiWizard({
                 המשך למלאי <Ico d={I.next} size={18} sw={2.2} />
               </button>
             </footer>
+            )}
           </>
         )}
 

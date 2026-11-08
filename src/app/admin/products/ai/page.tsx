@@ -1,5 +1,6 @@
 import { isAdmin } from "@/lib/auth";
 import { aiConfigured } from "@/lib/ai";
+import { geminiConfigured } from "@/lib/gemini-image";
 import { imageStorageReady } from "@/lib/storage";
 import { getAttributes, getCategoriesAll } from "@/lib/catalog";
 import { listProducts } from "@/lib/store";
@@ -8,6 +9,8 @@ import AiWizard, { type WizProduct } from "./AiWizard";
 import type { Product } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+// image generation + quality check can take a while
+export const maxDuration = 120;
 export const metadata = { title: "הוספה מהירה עם AI" };
 
 const toWiz = (p: Product): WizProduct => ({
@@ -42,6 +45,7 @@ export default async function AiQuickAdd({ searchParams }: { searchParams: { pro
         aiReady={aiConfigured()}
         storageReady={imageStorageReady()}
         storeName={store.name || ""}
+        mockupReady={geminiConfigured()}
       />
     </>
   );
