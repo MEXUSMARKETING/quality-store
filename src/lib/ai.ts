@@ -7,8 +7,13 @@ import { CATEGORIES, COLORS, STORE } from "./config";
 export const DEFAULT_AI_MODEL = "claude-sonnet-4-5";
 export const AI_HOURLY_LIMIT = 30;
 
+/** The Anthropic key. Also accepts a variable whose name was pasted twice by mistake. */
+export function aiKey(): string {
+  return (process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEYANTHROPIC_API_KEY || "").trim();
+}
+
 export function aiConfigured(): boolean {
-  return !!process.env.ANTHROPIC_API_KEY;
+  return !!aiKey();
 }
 
 export function aiModel(): string {
@@ -24,7 +29,7 @@ export type AiResult = { text: string; error?: undefined } | { text?: undefined;
 
 /** One call to the Messages API. Never throws – returns a Hebrew error instead. */
 export async function callClaude(opts: { system: string; messages: AiMessage[]; maxTokens?: number; timeoutMs?: number }): Promise<AiResult> {
-  const key = process.env.ANTHROPIC_API_KEY;
+  const key = aiKey();
   if (!key) return { error: "עוזר ה־AI עדיין לא מחובר: יש להוסיף ב־Vercel את המשתנה ANTHROPIC_API_KEY ולפרוס מחדש." };
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs || 25_000);
