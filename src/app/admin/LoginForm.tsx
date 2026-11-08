@@ -80,13 +80,13 @@ export default function LoginForm({ configured, storeName = "" }: { configured: 
         <div className="absolute inset-0 nx-grid" />
       </div>
 
-      <div className="relative z-10 w-full max-w-[1200px] mx-auto px-4 sm:px-8 py-8 lg:py-0 grid lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-16 items-center min-h-screen">
+      <div className="relative z-10 w-full max-w-[1200px] mx-auto px-4 sm:px-8 py-8 lg:py-0 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-16 items-center min-h-screen">
         {/* brand side */}
-        <section className="nx-rise flex flex-col gap-8 items-center lg:items-start text-center lg:text-start" aria-label="NEXSHOP">
+        <section className="nx-rise min-w-0 flex flex-col gap-8 items-center lg:items-start text-center lg:text-start" aria-label="NEXSHOP">
           <img src="/brand/nexshop-logo.png" alt="NEXSHOP – הדור הבא של החנויות הדיגיטליות" width={1100} height={335} className="w-[260px] sm:w-[340px] lg:w-[460px] h-auto drop-shadow-[0_10px_40px_rgba(122,18,255,.35)]" />
           <div className="hidden lg:flex flex-col gap-4 max-w-[440px]">
             <h1 className="text-[34px] font-extrabold leading-tight tracking-tight">
-              הדור הבא של <span className="nx-grad-text">החנויות הדיגיטליות</span>
+              כל החנות שלך, <span className="nx-grad-text">בניהול חכם אחד</span>
             </h1>
             <ul className="flex flex-col gap-3 pt-2">
               {FEATURES.map((f) => (

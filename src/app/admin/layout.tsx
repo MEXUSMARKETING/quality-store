@@ -12,7 +12,7 @@ import { DbMissing } from "./_components/ui";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 export const metadata = {
-  title: { default: "NEXSHOP · ניהול החנות", template: "%s · NEXSHOP" },
+  title: { absolute: "NEXSHOP · ניהול החנות", template: "%s · NEXSHOP" },
   robots: { index: false, follow: false },
   icons: { icon: "/brand/nexshop-icon-64.png", apple: "/brand/nexshop-mark.png" },
 };
