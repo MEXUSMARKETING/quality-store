@@ -14,7 +14,7 @@ export const maxDuration = 30;
 export const metadata = {
   title: { absolute: "NEXSHOP · ניהול החנות", template: "%s · NEXSHOP" },
   robots: { index: false, follow: false },
-  icons: { icon: "/brand/nexshop-icon-64.png", apple: "/brand/nexshop-mark.png" },
+  icons: { icon: "/brand/nexshop-icon-v2.png", apple: "/brand/nexshop-mark-v2.png" },
 };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
