@@ -54,7 +54,7 @@ export default function ProductRow({ title, kicker, products, href, limit = 10, 
         className="flex gap-3 md:gap-5 overflow-x-auto no-scrollbar snap-x snap-mandatory"
       >
         {list.map((p) => (
-          <div key={p.id} className="snap-start shrink-0 w-[calc((100%_-_12px)/2)] md:w-[calc((100%_-_40px)/3)]">
+          <div key={p.id} className="snap-start shrink-0 w-[calc((100%_-_12px)/2)] md:w-[calc((100%_-_40px)/3)] lg:w-[calc((100%_-_60px)/4)]">
             <ProductCard p={p} promo={badges[p.id]} />
           </div>
         ))}

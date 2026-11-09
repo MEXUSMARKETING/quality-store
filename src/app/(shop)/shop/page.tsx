@@ -232,7 +232,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
             </div>
           )}
           {list.length ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-7 md:gap-x-5 md:gap-y-9">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-3 gap-y-7 md:gap-x-5 md:gap-y-9">
               {list.map((p) => (
                 <ProductCard key={p.id} p={p} rating={ratings[p.id]} promo={badges[p.id]} color={color || undefined} palette={palette} />
               ))}
