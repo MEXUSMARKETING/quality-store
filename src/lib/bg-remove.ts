@@ -252,17 +252,48 @@ export async function cutOut(file: Blob): Promise<Cutout> {
   rf.drawImage(bmp, 0, 0, W, H);
 
   await preloadCutout();
-  // two passes (as is + mirrored) and average: steadier edges, fewer missed parts
+  // pass 1 – whole photo, as is + mirrored, averaged
   const a = await runModel(rawFull, false);
   const b = await runModel(rawFull, true);
-  const mask = canvas(SIZE, SIZE);
+  const coarse = new Float32Array(SIZE * SIZE);
+  for (let i = 0; i < coarse.length; i++) coarse[i] = (a[i] + b[i]) / 2;
+
+  // pass 2 – zoom in on the product, so the model sees it across the whole 320px input (sharper edges)
+  let x0 = SIZE, y0 = SIZE, x1 = -1, y1 = -1;
+  for (let y = 0; y < SIZE; y++)
+    for (let x = 0; x < SIZE; x++)
+      if (coarse[y * SIZE + x] > 0.3) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+  const mask = canvas(W, H);
   const mx = mask.getContext("2d")!;
-  const md = mx.createImageData(SIZE, SIZE);
-  for (let i = 0; i < SIZE * SIZE; i++) {
-    const v = (a[i] + b[i]) / 2;
-    md.data[i * 4 + 3] = Math.round(Math.max(0, Math.min(1, (v - 0.08) / 0.6)) * 255);
+  const toAlpha = (v: number) => Math.round(Math.max(0, Math.min(1, (v - 0.08) / 0.6)) * 255);
+  const small = canvas(SIZE, SIZE);
+  const smx = small.getContext("2d")!;
+  const sd = smx.createImageData(SIZE, SIZE);
+  const boxW = x1 - x0, boxH = y1 - y0;
+  if (x1 > x0 && y1 > y0 && (boxW < SIZE * 0.85 || boxH < SIZE * 0.85)) {
+    const mxp = boxW * 0.1 + 6, myp = boxH * 0.1 + 6;
+    const cx0 = Math.max(0, ((x0 - mxp) / SIZE) * W), cy0 = Math.max(0, ((y0 - myp) / SIZE) * H);
+    const cx1 = Math.min(W, ((x1 + mxp) / SIZE) * W), cy1 = Math.min(H, ((y1 + myp) / SIZE) * H);
+    const cw = Math.max(1, Math.round(cx1 - cx0)), ch = Math.max(1, Math.round(cy1 - cy0));
+    const crop = canvas(cw, ch);
+    crop.getContext("2d")!.drawImage(rawFull, cx0, cy0, cw, ch, 0, 0, cw, ch);
+    const fa = await runModel(crop, false);
+    const fb = await runModel(crop, true);
+    for (let i = 0; i < SIZE * SIZE; i++) sd.data[i * 4 + 3] = toAlpha((fa[i] + fb[i]) / 2);
+    smx.putImageData(sd, 0, 0);
+    mx.imageSmoothingQuality = "high";
+    mx.drawImage(small, 0, 0, SIZE, SIZE, cx0, cy0, cw, ch);
+  } else {
+    for (let i = 0; i < SIZE * SIZE; i++) sd.data[i * 4 + 3] = toAlpha(coarse[i]);
+    smx.putImageData(sd, 0, 0);
+    mx.imageSmoothingQuality = "high";
+    mx.drawImage(small, 0, 0, W, H);
   }
-  mx.putImageData(md, 0, 0);
   return finishCutout(rawFull, mask);
 }
 
