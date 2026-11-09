@@ -19,7 +19,7 @@ async function revalidateFor(productIds: number[]) {
   try {
     const sql = await db();
     const rows = await sql`select slug from products where id in ${sql(productIds)}`;
-    for (const r of rows) revalidatePath(`/product/${r.slug}`);
+    for (const r of rows) revalidatePath(`/product/${encodeURIComponent(r.slug)}`);
   } catch {
     /* best effort */
   }

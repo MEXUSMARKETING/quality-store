@@ -29,7 +29,7 @@ const bad = (n: number | null) => n !== null && !Number.isFinite(n);
 function revalidateProduct(slug?: string) {
   revalidatePath("/", "layout");
   revalidatePath("/admin/products");
-  if (slug) revalidatePath(`/product/${slug}`);
+  if (slug) revalidatePath(`/product/${encodeURIComponent(slug)}`);
 }
 
 /* ---------------- change summary for the audit log ---------------- */
@@ -268,7 +268,7 @@ export async function saveProductAction(_: SaveState, fd: FormData): Promise<Sav
 
   await auditChanges(newId, before, input);
   revalidateProduct(input.slug);
-  if (before && before.slug !== input.slug) revalidatePath(`/product/${before.slug}`);
+  if (before && before.slug !== input.slug) revalidatePath(`/product/${encodeURIComponent(before.slug)}`);
   redirect(`/admin/products/${newId}?saved=1`);
 }
 

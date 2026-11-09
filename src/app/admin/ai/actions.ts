@@ -115,6 +115,6 @@ export async function saveAiDraftToProductAction(input: { productId: number; tex
     after: { description: next },
   });
   revalidatePath(`/admin/products/${id}`);
-  revalidatePath(`/product/${p.slug}`);
+  revalidatePath(`/product/${encodeURIComponent(p.slug)}`);
   return { ok: true, name: p.name };
 }

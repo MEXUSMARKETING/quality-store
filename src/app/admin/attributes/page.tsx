@@ -33,7 +33,7 @@ export default async function AttributesAdmin() {
     try {
       const sql = await db();
       const [s, c] = await Promise.all([
-        sql`select s.key as size, count(*)::int as n from products p, jsonb_each_text(p.stock) s where (s.value)::numeric > 0 group by s.key`,
+        sql`select s.key as size, count(*)::int as n from products p, jsonb_each_text(case when jsonb_typeof(p.stock) = 'object' then p.stock else '{}'::jsonb end) s where (s.value)::numeric > 0 group by s.key`,
         sql`select c as color, count(distinct id)::int as n from (
       select id, color as c from products
       union all

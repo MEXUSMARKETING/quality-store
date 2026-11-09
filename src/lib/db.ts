@@ -29,8 +29,13 @@ export function hasDb(): boolean {
 }
 
 /** A query that has not answered in this long is treated as stuck on a dead socket. Without this a
- *  silently dropped connection makes the page wait until the platform kills it (5 minutes). */
-const QUERY_TIMEOUT_MS = 12_000;
+ *  silently dropped connection makes the page wait until the platform kills it (5 minutes).
+ *  Reads get a short first try and one retry on a fresh connection (so a dead socket costs the
+ *  visitor a few seconds, not an error page). Writes are never retried, so nothing runs twice. */
+const READ_FIRST_MS = 6_000;
+const READ_RETRY_MS = 10_000;
+const WRITE_TIMEOUT_MS = 12_000;
+const RETRYABLE = /timed out|CONNECTION_DESTROYED|CONNECTION_CLOSED|CONNECTION_ENDED|ECONNRESET|EPIPE|ETIMEDOUT|terminating connection|Connection terminated|socket hang up/i;
 
 function dropClient(raw: Sql | undefined, graceSeconds: number) {
   if (!raw || g.__qraw !== raw) return;
@@ -39,33 +44,60 @@ function dropClient(raw: Sql | undefined, graceSeconds: number) {
   raw.end({ timeout: graceSeconds }).catch(() => {});
 }
 
+/** Only plain reads are safe to run again. */
+function isRead(args: any[]): boolean {
+  const first = args[0];
+  const text = Array.isArray(first) && "raw" in (first as any) ? (first as string[]).join(" ") : typeof first === "string" ? first : "";
+  if (!text) return false;
+  const t = text.trim().toLowerCase();
+  if (!(t.startsWith("select") || t.startsWith("with") || t.startsWith("("))) return false;
+  return !/\b(insert|update|delete|alter|create|drop|truncate|lock)\b|for\s+update|nextval\(/.test(t);
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number, raw: Sql | undefined): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      dropClient(raw, 0);
+      reject(new Error(`database query timed out after ${ms / 1000}s`));
+    }, ms);
+  });
+  return Promise.race([p, timeout]).finally(() => clearTimeout(timer));
+}
+
 /** Wrap the client so every awaited query races a timeout; on timeout the client is discarded and
  *  the next query opens a fresh connection. Fragments (nested sql``) are never awaited, so they
  *  never start a timer. sql.begin / transactions are passed through unchanged. */
 function guard(raw: Sql): Sql {
-  const wrap = (q: any) => {
+  const wrap = (q: any, args: any[], call: (r: Sql) => any) => {
     if (!q || typeof q.then !== "function") return q;
     const orig = q.then; // postgres.js starts the query lazily inside then()
+    const read = isRead(args);
     q.then = function (onOk?: any, onErr?: any) {
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      const timeout = new Promise((_, reject) => {
-        timer = setTimeout(() => {
+      const first = new Promise((res, rej) => orig.call(q, res, rej));
+      let p = withTimeout(first, read ? READ_FIRST_MS : WRITE_TIMEOUT_MS, raw);
+      if (read) {
+        p = p.catch((e: any) => {
+          if (!RETRYABLE.test(`${e?.message || ""} ${e?.code || ""}`)) throw e;
           dropClient(raw, 0);
-          reject(new Error(`database query timed out after ${QUERY_TIMEOUT_MS / 1000}s`));
-        }, QUERY_TIMEOUT_MS);
-      });
-      const run = orig.call(q, (v: any) => v, (e: any) => { throw e; });
-      return Promise.race([run, timeout]).finally(() => clearTimeout(timer)).then(onOk, onErr);
+          client(); // fresh connection
+          const fresh = g.__qraw!;
+          console.warn("db: retrying read on a fresh connection –", e?.code || e?.message);
+          const q2 = call(fresh);
+          return withTimeout(new Promise((res, rej) => q2.then(res, rej)), READ_RETRY_MS, fresh);
+        });
+      }
+      return p.then(onOk, onErr);
     };
     return q;
   };
   return new Proxy(raw as any, {
     apply(target, thisArg, args) {
-      return wrap(Reflect.apply(target, thisArg, args));
+      return wrap(Reflect.apply(target, thisArg, args), args, (r) => Reflect.apply(r as any, undefined, args));
     },
     get(target, prop) {
       const v = (target as any)[prop];
-      if (prop === "unsafe" && typeof v === "function") return (...a: any[]) => wrap(v(...a));
+      if (prop === "unsafe" && typeof v === "function") return (...a: any[]) => wrap(v(...a), a, (r) => (r as any).unsafe(...a));
       return v;
     },
   }) as Sql;
