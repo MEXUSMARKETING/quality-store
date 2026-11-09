@@ -260,7 +260,7 @@ export async function cutOut(file: Blob): Promise<Cutout> {
   const md = mx.createImageData(SIZE, SIZE);
   for (let i = 0; i < SIZE * SIZE; i++) {
     const v = (a[i] + b[i]) / 2;
-    md.data[i * 4 + 3] = Math.round(Math.max(0, Math.min(1, (v - 0.12) / 0.7)) * 255);
+    md.data[i * 4 + 3] = Math.round(Math.max(0, Math.min(1, (v - 0.08) / 0.6)) * 255);
   }
   mx.putImageData(md, 0, 0);
   return finishCutout(rawFull, mask);
@@ -312,45 +312,90 @@ function guidedFilter(I: Float32Array, p: Float32Array, w: number, h: number, r:
   return q;
 }
 
-/** Keep the product (the big parts), drop small stray blobs (reflections, specks) and fill small holes. */
-function cleanBlobs(m: Float32Array, w: number, h: number) {
+/** Square max/min filter (dilate / erode) of a 0/1 map, O(n) per pass with a sliding window. */
+function morph(src: Uint8Array, w: number, h: number, r: number, dilate: boolean): Uint8Array {
+  if (r < 1) return src.slice();
+  const tmp = new Uint8Array(w * h);
+  const out = new Uint8Array(w * h);
+  const want = dilate ? 1 : 0;
+  // rows
+  for (let y = 0; y < h; y++) {
+    let count = 0; // how many "want" pixels in the window
+    const row = y * w;
+    for (let x = -r; x < w; x++) {
+      const add = x + r;
+      if (add < w && src[row + add] === want) count++;
+      const rem = x - r - 1;
+      if (rem >= 0 && src[row + rem] === want) count--;
+      if (x >= 0) tmp[row + x] = dilate ? (count > 0 ? 1 : 0) : count > 0 ? 0 : 1;
+    }
+  }
+  // columns
+  for (let x = 0; x < w; x++) {
+    let count = 0;
+    for (let y = -r; y < h; y++) {
+      const add = y + r;
+      if (add < h && tmp[add * w + x] === want) count++;
+      const rem = y - r - 1;
+      if (rem >= 0 && tmp[rem * w + x] === want) count--;
+      if (y >= 0) out[y * w + x] = dilate ? (count > 0 ? 1 : 0) : count > 0 ? 0 : 1;
+    }
+  }
+  return out;
+}
+
+/** Connected components of a 0/1 map: label per pixel, size and "touches the image border" per label. */
+function components(bin: Uint8Array, w: number, h: number, fg: number) {
   const n = w * h;
   const lab = new Int32Array(n);
   const stack = new Int32Array(n);
-  const label = (fg: boolean) => {
-    lab.fill(0);
-    const sizes: number[] = [0];
-    const touches: boolean[] = [false];
-    let id = 0;
-    for (let s = 0; s < n; s++) {
-      if (lab[s] || (m[s] >= 0.5) !== fg) continue;
-      id++;
-      let top = 0, size = 0, edge = false;
-      stack[top++] = s;
-      lab[s] = id;
-      while (top) {
-        const i = stack[--top];
-        size++;
-        const x = i % w, y = (i / w) | 0;
-        if (x === 0 || y === 0 || x === w - 1 || y === h - 1) edge = true;
-        const nb = [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y > 0 ? i - w : -1, y < h - 1 ? i + w : -1];
-        for (const j of nb) if (j >= 0 && !lab[j] && (m[j] >= 0.5) === fg) {
-          lab[j] = id;
-          stack[top++] = j;
-        }
-      }
-      sizes.push(size);
-      touches.push(edge);
+  const sizes: number[] = [0];
+  const edge: boolean[] = [false];
+  let id = 0;
+  for (let s = 0; s < n; s++) {
+    if (lab[s] || bin[s] !== fg) continue;
+    id++;
+    let top = 0, size = 0, touches = false;
+    stack[top++] = s;
+    lab[s] = id;
+    while (top) {
+      const i = stack[--top];
+      size++;
+      const x = i % w, y = (i / w) | 0;
+      if (x === 0 || y === 0 || x === w - 1 || y === h - 1) touches = true;
+      if (x > 0 && !lab[i - 1] && bin[i - 1] === fg) { lab[i - 1] = id; stack[top++] = i - 1; }
+      if (x < w - 1 && !lab[i + 1] && bin[i + 1] === fg) { lab[i + 1] = id; stack[top++] = i + 1; }
+      if (y > 0 && !lab[i - w] && bin[i - w] === fg) { lab[i - w] = id; stack[top++] = i - w; }
+      if (y < h - 1 && !lab[i + w] && bin[i + w] === fg) { lab[i + w] = id; stack[top++] = i + w; }
     }
-    return { sizes, touches };
-  };
-  // foreground blobs smaller than 12% of the biggest one go
-  const fg = label(true);
+    sizes.push(size);
+    edge.push(touches);
+  }
+  return { lab, sizes, edge };
+}
+
+/** Make the product SOLID: glossy, metallic or thin parts (gold heels, buckles, patent shine) often get a
+    half-confident mask and would turn see-through. Inside the product's outline alpha becomes 1, small
+    gaps between parts are bridged, enclosed holes filled, stray blobs dropped; only the outer edge stays soft. */
+function solidify(q: Float32Array, w: number, h: number) {
+  const n = w * h;
+  const L = Math.max(w, h);
+  let solid: Uint8Array = new Uint8Array(n);
+  for (let i = 0; i < n; i++) solid[i] = q[i] >= 0.35 ? 1 : 0;
+  // closing bridges small gaps (e.g. between a heel and the shoe)
+  const rc = Math.max(1, Math.round(L * 0.012));
+  solid = morph(morph(solid, w, h, rc, true), w, h, rc, false);
+  // keep the big parts only (both shoes of a pair stay; reflections and specks go)
+  const fg = components(solid, w, h, 1);
   const biggest = Math.max(0, ...fg.sizes);
-  for (let i = 0; i < n; i++) if (m[i] >= 0.5 && fg.sizes[lab[i]] < biggest * 0.12) m[i] = 0;
-  // background pockets fully inside the product and smaller than 1.5% of the image get filled
-  const bg = label(false);
-  for (let i = 0; i < n; i++) if (m[i] < 0.5 && lab[i] && !bg.touches[lab[i]] && bg.sizes[lab[i]] < n * 0.015) m[i] = 1;
+  for (let i = 0; i < n; i++) if (solid[i] && fg.sizes[fg.lab[i]] < biggest * 0.12) solid[i] = 0;
+  // fill every hole that is fully enclosed by the product
+  const bg = components(solid, w, h, 0);
+  for (let i = 0; i < n; i++) if (!solid[i] && !bg.edge[bg.lab[i]]) solid[i] = 1;
+  const re = Math.max(1, Math.round(L * 0.004));
+  const inner = morph(solid, w, h, re, false);
+  const near = morph(solid, w, h, re, true);
+  for (let i = 0; i < n; i++) q[i] = near[i] ? Math.max(q[i], inner[i]) : 0;
 }
 
 /** Shared by the model path and tests: refine the 320px mask against the photo, fix light/colour, cut. */
@@ -376,8 +421,8 @@ export function finishCutout(rawFull: HTMLCanvasElement, mask: CanvasImageSource
 
   const r = Math.max(4, Math.round(Math.max(w, h) / 160));
   const q = guidedFilter(guide, p, w, h, r, 1e-3);
-  for (let i = 0; i < q.length; i++) q[i] = Math.max(0, Math.min(1, (q[i] - 0.25) / 0.5));
-  cleanBlobs(q, w, h);
+  for (let i = 0; i < q.length; i++) q[i] = Math.max(0, Math.min(1, (q[i] - 0.2) / 0.5));
+  solidify(q, w, h);
 
   const small = canvas(w, h);
   const sx = small.getContext("2d")!;
