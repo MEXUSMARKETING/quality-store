@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseStockText } from "@/lib/stock-parse";
 import type { Analysis } from "@/lib/ai-product";
 import { BACKGROUNDS, PROMO_FORMATS, compose, cutOut, makePromo, preloadCutout, type BgId, type Cutout, type PromoFormat } from "@/lib/bg-remove";
+import TouchUp from "./TouchUp";
 import { analyzePhotosAction, createFromAiAction, parseStockAction, rewriteAction, tryOnAction, uploadPhotosAction, type AnalyzeResult } from "./actions";
 
 /* Quick add with AI – full-screen, mobile-first, 5 steps exactly like the NEXSHOP mockup:
@@ -126,6 +127,7 @@ export default function AiWizard({
   const [cut, setCut] = useState<Record<string, Cutout | "error">>({});
   const [bgPreview, setBgPreview] = useState<string | null>(null);
   const [improve, setImprove] = useState(true);
+  const [touchOpen, setTouchOpen] = useState(false);
   const [split, setSplit] = useState(55);
   const [mainFile, setMainFile] = useState<File | null>(null);
   // mock-ups (Gemini)
@@ -967,6 +969,11 @@ export default function AiWizard({
                   <input type="range" min={5} max={95} value={split} onChange={(e) => setSplit(Number(e.target.value))} className="flex-1 accent-[#8F5BFF]" aria-label="השוואה בין לפני לאחרי" />
                 </label>
               )}
+              {main && cut[main.id] && cut[main.id] !== "error" && (
+                <button type="button" onClick={() => setTouchOpen(true)} className="mx-4 mt-2.5 h-11 w-[calc(100%-2rem)] rounded-[14px] border border-white/20 bg-white/[.04] text-[14px] font-semibold flex items-center justify-center gap-2 hover:bg-white/10">
+                  <Ico d="M4 20l4-1 11-11-3-3L5 16zM14 6l3 3" size={17} sw={1.9} /> תיקון ידני של החיתוך
+                </button>
+              )}
 
               {mainCutFailed ? (
                 <p className="mx-[18px] mt-3 text-[13px] text-[#FFE3A8] leading-normal">לא הצלחתי לעבד את התמונה הזו (אולי חסר חיבור, או שהמוצר לא ברור). אפשר להמשיך עם התמונה המקורית.</p>
@@ -1268,6 +1275,17 @@ export default function AiWizard({
           </p>
         )}
       </div>
+
+      {touchOpen && main && cut[main.id] && cut[main.id] !== "error" && (
+        <TouchUp
+          cut={cut[main.id] as Cutout}
+          onCancel={() => setTouchOpen(false)}
+          onDone={(c) => {
+            setCut((m) => ({ ...m, [main.id]: c }));
+            setTouchOpen(false);
+          }}
+        />
+      )}
 
       {/* busy overlay */}
       {busy && (

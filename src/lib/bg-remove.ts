@@ -199,10 +199,46 @@ export type Cutout = {
   /** product with transparent background, cropped to its bounds – raw and enhanced */
   raw: HTMLCanvasElement;
   enhanced: HTMLCanvasElement;
-  /** whole photo – raw and enhanced (for "המקורי") */
+  /** whole photo – raw and enhanced (for "המקורי" and for manual touch-up) */
   rawFull: HTMLCanvasElement;
   enhancedFull: HTMLCanvasElement;
+  /** full-size mask (alpha = product); editable with the touch-up brush */
+  mask: HTMLCanvasElement;
 };
+
+async function runModel(src: HTMLCanvasElement, flip: boolean): Promise<Float32Array> {
+  const session = await sessionPromise!;
+  const ort = (window as any).ort;
+  const c = canvas(SIZE, SIZE);
+  const cx = c.getContext("2d", { willReadFrequently: true })!;
+  if (flip) {
+    cx.translate(SIZE, 0);
+    cx.scale(-1, 1);
+  }
+  cx.drawImage(src, 0, 0, SIZE, SIZE);
+  const px = cx.getImageData(0, 0, SIZE, SIZE).data;
+  let max = 1;
+  for (let i = 0; i < px.length; i += 4) max = Math.max(max, px[i], px[i + 1], px[i + 2]);
+  const mean = [0.485, 0.456, 0.406];
+  const std = [0.229, 0.224, 0.225];
+  const n = SIZE * SIZE;
+  const input = new Float32Array(3 * n);
+  for (let i = 0; i < n; i++) for (let ch = 0; ch < 3; ch++) input[ch * n + i] = (px[i * 4 + ch] / max - mean[ch]) / std[ch];
+  const out = await session.run({ [session.inputNames[0]]: new ort.Tensor("float32", input, [1, 3, SIZE, SIZE]) });
+  const pred: Float32Array = out[session.outputNames[0]].data;
+  let lo = Infinity, hi = -Infinity;
+  for (let i = 0; i < n; i++) {
+    if (pred[i] < lo) lo = pred[i];
+    if (pred[i] > hi) hi = pred[i];
+  }
+  const res = new Float32Array(n);
+  for (let y = 0; y < SIZE; y++)
+    for (let x = 0; x < SIZE; x++) {
+      const v = (pred[y * SIZE + x] - lo) / (hi - lo || 1);
+      res[y * SIZE + (flip ? SIZE - 1 - x : x)] = v;
+    }
+  return res;
+}
 
 /** Find the product in the photo, enhance it and cut it out. */
 export async function cutOut(file: Blob): Promise<Cutout> {
@@ -216,62 +252,153 @@ export async function cutOut(file: Blob): Promise<Cutout> {
   rf.drawImage(bmp, 0, 0, W, H);
 
   await preloadCutout();
-  const session = await sessionPromise!;
-  const ort = (window as any).ort;
-
-  // model input: 320×320, ImageNet-normalised, scaled by the image max (as U²-Net was trained)
-  const c = canvas(SIZE, SIZE);
-  const cx = c.getContext("2d", { willReadFrequently: true })!;
-  cx.drawImage(rawFull, 0, 0, SIZE, SIZE);
-  const px = cx.getImageData(0, 0, SIZE, SIZE).data;
-  let max = 1;
-  for (let i = 0; i < px.length; i += 4) max = Math.max(max, px[i], px[i + 1], px[i + 2]);
-  const mean = [0.485, 0.456, 0.406];
-  const std = [0.229, 0.224, 0.225];
-  const n = SIZE * SIZE;
-  const input = new Float32Array(3 * n);
-  for (let i = 0; i < n; i++) for (let ch = 0; ch < 3; ch++) input[ch * n + i] = (px[i * 4 + ch] / max - mean[ch]) / std[ch];
-  const out = await session.run({ [session.inputNames[0]]: new ort.Tensor("float32", input, [1, 3, SIZE, SIZE]) });
-  const pred: Float32Array = out[session.outputNames[0]].data;
-
-  let lo = Infinity, hi = -Infinity;
-  for (let i = 0; i < n; i++) {
-    if (pred[i] < lo) lo = pred[i];
-    if (pred[i] > hi) hi = pred[i];
-  }
+  // two passes (as is + mirrored) and average: steadier edges, fewer missed parts
+  const a = await runModel(rawFull, false);
+  const b = await runModel(rawFull, true);
   const mask = canvas(SIZE, SIZE);
   const mx = mask.getContext("2d")!;
   const md = mx.createImageData(SIZE, SIZE);
-  for (let i = 0; i < n; i++) {
-    const v = (pred[i] - lo) / (hi - lo || 1);
+  for (let i = 0; i < SIZE * SIZE; i++) {
+    const v = (a[i] + b[i]) / 2;
     md.data[i * 4 + 3] = Math.round(Math.max(0, Math.min(1, (v - 0.12) / 0.7)) * 255);
   }
   mx.putImageData(md, 0, 0);
   return finishCutout(rawFull, mask);
 }
 
-/** Shared by the model path and tests: scale the 320px mask up, tighten the edge, fix light/colour, cut. */
+/* ---- mask refinement ---- */
+
+/** Box mean with an integral image (O(1) per pixel, any radius). */
+function boxMean(src: Float32Array, w: number, h: number, r: number): Float32Array {
+  const I = new Float64Array((w + 1) * (h + 1));
+  for (let y = 0; y < h; y++) {
+    let row = 0;
+    for (let x = 0; x < w; x++) {
+      row += src[y * w + x];
+      I[(y + 1) * (w + 1) + x + 1] = I[y * (w + 1) + x + 1] + row;
+    }
+  }
+  const out = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) {
+    const y0 = Math.max(0, y - r), y1 = Math.min(h, y + r + 1);
+    for (let x = 0; x < w; x++) {
+      const x0 = Math.max(0, x - r), x1 = Math.min(w, x + r + 1);
+      const s = I[y1 * (w + 1) + x1] - I[y0 * (w + 1) + x1] - I[y1 * (w + 1) + x0] + I[y0 * (w + 1) + x0];
+      out[y * w + x] = s / ((y1 - y0) * (x1 - x0));
+    }
+  }
+  return out;
+}
+
+/** Edge-aware refinement: the soft mask follows the real edges of the product in the photo. */
+function guidedFilter(I: Float32Array, p: Float32Array, w: number, h: number, r: number, eps: number): Float32Array {
+  const n = w * h;
+  const Ip = new Float32Array(n), II = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    Ip[i] = I[i] * p[i];
+    II[i] = I[i] * I[i];
+  }
+  const mI = boxMean(I, w, h, r), mp = boxMean(p, w, h, r), mIp = boxMean(Ip, w, h, r), mII = boxMean(II, w, h, r);
+  const A = new Float32Array(n), B = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const cov = mIp[i] - mI[i] * mp[i];
+    const v = mII[i] - mI[i] * mI[i];
+    A[i] = cov / (v + eps);
+    B[i] = mp[i] - A[i] * mI[i];
+  }
+  const mA = boxMean(A, w, h, r), mB = boxMean(B, w, h, r);
+  const q = new Float32Array(n);
+  for (let i = 0; i < n; i++) q[i] = mA[i] * I[i] + mB[i];
+  return q;
+}
+
+/** Keep the product (the big parts), drop small stray blobs (reflections, specks) and fill small holes. */
+function cleanBlobs(m: Float32Array, w: number, h: number) {
+  const n = w * h;
+  const lab = new Int32Array(n);
+  const stack = new Int32Array(n);
+  const label = (fg: boolean) => {
+    lab.fill(0);
+    const sizes: number[] = [0];
+    const touches: boolean[] = [false];
+    let id = 0;
+    for (let s = 0; s < n; s++) {
+      if (lab[s] || (m[s] >= 0.5) !== fg) continue;
+      id++;
+      let top = 0, size = 0, edge = false;
+      stack[top++] = s;
+      lab[s] = id;
+      while (top) {
+        const i = stack[--top];
+        size++;
+        const x = i % w, y = (i / w) | 0;
+        if (x === 0 || y === 0 || x === w - 1 || y === h - 1) edge = true;
+        const nb = [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y > 0 ? i - w : -1, y < h - 1 ? i + w : -1];
+        for (const j of nb) if (j >= 0 && !lab[j] && (m[j] >= 0.5) === fg) {
+          lab[j] = id;
+          stack[top++] = j;
+        }
+      }
+      sizes.push(size);
+      touches.push(edge);
+    }
+    return { sizes, touches };
+  };
+  // foreground blobs smaller than 12% of the biggest one go
+  const fg = label(true);
+  const biggest = Math.max(0, ...fg.sizes);
+  for (let i = 0; i < n; i++) if (m[i] >= 0.5 && fg.sizes[lab[i]] < biggest * 0.12) m[i] = 0;
+  // background pockets fully inside the product and smaller than 1.5% of the image get filled
+  const bg = label(false);
+  for (let i = 0; i < n; i++) if (m[i] < 0.5 && lab[i] && !bg.touches[lab[i]] && bg.sizes[lab[i]] < n * 0.015) m[i] = 1;
+}
+
+/** Shared by the model path and tests: refine the 320px mask against the photo, fix light/colour, cut. */
 export function finishCutout(rawFull: HTMLCanvasElement, mask: CanvasImageSource): Cutout {
   const W = rawFull.width;
   const H = rawFull.height;
+  // work at up to 1024px: plenty for edges, fast on phones
+  const k = Math.min(1, 1024 / Math.max(W, H));
+  const w = Math.max(1, Math.round(W * k));
+  const h = Math.max(1, Math.round(H * k));
+  const work = canvas(w, h);
+  const wx = work.getContext("2d", { willReadFrequently: true })!;
+  wx.imageSmoothingQuality = "high";
+  wx.drawImage(rawFull, 0, 0, w, h);
+  const px = wx.getImageData(0, 0, w, h).data;
+  const guide = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) guide[i] = (px[i * 4] * 0.299 + px[i * 4 + 1] * 0.587 + px[i * 4 + 2] * 0.114) / 255;
+  wx.clearRect(0, 0, w, h);
+  wx.drawImage(mask, 0, 0, w, h);
+  const ma = wx.getImageData(0, 0, w, h).data;
+  const p = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) p[i] = ma[i * 4 + 3] / 255;
+
+  const r = Math.max(4, Math.round(Math.max(w, h) / 160));
+  const q = guidedFilter(guide, p, w, h, r, 1e-3);
+  for (let i = 0; i < q.length; i++) q[i] = Math.max(0, Math.min(1, (q[i] - 0.25) / 0.5));
+  cleanBlobs(q, w, h);
+
+  const small = canvas(w, h);
+  const sx = small.getContext("2d")!;
+  const sd = sx.createImageData(w, h);
+  for (let i = 0; i < w * h; i++) sd.data[i * 4 + 3] = Math.round(q[i] * 255);
+  sx.putImageData(sd, 0, 0);
   const fullMask = canvas(W, H);
   const fm = fullMask.getContext("2d", { willReadFrequently: true })!;
   fm.imageSmoothingQuality = "high";
-  fm.filter = `blur(${Math.max(0.6, Math.max(W, H) / 1800)}px)`;
-  fm.drawImage(mask, 0, 0, W, H);
-  fm.filter = "none";
-  // choke the edge a little so no rim of the old background is left around the product
-  const md = fm.getImageData(0, 0, W, H);
-  const a = md.data;
-  for (let i = 3; i < a.length; i += 4) {
-    const v = a[i];
-    a[i] = v <= 70 ? 0 : v >= 235 ? 255 : Math.round(((v - 70) / 165) * 255);
-  }
-  fm.putImageData(md, 0, 0);
+  fm.drawImage(small, 0, 0, W, H);
 
-  const enhancedFull = enhance(rawFull, castGains(rawFull, a));
+  const alpha = fm.getImageData(0, 0, W, H).data;
+  const enhancedFull = enhance(rawFull, castGains(rawFull, alpha));
+  return recut({ rawFull, enhancedFull, mask: fullMask });
+}
 
-  // bounds
+/** Cut the product out with the (possibly hand-edited) mask. */
+export function recut(c: { rawFull: HTMLCanvasElement; enhancedFull: HTMLCanvasElement; mask: HTMLCanvasElement }): Cutout {
+  const { rawFull, enhancedFull, mask } = c;
+  const W = rawFull.width, H = rawFull.height;
+  const a = mask.getContext("2d", { willReadFrequently: true })!.getImageData(0, 0, W, H).data;
   let x0 = W, y0 = H, x1 = 0, y1 = 0;
   for (let y = 0; y < H; y += 2) {
     for (let x = 0; x < W; x += 2) {
@@ -289,19 +416,19 @@ export function finishCutout(rawFull: HTMLCanvasElement, mask: CanvasImageSource
   y0 = Math.max(0, y0 - pad);
   x1 = Math.min(W, x1 + pad);
   y1 = Math.min(H, y1 + pad);
-
   const cut = (photo: HTMLCanvasElement) => {
     const full = canvas(W, H);
     const fx = full.getContext("2d")!;
-    fx.drawImage(fullMask, 0, 0);
+    fx.drawImage(mask, 0, 0);
     fx.globalCompositeOperation = "source-in";
     fx.drawImage(photo, 0, 0);
     const crop = canvas(x1 - x0, y1 - y0);
     crop.getContext("2d")!.drawImage(full, x0, y0, crop.width, crop.height, 0, 0, crop.width, crop.height);
     return crop;
   };
-  return { raw: cut(rawFull), enhanced: cut(enhancedFull), rawFull, enhancedFull };
+  return { raw: cut(rawFull), enhanced: cut(enhancedFull), rawFull, enhancedFull, mask };
 }
+
 
 /* ------------------------------------------------------------------ */
 /* 3. backgrounds + "Quality style" placement                          */
