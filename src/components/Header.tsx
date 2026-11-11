@@ -45,10 +45,25 @@ function AnnouncementText({ text }: { text: string }) {
   );
 }
 
-/** Desktop dropdown for a top-level item with children. */
+/** Photo shown in the mega-menu for a top-level category (by its ?category= key). */
+const MENU_PHOTOS: Record<string, string> = {
+  "women-shoes": "photo-1605733160314-4fc7dac4bb16",
+  jewelry: "photo-1617038220319-276d3cfab638",
+  bags: "photo-1624687943971-e86af76d57de",
+};
+const menuPhoto = (href: string) => {
+  const key = /[?&]category=([^&]+)/.exec(href)?.[1];
+  const id = key ? MENU_PHOTOS[decodeURIComponent(key)] : undefined;
+  return id ? `https://images.unsplash.com/${id}?auto=format&fit=crop&w=640&q=80` : "";
+};
+
+/** Desktop mega-menu for a top-level item with children: a full-width panel under the header. */
 function Dropdown({ item }: { item: MenuItem }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const show = () => { if (timer.current) clearTimeout(timer.current); setOpen(true); };
+  const hide = () => { if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(() => setOpen(false), 140); };
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
@@ -57,23 +72,51 @@ function Dropdown({ item }: { item: MenuItem }) {
     document.addEventListener("keydown", onKey);
     return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey); };
   }, [open]);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  const photo = menuPhoto(item.href);
+  const kids = item.children || [];
+
   return (
-    <div ref={ref} className="relative" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
-      <div className="flex items-center">
+    <div ref={ref} onMouseEnter={show} onMouseLeave={hide}>
+      <div className={`flex items-center border-b-2 transition-colors ${open ? "border-ink" : "border-transparent"}`}>
         <NavLink item={item} className="ps-3 pe-1 py-2.5 hover:text-golddark" />
         <button type="button" aria-expanded={open} aria-label={`תת־תפריט ${item.label}`} onClick={() => setOpen((o) => !o)} className="w-7 h-10 flex items-center justify-center hover:text-golddark">
           <ChevronLeft size={14} strokeWidth={2.2} className={`transition-transform ${open ? "rotate-90" : "-rotate-90"}`} />
         </button>
       </div>
       {open && (
-        <div className="absolute top-full right-0 pt-1 z-50">
-          <ul className="min-w-[200px] bg-white border border-line rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.12)] py-2">
-            {item.children!.map((c, i) => (
-              <li key={c.href + i}>
-                <NavLink item={c} onClick={() => setOpen(false)} className="block px-4 py-2.5 text-[15px] hover:bg-panel hover:text-golddark" />
-              </li>
-            ))}
-          </ul>
+        <div className="absolute inset-x-0 top-full z-50 bg-white border-t border-line shadow-[0_28px_40px_-24px_rgba(0,0,0,0.22)]">
+          <div className="container-site py-8 flex gap-10 items-stretch">
+            <div className="w-[210px] shrink-0 flex flex-col gap-2 pe-8 border-e border-line">
+              <span className="font-display font-bold text-[26px] leading-tight text-ink">{item.label}</span>
+              <span className="text-[13px] text-muted">{kids.length} קטגוריות</span>
+              <NavLink
+                item={{ ...item, label: `לכל ${item.label}`, children: undefined }}
+                onClick={() => setOpen(false)}
+                className="mt-auto self-start h-10 px-5 rounded-full bg-ink text-white text-[14px] font-bold flex items-center hover:text-white hover:opacity-90"
+              />
+            </div>
+            <ul className="flex-1 grid grid-cols-2 xl:grid-cols-3 gap-x-10 content-start">
+              {kids.map((c, i) => (
+                <li key={c.href + i}>
+                  <NavLink
+                    item={c}
+                    onClick={() => setOpen(false)}
+                    className="group/l flex items-center justify-between gap-3 py-3.5 border-b border-[#EEECE6] text-[16px] text-ink hover:text-golddark transition-colors"
+                  />
+                </li>
+              ))}
+            </ul>
+            {photo && (
+              <Link href={item.href} onClick={() => setOpen(false)} className="hidden xl:block relative w-[260px] shrink-0 aspect-[4/5] overflow-hidden bg-panel group/p">
+                <img src={photo} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover/p:scale-105" />
+                <span className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-black/60 to-transparent text-white flex flex-col gap-0.5">
+                  <span className="text-[12px] tracking-[2px] text-[#E8E4DA]">קולקציה חדשה</span>
+                  <span className="font-display font-bold text-[20px]">{item.label}</span>
+                </span>
+              </Link>
+            )}
+          </div>
         </div>
       )}
     </div>
