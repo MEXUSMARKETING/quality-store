@@ -25,7 +25,12 @@ export const CATEGORIES: Record<string, string> = {
   comfort: "נעלי נוחות",
   moccasins: "נעלי מוקסינים",
   slippers: "כפכפים",
-  jewelry: "תכשיטים ואקססוריז",
+  jewelry: "אקססוריז ושעונים",
+  earrings: "עגילים",
+  necklaces: "שרשראות",
+  bracelets: "צמידים",
+  watches: "שעונים",
+  rings: "טבעות",
   bags: "תיקים וארנקים",
 };
 
@@ -39,10 +44,18 @@ export const CATEGORY_PARENTS: Record<string, string> = {
   comfort: "women-shoes",
   moccasins: "women-shoes",
   slippers: "women-shoes",
+  earrings: "jewelry",
+  necklaces: "jewelry",
+  bracelets: "jewelry",
+  watches: "jewelry",
+  rings: "jewelry",
 };
 
 /** Sub-categories shown under "נעלי נשים" in the main menu, in order. */
 export const WOMEN_SHOES_SUBS = ["boots", "heels", "sandals", "large-sizes", "bridal", "comfort", "moccasins", "slippers"];
+
+/** Sub-categories shown under "אקססוריז ושעונים" in the main menu, in order. */
+export const ACCESSORIES_SUBS = ["earrings", "necklaces", "bracelets", "watches", "rings"];
 
 export const ORDER_STATUS: Record<string, { label: string; color: string }> = {
   new: { label: "חדשה", color: "#1F5FD6" },

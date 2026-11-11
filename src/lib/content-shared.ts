@@ -1,4 +1,4 @@
-import { CATEGORIES, STORE, WOMEN_SHOES_SUBS, waLink } from "./config";
+import { ACCESSORIES_SUBS, CATEGORIES, STORE, WOMEN_SHOES_SUBS, waLink } from "./config";
 
 /* Pure content types, defaults and validators for the home page, menus and info/blog pages.
    No server imports: safe for client components (admin editors, previews).
@@ -285,7 +285,11 @@ export function defaultMenus(): Menus {
         label: "נעלי נשים",
         children: WOMEN_SHOES_SUBS.map((k) => ({ href: `/shop?category=${k}`, label: CATEGORIES[k] })),
       },
-      { href: "/shop?category=jewelry", label: "תכשיטים ואקססוריז" },
+      {
+        href: "/shop?category=jewelry",
+        label: "אקססוריז ושעונים",
+        children: ACCESSORIES_SUBS.map((k) => ({ href: `/shop?category=${k}`, label: CATEGORIES[k] })),
+      },
       { href: "/shop?category=bags", label: "תיקים וארנקים" },
       { href: "/shop?sort=discount", label: "מבצעים" },
     ],
