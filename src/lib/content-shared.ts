@@ -1,4 +1,4 @@
-import { ACCESSORIES_SUBS, CATEGORIES, STORE, WOMEN_SHOES_SUBS, waLink } from "./config";
+import { ACCESSORIES_SUBS, BAGS_SUBS, CATEGORIES, STORE, WOMEN_SHOES_SUBS, waLink } from "./config";
 
 /* Pure content types, defaults and validators for the home page, menus and info/blog pages.
    No server imports: safe for client components (admin editors, previews).
@@ -266,7 +266,10 @@ export function sectionLive(s: HomeSection, today = israelToday()): boolean {
 /* MENUS                                                               */
 /* ================================================================== */
 
-export type MenuItem = { label: string; href: string; newTab?: boolean; children?: MenuItem[] };
+export type MenuItem = { label: string; href: string; newTab?: boolean; highlight?: boolean; children?: MenuItem[] };
+
+/** A menu item drawn as a red call-out button (e.g. OUTLET). */
+export const isHighlight = (i: MenuItem) => !!i.highlight || /^outlet$/i.test(i.label.trim());
 export type FooterColumn = { title: string; items: MenuItem[] };
 export type Menus = {
   announcement: { text: string; enabled: boolean; showPhone?: boolean };
@@ -290,8 +293,13 @@ export function defaultMenus(): Menus {
         label: "אקססוריז ושעונים",
         children: ACCESSORIES_SUBS.map((k) => ({ href: `/shop?category=${k}`, label: CATEGORIES[k] })),
       },
-      { href: "/shop?category=bags", label: "תיקים וארנקים" },
-      { href: "/shop?sort=discount", label: "מבצעים" },
+      {
+        href: "/shop?category=bags",
+        label: "תיקי נשים",
+        children: BAGS_SUBS.map((k) => ({ href: `/shop?category=${k}`, label: CATEGORIES[k] })),
+      },
+      { href: "/shop?category=luggage", label: "מזוודות" },
+      { href: "/shop?sort=discount", label: "OUTLET", highlight: true },
     ],
     footer: [
       {
@@ -335,6 +343,7 @@ function normItems(raw: unknown, depth: number, max = 30): MenuItem[] {
     if (!label || !href) continue;
     const it: MenuItem = { label, href };
     if (x.newTab) it.newTab = true;
+    if (x.highlight) it.highlight = true;
     if (depth > 1) {
       const ch = normItems(x.children, depth - 1, 20);
       if (ch.length) it.children = ch;

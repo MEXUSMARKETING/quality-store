@@ -31,7 +31,12 @@ export const CATEGORIES: Record<string, string> = {
   bracelets: "צמידים",
   watches: "שעונים",
   rings: "טבעות",
-  bags: "תיקים וארנקים",
+  bags: "תיקי נשים",
+  clutches: "קלאצים ותיקים קטנים",
+  "evening-bags": "תיקי אירועים וערב",
+  "shoulder-bags": "תיקי כתף",
+  "large-bags": "תיקים גדולים",
+  luggage: "מזוודות",
 };
 
 /** Parent of each built-in sub-category (used when the categories table is unavailable). */
@@ -49,6 +54,10 @@ export const CATEGORY_PARENTS: Record<string, string> = {
   bracelets: "jewelry",
   watches: "jewelry",
   rings: "jewelry",
+  clutches: "bags",
+  "evening-bags": "bags",
+  "shoulder-bags": "bags",
+  "large-bags": "bags",
 };
 
 /** Sub-categories shown under "נעלי נשים" in the main menu, in order. */
@@ -56,6 +65,9 @@ export const WOMEN_SHOES_SUBS = ["boots", "heels", "sandals", "large-sizes", "br
 
 /** Sub-categories shown under "אקססוריז ושעונים" in the main menu, in order. */
 export const ACCESSORIES_SUBS = ["earrings", "necklaces", "bracelets", "watches", "rings"];
+
+/** Sub-categories shown under "תיקי נשים" in the main menu, in order. */
+export const BAGS_SUBS = ["clutches", "evening-bags", "shoulder-bags", "large-bags"];
 
 export const ORDER_STATUS: Record<string, { label: string; color: string }> = {
   new: { label: "חדשה", color: "#1F5FD6" },

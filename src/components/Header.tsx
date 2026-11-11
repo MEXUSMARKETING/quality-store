@@ -5,7 +5,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { useCart } from "./CartProvider";
 import { BagIcon, ChevronLeft, CloseIcon, MenuIcon, SearchIcon, WhatsAppIcon } from "./Icons";
 import { STORE, waLink } from "@/lib/config";
-import { defaultMenus, type MenuItem, type Menus } from "@/lib/content-shared";
+import { defaultMenus, isHighlight, type MenuItem, type Menus } from "@/lib/content-shared";
 
 export type ShopStore = { name: string; city: string; address: string; phoneDisplay: string; whatsapp: string };
 
@@ -112,6 +112,8 @@ export default function Header({ menus, store }: { menus?: Menus; store?: ShopSt
               {m.main.map((n, i) =>
                 n.children && n.children.length ? (
                   <Dropdown key={n.href + i} item={n} />
+                ) : isHighlight(n) ? (
+                  <NavLink key={n.href + i} item={n} className="ms-1.5 self-center h-9 px-4 rounded-full bg-[#D21F2A] text-white font-extrabold tracking-wider text-[14px] flex items-center hover:bg-[#B3161F] hover:text-white" />
                 ) : (
                   <NavLink key={n.href + i} item={n} className="px-3 py-2.5 hover:text-golddark" />
                 )
@@ -156,7 +158,7 @@ export default function Header({ menus, store }: { menus?: Menus; store?: ShopSt
             </form>
             {m.main.map((n, i) => (
               <Fragment key={n.href + i}>
-                <NavLink item={n} onClick={() => setOpen(false)} className="py-3 text-[17px] font-medium border-b border-line" />
+                <NavLink item={n} onClick={() => setOpen(false)} className={isHighlight(n) ? "my-2 self-start h-10 px-5 rounded-full bg-[#D21F2A] text-white font-extrabold tracking-wider text-[15px] flex items-center hover:text-white" : "py-3 text-[17px] font-medium border-b border-line"} />
                 {n.children && n.children.length > 0 && (
                   <ul className="flex flex-col border-b border-line pb-1">
                     {n.children.map((c, j) => (
