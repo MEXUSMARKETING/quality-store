@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { db, hasDb } from "./db";
 import { getSetting } from "./site";
-import { CATEGORIES, COLORS, SIZES } from "./config";
+import { CATEGORIES, CATEGORY_PARENTS, COLORS, SIZES } from "./config";
 
 /* Catalog data managed in the admin: categories (table `categories`), sizes & colours
    (settings key `attributes`) and product reviews (table `reviews`).
@@ -35,7 +35,7 @@ function fallbackCategories(): Category[] {
   return Object.entries(CATEGORIES).map(([key, name], i) => ({
     key,
     name,
-    parent: null,
+    parent: CATEGORY_PARENTS[key] || null,
     description: "",
     image: "",
     banner: "",
@@ -73,7 +73,7 @@ async function ensureCategories(sql: any) {
   if (Number(c) === 0) {
     const rows = fallbackCategories();
     for (const r of rows) {
-      await sql`insert into categories (key, name, sort) values (${r.key}, ${r.name}, ${r.sort}) on conflict (key) do nothing`;
+      await sql`insert into categories (key, name, parent, sort) values (${r.key}, ${r.name}, ${r.parent}, ${r.sort}) on conflict (key) do nothing`;
     }
   }
   g.__qcatSeeded = true;

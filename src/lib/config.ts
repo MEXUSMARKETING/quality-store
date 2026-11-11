@@ -6,7 +6,7 @@ export const STORE = {
   whatsapp: "972542910333",
 };
 
-export const SIZES = ["35", "36", "37", "38", "39", "40", "41", "42"];
+export const SIZES = ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44"];
 
 export const COLORS: Record<string, { label: string; hex: string }> = {
   black: { label: "שחור", hex: "#141414" },
@@ -16,11 +16,33 @@ export const COLORS: Record<string, { label: string; hex: string }> = {
 };
 
 export const CATEGORIES: Record<string, string> = {
-  boots: "מגפונים",
-  heels: "נעלי עקב",
+  "women-shoes": "נעלי נשים",
+  boots: "מגפיים ומגפונים",
+  heels: "נעלי עקב וערב",
+  sandals: "סנדלים",
+  "large-sizes": "מידות גדולות 41–44",
+  bridal: "כלות וערב",
+  comfort: "נעלי נוחות",
+  moccasins: "נעלי מוקסינים",
+  slippers: "כפכפים",
   jewelry: "תכשיטים ואקססוריז",
   bags: "תיקים וארנקים",
 };
+
+/** Parent of each built-in sub-category (used when the categories table is unavailable). */
+export const CATEGORY_PARENTS: Record<string, string> = {
+  boots: "women-shoes",
+  heels: "women-shoes",
+  sandals: "women-shoes",
+  "large-sizes": "women-shoes",
+  bridal: "women-shoes",
+  comfort: "women-shoes",
+  moccasins: "women-shoes",
+  slippers: "women-shoes",
+};
+
+/** Sub-categories shown under "נעלי נשים" in the main menu, in order. */
+export const WOMEN_SHOES_SUBS = ["boots", "heels", "sandals", "large-sizes", "bridal", "comfort", "moccasins", "slippers"];
 
 export const ORDER_STATUS: Record<string, { label: string; color: string }> = {
   new: { label: "חדשה", color: "#1F5FD6" },

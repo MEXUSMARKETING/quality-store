@@ -1,4 +1,4 @@
-import { STORE, waLink } from "./config";
+import { CATEGORIES, STORE, WOMEN_SHOES_SUBS, waLink } from "./config";
 
 /* Pure content types, defaults and validators for the home page, menus and info/blog pages.
    No server imports: safe for client components (admin editors, previews).
@@ -280,12 +280,14 @@ export function defaultMenus(): Menus {
   return {
     announcement: { text: "משלוח חינם עד הבית | תשלום במזומן בעת המסירה", enabled: true, showPhone: true },
     main: [
-      { href: "/shop", label: "כל המגפונים" },
-      { href: "/shop?color=black", label: "שחור" },
-      { href: "/shop?color=brown", label: "חום וקוניאק" },
-      { href: "/shop?heel=high", label: "עקב גבוה" },
-      { href: "/shop?category=jewelry", label: "תכשיטים" },
-      { href: "/shop?category=bags", label: "תיקים" },
+      {
+        href: "/shop?category=women-shoes",
+        label: "נעלי נשים",
+        children: WOMEN_SHOES_SUBS.map((k) => ({ href: `/shop?category=${k}`, label: CATEGORIES[k] })),
+      },
+      { href: "/shop?category=jewelry", label: "תכשיטים ואקססוריז" },
+      { href: "/shop?category=bags", label: "תיקים וארנקים" },
+      { href: "/shop?sort=discount", label: "מבצעים" },
     ],
     footer: [
       {
