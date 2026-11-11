@@ -39,6 +39,7 @@ export default function Shell({ newOrders, alerts, logoutAction, perms, userName
     { label: "שיווק", items: [
       { href: "/admin/promotions", label: "מבצעים", icon: "percent", module: "promotions" },
       { href: "/admin/coupons", label: "קופונים", icon: "tag", module: "coupons" },
+      { href: "/admin/popups", label: "פופ־אפים", icon: "popup", module: "popups" },
       { href: "/admin/club", label: "מועדון לקוחות", icon: "heart", module: "coupons" },
       { href: "/admin/automations", label: "אוטומציות", icon: "zap", module: "automations" },
       { href: "/admin/reports", label: "דוחות ואנליטיקה", icon: "chart", module: "reports" },

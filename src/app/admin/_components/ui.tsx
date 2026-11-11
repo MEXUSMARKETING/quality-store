@@ -48,6 +48,7 @@ export const ICONS = {
   gift: "M4 11h16v10H4zM3 7h18v4H3zM12 7v14M12 7c-1.5-3-5-3.5-5-1s3.5 1 5 1c1.5 0 5 1.5 5-1s-3.5-2-5 1",
   pause: "M8 5v14M16 5v14",
   play: "M7 5l12 7-12 7z",
+  popup: "M3 5h18v14H3zM7 9h10M7 13h6M17 15l2 2",
 } as const;
 
 export function Icon({ name, size = 18, className = "", strokeWidth = 1.8 }: { name: keyof typeof ICONS; size?: number; className?: string; strokeWidth?: number }) {

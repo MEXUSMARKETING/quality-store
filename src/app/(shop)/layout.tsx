@@ -5,6 +5,8 @@ import { STORE, waLink } from "@/lib/config";
 import { getStoreInfo, STORE_DEFAULTS, type StoreInfo } from "@/lib/site";
 import { defaultMenus, getMenus, resolveMenus, type Menus } from "@/lib/content";
 import { WhatsAppIcon } from "@/components/Icons";
+import PopupHost from "@/components/popup/PopupHost";
+import { getLivePopups, type PublicPopup } from "@/lib/popups";
 
 /** a storefront page should never wait minutes; reads fall back to defaults well before this */
 export const maxDuration = 30;
@@ -23,6 +25,12 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
   } catch (e) {
     console.error("menus failed", e);
   }
+  let popups: PublicPopup[] = [];
+  try {
+    popups = await getLivePopups();
+  } catch (e) {
+    console.error("popups failed", e);
+  }
   const wa = store.whatsapp || STORE.whatsapp;
   const phone = store.phoneDisplay || STORE.phoneDisplay;
   const resolved = resolveMenus(menus, wa);
@@ -39,6 +47,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
       <Header menus={resolved} store={shopStore} />
       <main className="min-h-[60vh]">{children}</main>
       <Footer menus={resolved} store={shopStore} />
+      <PopupHost popups={popups} />
       <a
         href={waLink("שלום, אשמח לעזרה", wa)}
         target="_blank"

@@ -116,3 +116,12 @@ body { overflow-x: hidden; }
 @keyframes nx-fade-in { from { opacity: 0; } to { opacity: 1; } }
 .nx-fade { animation: nx-fade-in .2s ease-out; }
 @media (prefers-reduced-motion: reduce) { .nx-drawer, .nx-fade { animation: none; } }
+
+/* popups */
+@keyframes ppFade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes ppUp { from { opacity: 0; transform: translateY(18px) scale(.98) } to { opacity: 1; transform: none } }
+@keyframes ppSlide { from { opacity: 0; transform: translateY(100%) } to { opacity: 1; transform: none } }
+.pp-fade { animation: ppFade .25s ease both; }
+.pp-up { animation: ppUp .45s cubic-bezier(.2,.8,.2,1) both; }
+.pp-slide { animation: ppSlide .5s cubic-bezier(.2,.8,.2,1) both; }
+@media (prefers-reduced-motion: reduce) { .pp-fade, .pp-up, .pp-slide { animation: none; } }

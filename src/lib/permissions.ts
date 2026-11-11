@@ -14,6 +14,7 @@ export const MODULES = {
   reviews: "ביקורות",
   coupons: "קופונים ומועדון",
   promotions: "מבצעים",
+  popups: "פופ־אפים",
   reports: "דוחות",
   automations: "אוטומציות",
   homepage: "דף הבית",
@@ -51,7 +52,7 @@ export const ROLES: Record<string, { label: string; perms: PermissionMap }> = {
   },
   marketing_manager: {
     label: "מנהל שיווק",
-    perms: { dashboard: "view", coupons: "edit", promotions: "edit", automations: "edit", reports: "view", customers: "view", ai: "edit" },
+    perms: { dashboard: "view", coupons: "edit", promotions: "edit", popups: "edit", automations: "edit", reports: "view", customers: "view", ai: "edit" },
   },
 };
 
@@ -81,6 +82,7 @@ export function moduleForPath(path: string): Module | null {
     coupons: "coupons",
     club: "coupons",
     promotions: "promotions",
+    popups: "popups",
     reports: "reports",
     automations: "automations",
     homepage: "homepage",

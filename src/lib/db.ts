@@ -130,7 +130,7 @@ function client(): Sql {
 /** Bump when init() gains new DDL. Once the database is at this version, cold starts skip the DDL
  *  entirely (ALTER TABLE takes exclusive locks even when it changes nothing, and instances that
  *  start together would otherwise queue behind each other's locks). */
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 async function schemaCurrent(sql: Sql): Promise<boolean> {
   // No errors on purpose: this also runs inside the migration transaction, where an error would abort it.
@@ -412,8 +412,37 @@ async function migrate(sql: Sql) {
   // product variants: colours × sizes (v5)
   await sql`alter table products add column if not exists variants jsonb`;
 
+  // popups and the leads they collect (v6)
+  await sql`
+    create table if not exists popups (
+      id serial primary key,
+      name text not null,
+      active boolean not null default false,
+      priority integer not null default 100,
+      config jsonb not null default '{}'::jsonb,
+      starts_at timestamptz,
+      ends_at timestamptz,
+      views integer not null default 0,
+      clicks integer not null default 0,
+      submits integer not null default 0,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )`;
+  await sql`
+    create table if not exists popup_leads (
+      id serial primary key,
+      popup_id integer,
+      name text not null default '',
+      phone text not null default '',
+      email text not null default '',
+      message text not null default '',
+      page text not null default '',
+      created_at timestamptz not null default now()
+    )`;
+  await sql`create index if not exists popup_leads_popup_idx on popup_leads(popup_id, created_at desc)`;
+
   // Lock every table against Supabase's public API (the store talks to Postgres directly from its server).
-  for (const t of ["settings", "categories", "pages", "reviews", "automation_rules", "automation_runs", "admin_users", "login_history", "promotions"]) {
+  for (const t of ["settings", "categories", "pages", "reviews", "automation_rules", "automation_runs", "admin_users", "login_history", "promotions", "popups", "popup_leads"]) {
     await sql.unsafe(`alter table ${t} enable row level security`);
     await sql.unsafe(`revoke all on table ${t} from anon, authenticated`).catch(() => {});
   }
