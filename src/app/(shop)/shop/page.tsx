@@ -178,7 +178,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
       <nav aria-label="פירורי לחם" className="text-[13px] md:text-sm text-muted flex gap-2">
         <Link href="/">בית</Link>
         <span aria-hidden="true">/</span>
-        {parentCat && !q && (
+        {parentCat && !q && !outlet && (
           <>
             <Link href={`/shop?category=${parentCat.key}`}>{parentCat.name}</Link>
             <span aria-hidden="true">/</span>
@@ -214,7 +214,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
         {outlet && <span className="text-sm md:text-[15px] text-muted">{list.length} פריטים</span>}
         <div className="flex gap-2 overflow-x-auto no-scrollbar max-w-full">
           {Object.entries(SORTS).map(([k, label]) => (
-            <Link key={k} href={href({ sort: k })} className={chip(sort === k)}>
+            <Link key={k} href={href({ sort: k })} className={chip((sort || (outlet ? "discount" : "")) === k)}>
               {label}
             </Link>
           ))}
