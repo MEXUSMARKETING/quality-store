@@ -51,6 +51,8 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
   const q = one(searchParams.q).trim();
   const max = Number(one(searchParams.max)) || 0;
   const promo = one(searchParams.promo) === "1";
+  // OUTLET: everything that is discounted, across all categories. Old menu links used ?sort=discount alone.
+  const outlet = one(searchParams.outlet) === "1" || (sort === "discount" && !one(searchParams.category) && !q && !promo);
 
   const [all, cats, attrs, ratings] = await Promise.all([listProducts(), getCategories(), getAttributes(), getRatings()]);
   const cat = cats.find((c) => c.key === category);
@@ -67,19 +69,21 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
   const hasPromos = Object.keys(badges).length > 0;
   // "on sale" view: every product in a running promotion, across categories (unless a category was chosen)
   if (promo) list = (one(searchParams.category) || q ? list : all).filter((p) => badges[p.id]);
+  const pct = (p: Product) => (p.old_price && p.old_price > p.price ? 1 - p.price / p.old_price : 0);
+  if (outlet) list = (one(searchParams.category) ? list : all).filter((p) => pct(p) > 0 || badges[p.id]);
   if (color) list = list.filter((p) => hasColor(p, color, true));
   if (heel && HEELS[heel]) list = list.filter(HEELS[heel].test);
   // with a colour filter, the size must be in stock in that colour
   if (size) list = list.filter((p) => Number(stockFor(p, color && p.variants ? color : null)[size] || 0) > 0);
   if (max) list = list.filter((p) => p.price <= max);
 
-  const pct = (p: Product) => (p.old_price && p.old_price > p.price ? 1 - p.price / p.old_price : 0);
+  if (outlet && !sort) list = [...list].sort((a, b) => pct(b) - pct(a));
   if (sort === "price-asc") list = [...list].sort((a, b) => a.price - b.price);
   else if (sort === "price-desc") list = [...list].sort((a, b) => b.price - a.price);
   else if (sort === "discount") list = [...list].sort((a, b) => pct(b) - pct(a));
   else if (sort === "new") list = [...list].sort((a, b) => b.id - a.id);
 
-  const current: Record<string, string> = { category: category === "boots" ? "" : category, color, heel, size, sort, q, max: max ? String(max) : "", promo: promo ? "1" : "" };
+  const current: Record<string, string> = { category: category === "boots" ? "" : category, color, heel, size, sort: outlet && sort === "discount" ? "" : sort, q, max: max ? String(max) : "", promo: promo ? "1" : "", outlet: outlet ? "1" : "" };
   const href = (patch: Record<string, string>) => {
     const next = { ...current, ...patch };
     const sp = new URLSearchParams();
@@ -88,7 +92,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
     return "/shop" + (s ? "?" + s : "");
   };
 
-  const title = promo && !one(searchParams.category) && !q ? "מבצעים" : q ? `תוצאות עבור "${q}"` : category === "boots" && (!cat || cat.name === CATEGORIES.boots) ? DEFAULT_TITLE : cat?.name || CATEGORIES[category] || "קולקציה";
+  const title = outlet ? "OUTLET" : promo && !one(searchParams.category) && !q ? "מבצעים" : q ? `תוצאות עבור "${q}"` : category === "boots" && (!cat || cat.name === CATEGORIES.boots) ? DEFAULT_TITLE : cat?.name || CATEGORIES[category] || "קולקציה";
   const active = [
     color && { label: COLORS[color]?.label || color, href: href({ color: "" }) },
     heel && { label: "עקב " + (HEELS[heel]?.label || heel), href: href({ heel: "" }) },
@@ -239,7 +243,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
             </div>
           ) : (
             <div className="p-10 md:p-12 rounded-[22px] bg-panel text-center flex flex-col gap-3 items-center">
-              <b className="text-lg">{category !== "boots" && !q ? "הקטגוריה תעלה בקרוב" : "אין דגמים בבחירה הזו"}</b>
+              <b className="text-lg">{outlet ? "אין כרגע פריטים ב־OUTLET – בקרוב מבצעים חדשים" : category !== "boots" && !q ? "הקטגוריה תעלה בקרוב" : "אין דגמים בבחירה הזו"}</b>
               <Link href="/shop" className="btn btn-outline">לכל המגפונים</Link>
             </div>
           )}

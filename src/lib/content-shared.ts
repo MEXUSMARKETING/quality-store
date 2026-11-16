@@ -299,7 +299,7 @@ export function defaultMenus(): Menus {
         children: BAGS_SUBS.map((k) => ({ href: `/shop?category=${k}`, label: CATEGORIES[k] })),
       },
       { href: "/shop?category=luggage", label: "מזוודות" },
-      { href: "/shop?sort=discount", label: "OUTLET", highlight: true },
+      { href: "/shop?outlet=1", label: "OUTLET", highlight: true },
     ],
     footer: [
       {
