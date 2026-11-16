@@ -32,6 +32,8 @@ export async function generateMetadata({ searchParams }: { searchParams: SP }) {
   const key = one(searchParams.category) || "boots";
   const q = one(searchParams.q).trim();
   if (q) return { title: `חיפוש: ${q}` };
+  if (one(searchParams.outlet) === "1" || (one(searchParams.sort) === "discount" && !one(searchParams.category) && one(searchParams.promo) !== "1"))
+    return { title: "OUTLET – פריטים במחיר מוזל", description: "כל הפריטים במבצע ובמחיר מוזל, מההנחה הגדולה ביותר." };
   try {
     const c = (await getCategories()).find((x) => x.key === key);
     if (!c) return { title: "קולקציה" };
