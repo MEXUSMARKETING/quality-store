@@ -85,6 +85,9 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
   else if (sort === "discount") list = [...list].sort((a, b) => pct(b) - pct(a));
   else if (sort === "new") list = [...list].sort((a, b) => b.id - a.id);
 
+  // OUTLET hero numbers, over everything that is on sale (not just the filtered view)
+  const onSale = outlet ? all.filter((p) => pct(p) > 0 || badges[p.id]) : [];
+  const maxPct = Math.round(Math.max(0, ...onSale.map((p) => pct(p))) * 100);
   const current: Record<string, string> = { category: category === "boots" ? "" : category, color, heel, size, sort: outlet && sort === "discount" ? "" : sort, q, max: max ? String(max) : "", promo: promo ? "1" : "", outlet: outlet ? "1" : "" };
   const href = (patch: Record<string, string>) => {
     const next = { ...current, ...patch };
@@ -183,12 +186,32 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
         )}
         <span>{title}</span>
       </nav>
-      <div className="flex items-end justify-between flex-wrap gap-4 pt-3 pb-5 md:pb-6">
-        <div>
+      {outlet && (
+        <section aria-labelledby="outlet-title" className="relative overflow-hidden mt-3 rounded-[22px] bg-ink text-white px-6 py-8 md:px-12 md:py-12">
+          {/* diagonal sale stripes + a big % mark, in the site's dark/gold line with the OUTLET red */}
+          <span aria-hidden="true" className="absolute inset-0 opacity-[.07] bg-[repeating-linear-gradient(135deg,#fff_0_2px,transparent_2px_22px)]" />
+          <span aria-hidden="true" className="absolute -left-6 md:left-6 top-1/2 -translate-y-1/2 font-display font-extrabold leading-none text-[220px] md:text-[300px] text-[#D21F2A]/25 select-none">%</span>
+          <div className="relative flex flex-col gap-3 md:gap-4 max-w-[620px]">
+            <span className="self-start h-8 px-3.5 rounded-full bg-[#D21F2A] text-white text-[13px] font-extrabold tracking-[.12em] flex items-center">SALE · מחירים מוזלים</span>
+            <h1 id="outlet-title" className="font-display font-extrabold tracking-[.06em] text-[52px] md:text-[88px] leading-[.95]">OUTLET</h1>
+            {maxPct > 0 && (
+              <p className="font-display font-bold text-[22px] md:text-[32px] leading-tight">
+                עד <span className="text-[#FF4A55]">{maxPct}%</span> הנחה
+              </p>
+            )}
+            <p className="text-[15px] md:text-[17px] text-soft leading-7">
+              {onSale.length} פריטים במחיר מוזל, מההנחה הגדולה ביותר. <span className="text-gold font-bold">עד גמר המלאי.</span>
+            </p>
+          </div>
+        </section>
+      )}
+      <div className={`flex items-end justify-between flex-wrap gap-4 pt-3 pb-5 md:pb-6 ${outlet ? "md:pt-6" : ""}`}>
+        <div className={outlet ? "sr-only" : ""}>
           <h1 className="font-display font-extrabold text-[30px] md:text-[44px]">{title}</h1>
           <span className="text-sm md:text-[15px] text-muted">{list.length} דגמים</span>
           {!q && cat?.description && <p className="pt-2 max-w-[640px] text-[15px] leading-7 text-[#45443F] whitespace-pre-line">{cat.description}</p>}
         </div>
+        {outlet && <span className="text-sm md:text-[15px] text-muted">{list.length} פריטים</span>}
         <div className="flex gap-2 overflow-x-auto no-scrollbar max-w-full">
           {Object.entries(SORTS).map(([k, label]) => (
             <Link key={k} href={href({ sort: k })} className={chip(sort === k)}>
@@ -240,7 +263,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
           {list.length ? (
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-3 gap-y-7 md:gap-x-5 md:gap-y-9">
               {list.map((p) => (
-                <ProductCard key={p.id} p={p} rating={ratings[p.id]} promo={badges[p.id]} color={color || undefined} palette={palette} />
+                <ProductCard key={p.id} p={p} rating={ratings[p.id]} promo={badges[p.id]} color={color || undefined} palette={palette} sale={outlet} />
               ))}
             </div>
           ) : (

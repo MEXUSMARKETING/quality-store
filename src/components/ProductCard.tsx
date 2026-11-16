@@ -30,6 +30,7 @@ export default function ProductCard({
   promo,
   color,
   palette,
+  sale = false,
 }: {
   p: Product;
   large?: boolean;
@@ -39,6 +40,8 @@ export default function ProductCard({
   color?: string;
   /** colour key → swatch, to draw the colour dots of variant products */
   palette?: Record<string, { hex: string; label: string }>;
+  /** OUTLET look: red discount tag and sale price */
+  sale?: boolean;
 }) {
   const multi = hasVariants(p);
   const shown = multi && color && p.variants!.colors.some((c) => c.key === color) ? color : null;
@@ -48,7 +51,7 @@ export default function ProductCard({
   const soldOut = sizes.length === 0;
   const pct = p.old_price && p.old_price > p.price ? Math.round((1 - p.price / p.old_price) * 100) : null;
   const badge = soldOut ? "אזל מהמלאי" : sizes.length === 1 ? "מידה אחרונה" : pct ? `−${pct}%` : null;
-  const badgeCls = soldOut ? "bg-white text-muted" : sizes.length === 1 ? "bg-white text-ink" : "bg-gold text-ink";
+  const badgeCls = soldOut ? "bg-white text-muted" : sizes.length === 1 ? "bg-white text-ink" : sale ? "bg-[#D21F2A] text-white" : "bg-gold text-ink";
 
   return (
     <Link href={`/product/${p.slug}${shown ? `?color=${shown}` : ""}`} className="group flex flex-col gap-3">
@@ -61,7 +64,8 @@ export default function ProductCard({
         {(badge || (promo && !soldOut)) && (
           <span className="absolute top-3 right-3 md:top-4 md:right-4 flex flex-col items-end gap-1.5">
             {promo && !soldOut && <span className="text-[12px] md:text-[13px] font-extrabold px-2.5 md:px-3 py-1 md:py-1.5 rounded-full bg-gold text-ink">{promo}</span>}
-            {badge && !(promo && badge.startsWith("−")) && <span className={`text-[12px] md:text-[13px] font-bold px-2.5 md:px-3 py-1 md:py-1.5 rounded-full ${promo ? "bg-white text-ink" : badgeCls}`}>{badge}</span>}
+            {sale && pct && !soldOut && sizes.length === 1 && <span className="text-[12px] md:text-[13px] font-extrabold px-2.5 md:px-3 py-1 md:py-1.5 rounded-full bg-[#D21F2A] text-white">−{pct}%</span>}
+            {badge && !(promo && badge.startsWith("−") && !sale) && <span className={`text-[12px] md:text-[13px] font-bold px-2.5 md:px-3 py-1 md:py-1.5 rounded-full ${promo ? "bg-white text-ink" : badgeCls}`}>{badge}</span>}
           </span>
         )}
       </div>
@@ -84,7 +88,7 @@ export default function ProductCard({
           <RatingLine rating={rating} />
         </div>
         <div className="flex flex-col items-end shrink-0">
-          <span className={`font-display font-bold ${large ? "text-[20px] md:text-[22px]" : "text-[17px] md:text-[19px]"}`}>{shekel(p.price)}</span>
+          <span className={`font-display font-bold ${sale && pct ? "text-[#C81E28]" : ""} ${large ? "text-[20px] md:text-[22px]" : "text-[17px] md:text-[19px]"}`}>{shekel(p.price)}</span>
           {p.old_price && p.old_price > p.price && <span className="text-[13px] text-muted line-through">{shekel(p.old_price)}</span>}
         </div>
       </div>
