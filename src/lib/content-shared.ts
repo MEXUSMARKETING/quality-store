@@ -154,7 +154,7 @@ export function defaultSections(): HomeSection[] {
       items: [
         { title: "תשלום מאובטח", sub: "אשראי, Bit או מזומן בעת המסירה", icon: "card" },
         { title: "משלוח מהיר", sub: "חינם עד דלת הבית", icon: "truck" },
-        { title: "מחירים ללא תחרות", sub: "עד {maxPct}% הנחה על הקולקציה", icon: "tag" },
+        { title: "מחירים משתלמים", sub: "עד {maxPct}% הנחה על הקולקציה", icon: "tag" },
         { title: "שירות אישי באיכות גבוהה", sub: "זמינים לך בוואטסאפ", icon: "star" },
       ],
     },
