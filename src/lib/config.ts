@@ -6,7 +6,7 @@ export const STORE = {
   whatsapp: "972542910333",
 };
 
-export const SIZES = ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44"];
+export const SIZES = ["36", "37", "38", "39", "40", "41"];
 
 export const COLORS: Record<string, { label: string; hex: string }> = {
   black: { label: "שחור", hex: "#141414" },

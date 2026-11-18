@@ -48,7 +48,7 @@ export default function ClubSignup() {
       <Submit />
       {state?.error && <p role="alert" className="sm:col-span-3 text-[#F2B8A2] text-sm font-bold">{state.error}</p>}
       <label className="sm:col-span-3 flex items-center gap-2.5 text-[13px] text-soft">
-        <input type="checkbox" name="consent" defaultChecked className="w-[18px] h-[18px] accent-gold" />
+        <input type="checkbox" name="consent" className="w-[18px] h-[18px] accent-gold" />
         אני מאשרת קבלת עדכונים ומבצעים ב־SMS ובמייל
       </label>
     </form>

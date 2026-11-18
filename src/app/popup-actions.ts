@@ -32,7 +32,7 @@ export async function submitPopupLead(
   try {
     await addPopupLead({ popup_id: p.id, name, phone, email, message, page: clean(d.page, 200) });
     if (c.consent && d.consent && phone) {
-      await addClubMember({ name, phone, email }).catch((e) => console.error("club join from popup failed", e));
+      await addClubMember({ name, phone, email, consent: true }).catch((e) => console.error("club join from popup failed", e));
     }
     await countPopupEvent(p.id, "submit").catch(() => {});
   } catch (e) {

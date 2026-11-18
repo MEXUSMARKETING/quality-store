@@ -286,11 +286,11 @@ export async function bestSellerIds(): Promise<number[]> {
 
 /* ---------------- club ---------------- */
 
-export async function addClubMember(m: { name: string; phone: string; email: string }) {
+export async function addClubMember(m: { name: string; phone: string; email: string; consent?: boolean }) {
   const sql = await db();
   await sql`insert into club_members (name, phone, email) values (${m.name}, ${m.phone}, ${m.email})`;
   try {
-    await upsertCustomer({ phone: m.phone, name: m.name, email: m.email, consent: true });
+    await upsertCustomer({ phone: m.phone, name: m.name, email: m.email, consent: m.consent === true });
   } catch (e) {
     console.error("customer upsert failed", e);
   }

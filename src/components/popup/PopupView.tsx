@@ -83,7 +83,7 @@ export default function PopupView({ config: c, contained, compact, coupon, onClo
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [revealed, setRevealed] = useState("");
-  const [consent, setConsent] = useState(true);
+  const [consent, setConsent] = useState(false);
   const firstRef = useRef<HTMLElement | null>(null);
 
   const isDone = forceDone || done;

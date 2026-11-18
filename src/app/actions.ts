@@ -60,13 +60,14 @@ export async function joinClub(_: ActionResult | null, fd: FormData): Promise<Ac
   const name = clean(fd.get("name"), 80);
   const phone = clean(fd.get("phone"), 30);
   const email = clean(fd.get("email"), 120);
+  const consent = fd.get("consent") === "on";
   if (!name || phone.replace(/\D/g, "").length < 9) return { ok: false, error: "נא למלא שם ומספר טלפון תקין" };
   if (email && !/^\S+@\S+\.\S+$/.test(email)) return { ok: false, error: "כתובת המייל לא תקינה" };
   if (!hasDb()) {
     return { ok: true, whatsapp: waLink(`שלום, אשמח להצטרף למועדון הלקוחות.\nשם: ${name}\nטלפון: ${phone}\nמייל: ${email}`) };
   }
   try {
-    await addClubMember({ name, phone, email });
+    await addClubMember({ name, phone, email, consent });
     return { ok: true };
   } catch {
     return { ok: false, error: "משהו השתבש, נסי שוב" };

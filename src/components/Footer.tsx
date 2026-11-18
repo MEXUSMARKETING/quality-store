@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { LockIcon } from "./Icons";
 import { STORE } from "@/lib/config";
 import { defaultMenus, resolveMenus, type MenuItem, type Menus } from "@/lib/content-shared";
 import type { ShopStore } from "./Header";
@@ -39,7 +38,6 @@ export default function Footer({ menus, store }: { menus?: Menus; store?: ShopSt
       </div>
       <div className="container-site py-5 border-t border-[#2A2925] flex flex-wrap justify-between gap-2.5 text-[13px] text-[#8C8980]">
         <span>© Quality {new Date().getFullYear()} · כל הזכויות שמורות</span>
-        <span className="flex items-center gap-1.5"><LockIcon size={14} strokeWidth={2} /> אתר מאובטח SSL</span>
       </div>
     </footer>
   );
