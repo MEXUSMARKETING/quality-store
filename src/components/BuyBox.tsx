@@ -44,11 +44,14 @@ export default function BuyBox({ product, sizes }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variant?.key]);
 
-  // the sticky mobile bar appears only once the real button has scrolled out of view
+  // The sticky mobile bar appears only once the real button has scrolled ABOVE the
+  // viewport. On a phone the button starts below the fold, so "not intersecting" on
+  // its own would put the bar up at the top of the page, before she has even seen
+  // the sizes; boundingClientRect.top < 0 tells the two cases apart.
   useEffect(() => {
     const el = ctaRef.current;
     if (!el || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(([e]) => setCtaGone(!e.isIntersecting), { threshold: 0 });
+    const io = new IntersectionObserver(([e]) => setCtaGone(!e.isIntersecting && e.boundingClientRect.top < 0), { threshold: 0 });
     io.observe(el);
     return () => io.disconnect();
   }, []);
