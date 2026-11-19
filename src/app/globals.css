@@ -151,3 +151,32 @@ body { overflow-x: hidden; }
   outline-offset: 2px;
 }
 @media (prefers-reduced-motion: reduce) { .skip-link { transition: none; } }
+
+/* פס קנייה דביק בתחתית המסך, בטלפון בלבד. מופיע רק אחרי שכפתור הקנייה המקורי
+   יצא מהמסך, כדי שלקוחה שגללה לבדוק מידות ומשלוח לא תישאר בלי כפתור. */
+.buybar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 45;
+  background: #fff;
+  border-top: 1px solid #E2DFD8;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  box-shadow: 0 -6px 20px rgba(0, 0, 0, .09);
+  animation: buybarUp .22s ease both;
+}
+@keyframes buybarUp { from { transform: translateY(100%); } to { transform: none; } }
+
+/* כל עוד הפס מוצג: שומרים מקום בתחתית העמוד ומרימים את כפתור הוואטסאפ מעליו,
+   כדי ששניהם לא יסתירו תוכן ולא יכסו זה את זה. */
+body.has-buybar { padding-bottom: 86px; }
+body.has-buybar .wa-fab { bottom: calc(86px + 12px); }
+.wa-fab { transition: bottom .2s ease; }
+@media (min-width: 768px) {
+  body.has-buybar { padding-bottom: 0; }
+  body.has-buybar .wa-fab { bottom: 1.25rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .buybar { animation: none; }
+  .wa-fab { transition: none; }
+}

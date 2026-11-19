@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCart } from "./CartProvider";
 import { ColorPicker, useVariant } from "./ProductVariants";
 import { HeartIcon, WhatsAppIcon } from "./Icons";
@@ -24,6 +24,10 @@ export default function BuyBox({ product, sizes }: Props) {
   const [need, setNeed] = useState(false);
   const [added, setAdded] = useState(false);
   const [fav, setFav] = useState(false);
+  /** the real add-to-cart row, and the size grid we send the shopper back to */
+  const ctaRef = useRef<HTMLDivElement>(null);
+  const sizesRef = useRef<HTMLDivElement>(null);
+  const [ctaGone, setCtaGone] = useState(false);
 
   const base = sizes && sizes.length ? sizes : SIZES;
   // configured order first; sizes with stock that are not in the list are appended in numeric order
@@ -40,6 +44,25 @@ export default function BuyBox({ product, sizes }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variant?.key]);
 
+  // the sticky mobile bar appears only once the real button has scrolled out of view
+  useEffect(() => {
+    const el = ctaRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => setCtaGone(!e.isIntersecting), { threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const barOn = ctaGone && !soldOut;
+
+  // the body class lifts the floating WhatsApp button clear of the bar and keeps the
+  // last of the page reachable; it is removed again when the bar goes away
+  useEffect(() => {
+    if (!barOn) return;
+    document.body.classList.add("has-buybar");
+    return () => document.body.classList.remove("has-buybar");
+  }, [barOn]);
+
   const onAdd = () => {
     if (!size) {
       setNeed(true);
@@ -47,6 +70,15 @@ export default function BuyBox({ product, sizes }: Props) {
     }
     add({ productId: product.id, slug: product.slug, name: product.name, image, size, ...(variant ? { color: variant.key, colorName: variant.label } : {}), qty: 1, price: product.price });
     setAdded(true);
+  };
+
+  const onBarAdd = () => {
+    if (!size) {
+      setNeed(true);
+      sizesRef.current?.scrollIntoView({ block: "center" });
+      return;
+    }
+    onAdd();
   };
 
   return (
@@ -57,7 +89,7 @@ export default function BuyBox({ product, sizes }: Props) {
           <span className="text-[15px]"><b>מידה:</b> {size || "לא נבחרה"}</span>
           <Link href="/info/sizes" className="text-sm underline">מדריך מידות</Link>
         </div>
-        <div className="grid grid-cols-4 sm:grid-cols-8 lg:grid-cols-4 xl:grid-cols-8 gap-2">
+        <div ref={sizesRef} className="grid grid-cols-4 sm:grid-cols-8 lg:grid-cols-4 xl:grid-cols-8 gap-2">
           {allSizes.map((s) => {
             const out = Number(stock[s] || 0) <= 0;
             const on = size === s;
@@ -81,7 +113,7 @@ export default function BuyBox({ product, sizes }: Props) {
         {need && <span role="alert" className="text-sm text-[#A13A0D] font-bold">יש לבחור מידה לפני ההוספה לסל</span>}
       </div>
 
-      <div className="flex gap-2.5">
+      <div ref={ctaRef} className="flex gap-2.5">
         <button type="button" onClick={onAdd} disabled={soldOut} className="flex-1 h-[58px] rounded-[14px] bg-ink text-white text-[17px] font-bold disabled:opacity-50">
           {soldOut ? (variant ? `${variant.label} אזל` : "אזל מהמלאי") : `הוספה לסל · ₪${product.price}`}
         </button>
@@ -105,6 +137,26 @@ export default function BuyBox({ product, sizes }: Props) {
       >
         <WhatsAppIcon size={20} /> הזמנה מהירה בוואטסאפ
       </a>
+
+      {barOn && (
+        <div className="buybar md:hidden" role="group" aria-label="הוספה לסל">
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col shrink-0">
+              <span className="font-display font-bold text-[19px] leading-tight">₪{product.price}</span>
+              <span className="text-[12px] text-muted leading-tight">{size ? `מידה ${size}` : "בחרי מידה"}</span>
+            </div>
+            {added ? (
+              <Link href="/cart" className="flex-1 h-[52px] rounded-[14px] bg-ink text-white text-[16px] font-bold flex items-center justify-center hover:text-white">
+                נוסף לסל · לסל ולתשלום
+              </Link>
+            ) : (
+              <button type="button" onClick={onBarAdd} className="flex-1 h-[52px] rounded-[14px] bg-ink text-white text-[16px] font-bold">
+                הוספה לסל
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
