@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { db, hasDb } from "./db";
 import { SEED_WITH_IDS } from "./seed";
 import { addOrderEvent, markCouponUsed, upsertCustomer } from "./admin";
@@ -208,21 +209,50 @@ export async function adjustStock(sql: any, productId: number, size: string, col
 
 /* ---------------- orders ---------------- */
 
+/* /order/<number> is public and needs no sign-in, so a plain running number let anyone
+   read every order in the shop by counting upwards. The Q+id part stays, so the shop and
+   the customer still recognise the order, and the random part makes the address
+   unguessable. The alphabet drops O/0 and I/1 so a number read aloud is not ambiguous;
+   32 divides 256, so taking a random byte modulo its length stays uniform. */
+const NUMBER_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function orderSuffix(): string {
+  const bytes = crypto.randomBytes(6);
+  let out = "";
+  for (let i = 0; i < 6; i++) out += NUMBER_CHARS[bytes[i] % NUMBER_CHARS.length];
+  return out;
+}
+
+/** Orders placed in the last hour from this phone or this (hashed) IP – the order-form rate limit. */
+export async function recentOrderCount(phone: string, ipHash: string): Promise<number> {
+  if (!hasDb()) return 0;
+  const digits = String(phone || "").replace(/[^0-9]/g, "");
+  const ip = String(ipHash || "");
+  if (!digits && !ip) return 0;
+  const sql = await db();
+  const r = await sql`
+    select count(*)::int as n from orders
+    where created_at > now() - interval '1 hour'
+      and ((${digits} <> '' and regexp_replace(phone, '[^0-9]', '', 'g') = ${digits})
+        or (${ip} <> '' and ip_hash = ${ip}))`;
+  return Number(r[0]?.n || 0);
+}
+
 export async function createOrder(
-  o: Omit<Order, "id" | "number" | "status" | "created_at" | "payment_status" | "tracking">
+  o: Omit<Order, "id" | "number" | "status" | "created_at" | "payment_status" | "tracking">,
+  ipHash = ""
 ): Promise<string> {
   const sql = await db();
   const discount = Math.max(0, Number(o.discount || 0));
   const coupon = (o.coupon_code || "").toUpperCase();
   const promoDiscount = Math.max(0, Number(o.promo_discount || 0));
   const r = await sql`
-    insert into orders (customer_name, phone, email, city, street, apt, notes, shipping_method, payment_method, items, subtotal, total, discount, coupon_code, promo_discount, promotions)
+    insert into orders (customer_name, phone, email, city, street, apt, notes, shipping_method, payment_method, items, subtotal, total, discount, coupon_code, promo_discount, promotions, ip_hash)
     values (${o.customer_name}, ${o.phone}, ${o.email}, ${o.city}, ${o.street}, ${o.apt}, ${o.notes},
             ${o.shipping_method}, ${o.payment_method}, ${JSON.stringify(o.items)}::jsonb, ${o.subtotal}, ${o.total}, ${discount}, ${coupon},
-            ${promoDiscount}, ${JSON.stringify(o.promotions || [])}::jsonb)
+            ${promoDiscount}, ${JSON.stringify(o.promotions || [])}::jsonb, ${ipHash})
     returning id`;
   const id = Number(r[0].id);
-  const number = "Q" + (1000 + id);
+  const number = "Q" + (1000 + id) + "-" + orderSuffix();
   await sql`update orders set number=${number} where id=${id}`;
   // one transaction, so two orders for the same pair can't both read the old count
   await sql.begin(async (tx: any) => {
