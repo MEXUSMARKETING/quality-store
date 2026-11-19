@@ -56,15 +56,30 @@ export async function submitReview(_: ReviewFormState, fd: FormData): Promise<Re
         and ((${phone} <> '' and phone = ${phone}) or (${ip} <> '' and ip_hash = ${ip}))`;
     if (Number(n) >= MAX_PER_DAY) return { error: "שלחת כבר כמה ביקורות היום. אפשר לנסות שוב מחר." };
 
+    /* "Verified buyer" check. It used to expand o.items in SQL, but every jsonb column in
+       this database is stored double-encoded — the value is a JSON string, not an array —
+       so jsonb_array_elements failed with "cannot extract elements from a scalar". That
+       error was caught by the handler below, which means any shopper who typed her phone
+       number was told her review could not be sent. Reading the rows and checking them
+       here works whichever way the column is stored. */
     let verified = false;
     if (phone) {
-      const [o] = await sql`
-        select 1 from orders o, jsonb_array_elements(o.items) it
-        where regexp_replace(o.phone, '[^0-9]', '', 'g') = ${phone}
-          and o.status = 'delivered'
-          and (it->>'productId')::int = ${productId}
-        limit 1`;
-      verified = !!o;
+      const rows = await sql`
+        select items from orders
+        where regexp_replace(phone, '[^0-9]', '', 'g') = ${phone} and status = 'delivered'
+        limit 50`;
+      verified = rows.some((r: any) => {
+        const raw = r.items;
+        let list: any[] = [];
+        if (typeof raw === "string") {
+          try {
+            list = JSON.parse(raw) || [];
+          } catch {
+            list = [];
+          }
+        } else if (Array.isArray(raw)) list = raw;
+        return list.some((it) => Number(it?.productId) === productId);
+      });
     }
 
     await sql`
