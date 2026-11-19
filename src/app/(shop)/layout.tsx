@@ -44,8 +44,9 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
 
   return (
     <CartProvider>
+      <a href="#main-content" className="skip-link">דילוג לתוכן</a>
       <Header menus={resolved} store={shopStore} />
-      <main className="min-h-[60vh]">{children}</main>
+      <main id="main-content" tabIndex={-1} className="min-h-[60vh]">{children}</main>
       <Footer menus={resolved} store={shopStore} />
       <PopupHost popups={popups} />
       <a

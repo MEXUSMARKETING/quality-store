@@ -125,3 +125,29 @@ body { overflow-x: hidden; }
 .pp-up { animation: ppUp .45s cubic-bezier(.2,.8,.2,1) both; }
 .pp-slide { animation: ppSlide .5s cubic-bezier(.2,.8,.2,1) both; }
 @media (prefers-reduced-motion: reduce) { .pp-fade, .pp-up, .pp-slide { animation: none; } }
+
+/* נגישות: קישור "דילוג לתוכן". מוסתר לגמרי, ומופיע רק כשמגיעים אליו עם מקלדת.
+   מאפשר לדלג על 13 תחנות הניווט בכותרת ולהגיע ישר לתוכן העמוד. */
+.skip-link {
+  position: fixed;
+  top: -200px;
+  inset-inline-end: 1rem;
+  z-index: 100;
+  background: #0E0E0E;
+  color: #fff;
+  padding: .8rem 1.4rem;
+  border-radius: 0 0 .75rem .75rem;
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  box-shadow: 0 6px 20px rgba(0,0,0,.35);
+  transition: top .15s ease;
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 0;
+  color: #fff;
+  outline: 3px solid #C9A227;
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) { .skip-link { transition: none; } }
