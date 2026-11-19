@@ -54,9 +54,10 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
         target="_blank"
         rel="noopener"
         aria-label={`וואטסאפ ${phone}`}
-        className="fixed bottom-5 left-5 z-40 w-14 h-14 rounded-full bg-[#1F8A4C] text-white flex items-center justify-center shadow-lg hover:text-white"
+        className="wa-fab fixed bottom-4 left-4 md:bottom-5 md:left-5 z-40 w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#1F8A4C] text-white flex items-center justify-center shadow-lg hover:text-white"
       >
-        <WhatsAppIcon size={26} />
+        <span className="md:hidden"><WhatsAppIcon size={22} /></span>
+        <span className="hidden md:inline"><WhatsAppIcon size={26} /></span>
       </a>
     </CartProvider>
   );
