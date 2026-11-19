@@ -163,9 +163,10 @@ body { overflow-x: hidden; }
   border-top: 1px solid #E2DFD8;
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
   box-shadow: 0 -6px 20px rgba(0, 0, 0, .09);
-  animation: buybarUp .22s ease both;
 }
-@keyframes buybarUp { from { transform: translateY(100%); } to { transform: none; } }
+/* בלי אנימציה במכוון. הניסיון הראשון החליק את הפס מלמטה ב-translateY(100%),
+   ובבדיקה על האתר החי האנימציה נשארה תקועה בזמן 0 — כלומר הפס נשאר
+   73 פיקסל מתחת למסך ולא נראה בכלל. כפתור קנייה חייב להיות במקום בלי תלות במנוע אנימציה. */
 
 /* כל עוד הפס מוצג: שומרים מקום בתחתית העמוד ומרימים את כפתור הוואטסאפ מעליו,
    כדי ששניהם לא יסתירו תוכן ולא יכסו זה את זה. */
@@ -177,6 +178,5 @@ body.has-buybar .wa-fab { bottom: calc(86px + 12px); }
   body.has-buybar .wa-fab { bottom: 1.25rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .buybar { animation: none; }
   .wa-fab { transition: none; }
 }
