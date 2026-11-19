@@ -162,6 +162,8 @@ export default function CheckoutPage() {
   return (
     <form ref={formRef} action={action} className="container-site pt-6 pb-16 flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
       <input type="hidden" name="cart" value={JSON.stringify(items)} />
+      {/* honeypot – hidden from people and from screen readers; only bots fill it */}
+      <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute w-px h-px -m-px p-0 overflow-hidden whitespace-nowrap border-0" style={{ clip: "rect(0 0 0 0)" }} />
       <input type="hidden" name="coupon" value={coupon?.code || ""} />
       <div className="flex-1 w-full flex flex-col gap-4">
         <div className="flex items-center justify-between">

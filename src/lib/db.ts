@@ -212,6 +212,8 @@ async function migrate(sql: Sql) {
   await sql`alter table orders add column if not exists discount integer not null default 0`;
   await sql`alter table orders add column if not exists coupon_code text not null default ''`;
   await sql`alter table orders add column if not exists updated_at timestamptz not null default now()`;
+  // Salted hash only, for the order-form rate limit. The IP itself is never stored.
+  await sql`alter table orders add column if not exists ip_hash text not null default ''`;
 
   await sql`
     create table if not exists order_events (

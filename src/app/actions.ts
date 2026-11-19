@@ -1,7 +1,9 @@
 "use server";
 
+import crypto from "crypto";
+import { headers } from "next/headers";
 import { hasDb } from "@/lib/db";
-import { addClubMember, createOrder, getProductById } from "@/lib/store";
+import { addClubMember, createOrder, getProductById, recentOrderCount } from "@/lib/store";
 import { checkCoupon } from "@/lib/admin";
 import { priceCartRows } from "@/lib/promotions";
 import { getAttributes } from "@/lib/catalog";
@@ -74,7 +76,27 @@ export async function joinClub(_: ActionResult | null, fd: FormData): Promise<Ac
   }
 }
 
+/** Salted hash of the visitor's IP, for the order rate limit only. The IP itself is never stored. */
+function orderIpHash(): string {
+  try {
+    const h = headers();
+    const ip = (h.get("x-forwarded-for") || h.get("x-real-ip") || "").split(",")[0].trim();
+    if (!ip) return "";
+    return crypto.createHash("sha256").update(`${process.env.SESSION_SECRET || "quality-store"}|order|${ip}`).digest("hex").slice(0, 32);
+  } catch {
+    return "";
+  }
+}
+
+/** At most this many orders an hour from one phone or one IP. A real shopper never reaches it. */
+const MAX_ORDERS_PER_HOUR = 3;
+
 export async function placeOrder(_: ActionResult | null, fd: FormData): Promise<ActionResult> {
+  // Honeypot: the field is hidden from people and left empty by them. Bots fill every input.
+  // The reply is the same generic failure a real error gives, so a bot learns nothing.
+  if (String(fd.get("website") || "").trim()) {
+    return { ok: false, error: `לא הצלחנו לשמור את ההזמנה. אפשר להזמין בוואטסאפ ${STORE.phoneDisplay}` };
+  }
   const name = clean(fd.get("name"), 80);
   const phone = clean(fd.get("phone"), 30);
   const email = clean(fd.get("email"), 120);
@@ -99,6 +121,17 @@ export async function placeOrder(_: ActionResult | null, fd: FormData): Promise<
   if (!PAYMENT[payment]) return { ok: false, error: "אמצעי תשלום לא תקין" };
   if (shipping === "home" && (!city || !street)) return { ok: false, error: "נא למלא עיר ורחוב למשלוח" };
   if (!terms) return { ok: false, error: "יש לאשר את תקנון האתר" };
+
+  // Cash on delivery has no payment step to stop anyone, so every fake order would send a
+  // real courier. This caps how fast orders can come from one phone or one address.
+  const ipHash = orderIpHash();
+  try {
+    if (await recentOrderCount(phone, ipHash) >= MAX_ORDERS_PER_HOUR) {
+      return { ok: false, error: `כבר נקלטו כמה הזמנות מהפרטים האלה בשעה האחרונה. אפשר להזמין בוואטסאפ ${STORE.phoneDisplay}` };
+    }
+  } catch (e) {
+    console.error("order rate limit check failed", e); // a check that fails must not block a real order
+  }
 
   // Recompute everything from the catalogue so prices can't be changed in the browser
   const items: OrderItem[] = [];
@@ -187,7 +220,7 @@ export async function placeOrder(_: ActionResult | null, fd: FormData): Promise<
       coupon_code,
       promo_discount,
       promotions,
-    });
+    }, ipHash);
     return { ok: true, number, whatsapp: waLink(`${summary}\n\nמספר הזמנה: ${number}`) };
   } catch (e) {
     console.error(e);
