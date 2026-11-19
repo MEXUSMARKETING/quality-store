@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { getOrderByNumber } from "@/lib/store";
 import { PAYMENT, SHIPPING, STORE, shekel, waLink } from "@/lib/config";
 import { WhatsAppIcon } from "@/components/Icons";
@@ -8,6 +9,8 @@ export const metadata = { title: "ההזמנה התקבלה" };
 
 export default async function OrderPage({ params }: { params: { number: string } }) {
   const o = await getOrderByNumber(params.number);
+  // Without this any invented number rendered a cheerful "your order was received" page.
+  if (!o) notFound();
 
   return (
     <div className="container-site py-12 md:py-16 max-w-[640px]">
