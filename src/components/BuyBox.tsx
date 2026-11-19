@@ -45,15 +45,30 @@ export default function BuyBox({ product, sizes }: Props) {
   }, [variant?.key]);
 
   // The sticky mobile bar appears only once the real button has scrolled ABOVE the
-  // viewport. On a phone the button starts below the fold, so "not intersecting" on
-  // its own would put the bar up at the top of the page, before she has even seen
-  // the sizes; boundingClientRect.top < 0 tells the two cases apart.
+  // viewport. On a phone the button starts below the fold, so plain "is it visible"
+  // would put the bar up at the very top of the page, before she has seen the sizes.
+  // Read on scroll rather than with IntersectionObserver: an anchor jump or a
+  // restored scroll position can carry the button from below the fold to above it
+  // without ever entering the viewport, and an observer never fires for that.
   useEffect(() => {
     const el = ctaRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(([e]) => setCtaGone(!e.isIntersecting && e.boundingClientRect.top < 0), { threshold: 0 });
-    io.observe(el);
-    return () => io.disconnect();
+    if (!el) return;
+    let raf = 0;
+    const read = () => {
+      raf = 0;
+      setCtaGone(el.getBoundingClientRect().bottom < 0);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(read);
+    };
+    read();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, []);
 
   const barOn = ctaGone && !soldOut;
