@@ -186,7 +186,7 @@ export async function bulkUpdateProducts(ids: number[], op: BulkProductOp): Prom
 export async function adjustStock(sql: any, productId: number, size: string, color: string | null, delta: number): Promise<boolean> {
   const d = Math.round(Number(delta) || 0);
   if (!d || !size) return false;
-  const rows = await sql`select variants from products where id = ${productId} for update`;
+  const rows = await sql`select stock, variants from products where id = ${productId} for update`;
   if (!rows[0]) return false;
   const v: Variants | null = normVariants(rows[0].variants);
   if (v) {
@@ -199,11 +199,29 @@ export async function adjustStock(sql: any, productId: number, size: string, col
     await sql`update products set variants = ${JSON.stringify(v)}::jsonb, stock = ${JSON.stringify(aggregateStock(v))}::jsonb, updated_at = now() where id = ${productId}`;
     return true;
   }
-  await sql`
-    update products
-    set stock = jsonb_set(coalesce(stock, '{}'::jsonb), ARRAY[${size}]::text[], to_jsonb(greatest(coalesce((stock->>${size})::int, 0) + ${d}::int, 0)), true),
-        updated_at = now()
-    where id = ${productId}`;
+  /* Read-modify-write here rather than with jsonb_set, the way the variant branch above
+     already does it. Every jsonb column in this database is stored double-encoded — the
+     value is a JSON *string*, not an object — and jsonb_set on a string fails with
+     "cannot set path in scalar". That threw on every single order of a product without
+     colours: the order was already saved, the error surfaced as "we could not save your
+     order", and the shopper was told to try again. Doing it in JS works whichever way
+     the column happens to be stored. */
+  const raw = rows[0].stock;
+  let current: Record<string, number> = {};
+  if (typeof raw === "string") {
+    try {
+      current = JSON.parse(raw) || {};
+    } catch {
+      current = {};
+    }
+  } else if (raw && typeof raw === "object") {
+    current = raw as Record<string, number>;
+  }
+  const next = { ...current };
+  const after = Math.max(0, (Number(next[size]) || 0) + d);
+  if (after > 0) next[size] = after;
+  else delete next[size];
+  await sql`update products set stock = ${JSON.stringify(next)}::jsonb, updated_at = now() where id = ${productId}`;
   return true;
 }
 
@@ -254,10 +272,20 @@ export async function createOrder(
   const id = Number(r[0].id);
   const number = "Q" + (1000 + id) + "-" + orderSuffix();
   await sql`update orders set number=${number} where id=${id}`;
-  // one transaction, so two orders for the same pair can't both read the old count
-  await sql.begin(async (tx: any) => {
-    for (const it of o.items) await adjustStock(tx, it.productId, it.size, it.color || null, -it.qty);
-  });
+  /* One transaction, so two orders for the same pair can't both read the old count.
+     The order row already exists at this point, so a stock failure must never reach the
+     shopper as "we could not save your order" — she would simply order again and the shop
+     would get a duplicate. It is logged, noted on the order, and the sale stands. */
+  try {
+    await sql.begin(async (tx: any) => {
+      for (const it of o.items) await adjustStock(tx, it.productId, it.size, it.color || null, -it.qty);
+    });
+  } catch (e) {
+    console.error("stock adjust failed for order " + id, e);
+    try {
+      await addOrderEvent(id, "note", "עדכון המלאי האוטומטי נכשל. יש לבדוק את המלאי ידנית.", "מערכת");
+    } catch {}
+  }
   // Admin v2 side effects: never let them break the order itself
   try {
     await addOrderEvent(id, "created", "ההזמנה התקבלה מהאתר", "לקוח");
