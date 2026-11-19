@@ -69,9 +69,9 @@ export default function ProductCard({
           </span>
         )}
       </div>
-      <div className="flex justify-between items-start gap-3 px-0.5 md:px-1">
+      <div className="flex flex-col gap-1 md:flex-row md:justify-between md:items-start md:gap-3 px-0.5 md:px-1">
         <div className="flex flex-col gap-0.5 min-w-0">
-          <span className={`font-bold ${large ? "text-[17px] md:text-[18px]" : "text-[15px] md:text-[17px]"}`}>{p.name}</span>
+          <span className={`font-bold leading-snug line-clamp-2 min-h-[2.6em] md:min-h-0 ${large ? "text-[17px] md:text-[18px]" : "text-[15px] md:text-[17px]"}`}>{p.name}</span>
           <span className="text-[13px] md:text-[14px] text-muted">
             {p.heel ? `עקב ${p.heel} ס״מ` : ""}
             {p.heel && sizes.length ? " · " : ""}
@@ -87,7 +87,7 @@ export default function ProductCard({
           )}
           <RatingLine rating={rating} />
         </div>
-        <div className="flex flex-col items-end shrink-0">
+        <div className="flex flex-row items-baseline gap-2 shrink-0 md:flex-col md:items-end md:gap-0">
           <span className={`font-display font-bold ${sale && pct ? "text-[#C81E28]" : ""} ${large ? "text-[20px] md:text-[22px]" : "text-[17px] md:text-[19px]"}`}>{shekel(p.price)}</span>
           {p.old_price && p.old_price > p.price && <span className="text-[13px] text-muted line-through">{shekel(p.old_price)}</span>}
         </div>
